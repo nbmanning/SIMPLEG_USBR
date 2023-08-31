@@ -34,7 +34,7 @@ rm(list = ls())
 library(dplyr)
 library(ggplot2)
 library(sf) 
-library(stringr) # for str_pad
+library(stringr) # for str_pad() & str_to_title()
 library(tigris) # for FIPS database
 library(fiftystater) # for us state map; note: had to install from GitHub for my current R, version 4.2.2 
 library(RColorBrewer)
@@ -114,13 +114,13 @@ df2 <- df %>% select("year", "state", "name", "fips",
 # create corn/soy data by combining production and area harvest, then calculating yield 
 df2 <- df2 %>% 
   mutate(
-    cornsoyArea = cornArea + soybeansArea,
-    cornsoyProd = cornProd + soybeansProd,
-    cornsoyYield = cornsoyProd/cornsoyArea
+    cornSoyArea = cornArea + soybeansArea,
+    cornSoyProd = cornProd + soybeansProd,
+    cornSoyYield = cornSoyProd/cornSoyArea
   )
 
 # write as shapefile for easier plotting - OMIT; DIDN'T WORK
-# st_write(df2, dsn = paste0(file_path, "usda_cornsoy_hpy.tif"), driver = "ESRI Shapefile")
+# st_write(df2, dsn = paste0(file_path, "usda_cornSoy_hpy.tif"), driver = "ESRI Shapefile")
 
 # set as sf for mapping - OMIT BECAUSE THIS JUST GETS POINTS FOR EACH COUNTY
 # df <- st_as_sf(df, coords = c("longitude", "latitude"))
@@ -271,12 +271,12 @@ F_plot_single <- function(data, var, yr){
 }
 
 ### 1.3.1: Apply Single Year Single Var ------
-F_plot_single(df2_range, "cornsoyProd", yr = 2012)
+F_plot_single(df2_range, "cornSoyProd", yr = 2012)
 
 # get prod, area, yield vars
 var_names <- c("cornArea", "cornProd", "cornYield", 
                "soybeansArea", "soybeansProd",  "soybeansYield",
-               "cornsoyArea", "cornsoyProd", "cornsoyYield") 
+               "cornSoyArea", "cornSoyProd", "cornSoyYield") 
 
 # # # UNCOMMENT TO RUN OVER ALL VARIABLES # # #
 ##### TO-DO: Fix Legend Labels and Title ----
@@ -363,7 +363,7 @@ F_plot_facet(df2_range, "soybeansProd")
 # get prod, area, yield vars
 var_names <- c("cornArea", "cornProd", "cornYield", 
                "soybeansArea", "soybeansProd",  "soybeansYield",
-               "cornsoyArea", "cornsoyProd", "cornsoyYield"
+               "cornSoyArea", "cornSoyProd", "cornSoyYield"
                ) 
 
 lapply(var_names, F_plot_facet, data = df2_range)
@@ -375,55 +375,46 @@ df_diff <- df2_range %>%
   group_by(state, name) %>%
   mutate(
     # Difference = 2012 - 2011 per county
-    csDiffYield = cornsoyYield - lag(cornsoyYield),
-    csDiffProd = cornsoyProd - lag(cornsoyProd),
-    csDiffArea = cornsoyArea - lag(cornsoyArea),
+    # cornSoyDiffYield = cornSoyYield - lag(cornSoyYield),
+    # cornSoyDiffProd = cornSoyProd - lag(cornSoyProd),
+    # cornSoyDiffArea = cornSoyArea - lag(cornSoyArea),
     
     # Percent Change = ( (2012value - 2011value) / 2011value ) *100
-    csDiffPctYield = ((cornsoyYield - lag(cornsoyYield))/lag(cornsoyYield))*100,
-    csDiffPctProd = ((cornsoyProd - lag(cornsoyProd))/lag(cornsoyProd))*100,
-    csDiffPctArea = ((cornsoyArea - lag(cornsoyArea))/lag(cornsoyArea))*100
+    # cornSoy
+    cornSoyDiffPctYield = ((cornSoyYield - lag(cornSoyYield))/lag(cornSoyYield))*100,
+    cornSoyDiffPctProd = ((cornSoyProd - lag(cornSoyProd))/lag(cornSoyProd))*100,
+    cornSoyDiffPctArea = ((cornSoyArea - lag(cornSoyArea))/lag(cornSoyArea))*100,
+    
+    # Corn
+    cornDiffPctYield = ((cornYield - lag(cornYield))/lag(cornYield))*100,
+    cornDiffPctProd = ((cornProd - lag(cornProd))/lag(cornProd))*100,
+    cornDiffPctArea = ((cornArea - lag(cornArea))/lag(cornArea))*100,
+    
+    # Soy
+    soyDiffPctYield = ((soybeansYield - lag(soybeansYield))/lag(soybeansYield))*100,
+    soyDiffPctProd = ((soybeansProd - lag(soybeansProd))/lag(soybeansProd))*100,
+    soyDiffPctArea = ((soybeansArea - lag(soybeansArea))/lag(soybeansArea))*100
   ) %>% 
   select(year, state, name, 
-         #csDiffYield, csDiffProd, csDiffArea, 
-         csDiffPctYield, csDiffPctProd, csDiffPctArea) %>% 
+         #cornSoyDiffYield, cornSoyDiffProd, cornSoyDiffArea, 
+         cornDiffPctYield, cornDiffPctProd, cornDiffPctArea,
+         soyDiffPctYield, soyDiffPctProd, soyDiffPctArea,
+         cornSoyDiffPctYield, cornSoyDiffPctProd, cornSoyDiffPctArea,
+         ) %>% 
   na.omit()
 
 
 # get just the changes from 2011-2012
 df_diff_2012 <- df_diff %>% filter(year == 2012)
 
-
-# NOTE: one major outlier. Let's fix this by setting a class interval
-
-#classes <- classIntervals(df_diff_2012$csDiffPctProd, n = 11, style = "jenks")
-
-classes <- classIntervals(round(df_diff_2012[["csDiffPctProd"]]), n = 11, style = "fisher")
-
-#classes <- classIntervals(round(df_diff_2012$csDiffPctProd), style = "quantile", n = 11)
-
-classes <- classIntervals(round(df_diff_2012$csDiffPctArea),
-                          fixedBreaks =  
-                            #c(min(df_diff_2012$csDiffPctYield), 
-                            #seq(-100, 100, 20),
-                          c(-40, -30, -20, -10, -1, 1, 10, 20, 30, 40),
-                            #max(df_diff_2012$csDiffPctYield)),
-                          style = "fixed")
-
-
-# see breaks
-classes$brks
-
-# add breaks column
-df_diff_2012 <- df_diff_2012 %>%
-  mutate(csDiffPctAreaCut = cut(csDiffPctArea, classes$brks, include.lowest = T))
-
-# plot with new breaks
-ggplot(df_diff_2012)+
-  geom_sf(aes(fill = csDiffPctAreaCut), col = NA)+
-  theme_bw()+
-  scale_fill_brewer(palette = "PiYG", direction = 1)#+
-  #labs(title = csDiffPctClass)
+# mess with str_split
+# help: https://statisticsglobe.com/extract-substring-before-or-after-pattern-in-r
+# t <- "soyDiffPctYield"
+# # get all before Diff
+# t1 <- sub("Diff.*","",t)
+# t1
+# t2 <- sub(".*Pct", "", t)
+# t2
 
 # Create Fxn
 F_plot_gg_diffpct <- function(data, var, yr){
@@ -432,15 +423,20 @@ F_plot_gg_diffpct <- function(data, var, yr){
   data <- data %>% filter(year == yr)
   y_var <- as.character(var)
   
+  # get "soy" from "soyDiffPctYield
+  y_var_crop <- sub("Diff.*","",y_var)
+  
+  # get "Yield" from soyDiffPctYield
+  y_var_metric <- sub(".*Pct", "", t)
+  
   # set classes
   #class <- classIntervals(round(data[[y_var]]), n = 11, style = "fisher")
   
-  class <- classIntervals(round(data[[y_var]]),
-                            fixedBreaks = 
-                          #seq(-100, 100, 20),
-                           c(-100, -80, -60, -40, -20, -1,1, 20, 40, 60, 80, 100),  
-                          #c(-40, -30, -20, -10, -1, 1, 10, 20, 30, 40),
-                            style = "fixed")
+  class <- classIntervals(
+    data[[y_var]], 
+    fixedBreaks = 
+      c(-100, -80, -60, -40, -20, -1,1, 20, 40, 60, 80, 100),  
+    style = "fixed")
   
   # set new column with the breaks for mapping
   # data <- data %>%
@@ -453,8 +449,11 @@ F_plot_gg_diffpct <- function(data, var, yr){
     theme_bw()+
     scale_fill_brewer(palette = "PiYG", direction = 1, drop = F)+
     labs(
-      title = paste0(yr-1, "-", yr, " US-MW ", y_var),
-      fill = y_var
+      title = 
+        paste("US-MW % Change in", 
+              str_to_title(paste(y_var_crop, y_var_metric,
+                           "from", yr-1, "to", yr))),
+      fill = str_to_title(paste(y_var_metric,"% Change"))
     )
   
   # save figure
@@ -467,24 +466,20 @@ F_plot_gg_diffpct <- function(data, var, yr){
   
 }
 
-
-
-
-# NOTE: Change colorscale if including area, fix ###NEXT##### 
-F_plot_gg_diffpct(df_diff, "csDiffPctArea", 2012)
-F_plot_gg_diffpct(df_diff, "csDiffPctProd", 2012)
-
-
 # get all columns except the constants
 y <- colnames(df_diff)
 y <- y[! y %in% c('year', 'state', 'name', 'geometry')]
-y
+y[1]
+
+F_plot_gg_diffpct(df_diff, y[1], 2012)
 
 # run fxn over all columns
 lapply(y, F_plot_gg_diffpct, data = df_diff, yr = 2012)
 
+
+
 ### 1.4.2 Plot using facet_wrap ----
-F_plot_facet(df_diff, "csDiffPctYield")
+F_plot_facet(df_diff, "cornSoyDiffPctYield")
 
 
 ### PLOTTING GOALS: ### 
@@ -492,66 +487,32 @@ F_plot_facet(df_diff, "csDiffPctYield")
 # plotting yield, prod, area for corn, soybean, corn/soy for 2010 alone 
 # should have 18 plots total
 
-###### USING tmap ########
-library(tmap)
-library(tmaptools)
-
-
-tm_shape(df_diff_2012)+
-  tm_fill("csDiffPctProd",
-          breaks = c(-100, -80, -60, -40, -20, -1,1, 20, 40, 60, 80, 100),
-          palette = "PiYG", direction = 1,
-          midpoint = 0,
-          )+
-  #tm_compass(position = c("left", "bottom"), size = 0.8)+
-  #tm_scale_bar(position = c("left", "bottom"), width = 0.15)+
-  tm_layout(main.title = paste("Change in", "Yield", "from 2011 to 2012"),
-            frame = F, legend.outside = T, legend.outside.position = "right",
-            #legend.outside.size = 1.5
-            )
-
-F_plot_tmap_diffpct <- function(data, var, yr){
-  
-  # filter and set variables
-  data <- data %>% filter(year == yr)
-  y_var <- as.character(var)
-  
-  # plot
-  p <- tm_shape(data())+
-    tm_fill(y_var,
-            breaks = c(-100, -80, -60, -40, -20, -1,1, 20, 40, 60, 80, 100),
-            palette = "PiYG", direction = 1,
-            midpoint = 0,
-    )+
-    #tm_compass(position = c("left", "bottom"), size = 0.8)+
-    #tm_scale_bar(position = c("left", "bottom"), width = 0.15)+
-    tm_layout(main.title = paste("Change in", y_var, "from 2011 to 2012"),
-              frame = F, legend.outside = T, legend.outside.position = "right",
-              #legend.outside.size = 1.5
-    )
-  # save figure
-  ggsave(paste0("../Figures/shock_eda/",
-                "tmap_", y_var, "_", yr-1, yr,
-                ".png"), 
-         plot = p)
-  
-  return(p)
-  
-}  
-
-# get all columns except the constants
-y <- colnames(df_diff)
-y <- y[! y %in% c('year', 'state', 'name', 'geometry')]
-y
-
-# run fxn over all columns
-lapply(y, F_plot_tmap_diffpct, data = df_diff, yr = 2012)
-
-
 ################################
 
 ## 1.3: Initial EDA
-###  1.3.1: Barplots
+
+###  1.3.1: Boxplots
+
+# NEED TO MELT ALL THE DIFF PCT's INTO ONE COLUMN
+# Only use 2012 to keep it from getting too crazy
+# Follow https://stackoverflow.com/questions/14604439/plot-multiple-boxplot-in-one-graph
+######## Next ########### 
+library(reshape2)
+library(lubridate)
+
+df_diff_melt <- df_diff %>%
+ # mutate(year == as.numeric(year(year))) %>% 
+  filter(year == 2012) %>% 
+  st_drop_geometry()
+str(df_diff_melt)
+
+df_diffpct_melt2 <- melt(df_diff_melt, id.vars = c("year", "state", "name"),
+                      variable.name = "DiffPctVar", value.name = "DiffPct")
+str(df_diffpct_melt2)
+
+ggplot(data = df_diffpct_melt2, aes(x=as.numeric(year), y=DiffPct)) + 
+  geom_boxplot(aes(fill=DiffPctVar))
+
 ### 1.3.2: Time Series & Trends
 
 
@@ -559,6 +520,13 @@ lapply(y, F_plot_tmap_diffpct, data = df_diff, yr = 2012)
 ##2.0 Acres Planted (test)
 # year_range <- 2009:2018
 # list_year_range <- as.character(year_range)
+
+
+
+
+
+
+
 
 ### IN THE FUTURE! Spend an hour trying this! ###########
 
