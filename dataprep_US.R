@@ -12,17 +12,18 @@
 
 # Steps (check meeting notes): 
 # 0: Import Libraries & Set Constants
-# 1: USDA Data from Iman
-  ## 1.1: Import and Tidy Data
-  ## 1.2: Initial Mapping
-  ## 1.3: Initial EDA
-    ###  1.3.1: Barplots
-    ### 1.3.2: Time Series & Trends
 
-# 2: Use tidyUSDA to get data & plot (get inspo from 1_data_import.R)
-  ## 2.1 Yield 
-  ## 2.2 Area Harvested
-  ## 2.3 Production
+# 1: USDA Data from Iman
+## This section imports and tidies the data, as well as produced initial maps of 
+## 2011 to 2012 change 
+
+
+# 2: Initial EDA
+## This section plots the data in ways outside of maps 
+
+
+# 3: Use tidyUSDA to get data & plot (get inspo from 1_data_import.R)
+## This section grabs data from the 'tidyUSDA' package instead of imporitng it from an external CSV
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #  
 
@@ -348,13 +349,8 @@ F_plot_gg_diffpct(df_diff, "cornSoyDiffPctProd", 2012)
 lapply(y, F_plot_gg_diffpct, data = df_diff, yr = 2012)
 
 
-
-### 1.4.2 Plot using facet_wrap ----
-F_plot_facet(df_diff, "cornSoyDiffPctYield")
-
-
 ### PLOTTING GOALS: ### 
-# facet_wrap yield, prod, area for corn, soybean, corn/soy for 2006-2015
+# [OMIT] facet_wrap yield, prod, area for corn, soybean, corn/soy for 2006-2015
 # plotting yield, prod, area for corn, soybean, corn/soy for 2010 alone 
 # should have 18 plots total
 
@@ -367,16 +363,16 @@ F_plot_facet(df_diff, "cornSoyDiffPctYield")
 ### 2.1.1: Prep Data --------------------
 # Follow melt link here: https://stackoverflow.com/questions/14604439/plot-multiple-boxplot-in-one-graph
 
-df_diff_melt <- df_diff %>%
+df_diffpct_melt <- df_diff %>%
  # mutate(year == as.numeric(year(year))) %>% 
   filter(year == 2012) %>% 
   st_drop_geometry()
 
-colnames(df_diff_melt)
-str(df_diff_melt)
+# colnames(df_diff_melt)
+# str(df_diff_melt)
 
 # melt to change to long
-df_diffpct_melt <- melt(df_diff_melt, id.vars = c("year", "state", "name"),
+df_diffpct_melt <- melt(df_diffpct_melt, id.vars = c("year", "state", "name"),
                       variable.name = "DiffPctVar", value.name = "DiffPct")
 
 # get just the crop name and remove "DiffPct" 
@@ -528,3 +524,7 @@ var_names <- c("cornAreaHarvested", "cornProd", "cornYield", "cornAreaPlanted",
 
 # # # UNCOMMENT TO RUN OVER ALL VARIABLES # # #
 # lapply(var_names, F_plot_facet, data = df2_range)
+
+
+### 1.4.2 Plot using facet_wrap ----
+F_plot_facet(df_diff, "cornSoyDiffPctYield")
