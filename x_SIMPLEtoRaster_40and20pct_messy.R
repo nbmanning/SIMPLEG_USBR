@@ -26,7 +26,7 @@ getwd()
 
 # NOTE: change this when you change the result file 
 # e.g. for the 10% shock result you should input "10p"
-pct <- "20pct" # change when you change 'datafile'
+pct <- "40pct" # change when you change 'datafile'
 
 # NOTE: will need to local location
 datafile   <- paste0("../Results/US-BR_SIMPLEG-238/US_", pct, "-out.txt")
@@ -286,11 +286,11 @@ terra::plot(r_br_new_qcrop,
 ### NOTE: THIS SECTION IS NOT REPRODUCIBLE WITH OTHER RESULTS 
 
 ##### 40 PERCENT RECLASSIFICATION BREAKS ##############################################
-# r_br_pct_qland_rc <- classify(r_br_pct_qland, c(-5, -1, -0.5, -0.1, 0, 0.1, 0.5, 1, 5))
-# r_br_new_qland_rc <- classify(r_br_new_qland, c(0, 0.5, 1, 1.5, 2, 2.5, 3, 5))
-# 
-# r_br_pct_qcrop_rc <- classify(r_br_pct_qcrop,c(-5, -1, 0.1, 0, 0.1, 1, 5, 10))
-# r_br_new_qcrop_rc <- classify(r_br_new_qcrop, c(0, 1, 5, 10, 25, 50, 100, 150))
+r_br_pct_qland_rc <- classify(r_br_pct_qland, c(-5, -1, -0.5, -0.1, 0, 0.1, 0.5, 1, 5))
+r_br_new_qland_rc <- classify(r_br_new_qland, c(0, 0.5, 1, 1.5, 2, 2.5, 3, 5))
+
+r_br_pct_qcrop_rc <- classify(r_br_pct_qcrop,c(-5, -1, 0.1, 0, 0.1, 1, 5, 10))
+r_br_new_qcrop_rc <- classify(r_br_new_qcrop, c(0, 1, 5, 10, 25, 50, 100, 150))
 
 
 
@@ -446,6 +446,47 @@ r_cerr_pct_qcrop_rc <- classify(r_cerr_pct_qcrop,c(round((minmax(r_cerr_pct_qcro
 r_cerr_new_qcrop_rc <- classify(r_cerr_new_qcrop, c(0, 10, 25, 50, 75,100, 
                                                     round((minmax(r_cerr_new_qcrop)[2]))))
 
+
+# 40 PCT Box Plots --------------
+
+# NEED TO MELT ALL THE DIFF PCT's INTO ONE COLUMN
+# Only use 2012 to keep it from getting too crazy
+# Follow https://stackoverflow.com/questions/14604439/plot-multiple-boxplot-in-one-graph
+terra::boxplot(r_cerr)
+
+terra::boxplot(r_cerr_pct_qland, main = "% Change in Cropland Area")
+#terra::boxplot(r_cerr_new_qland, main = "Post-Sim Cropland Area (1000 ha)")
+terra::boxplot(r_cerr_pct_qcrop, main = "% Change in Crop Production Index")
+#terra::boxplot(r_cerr_new_qcrop, main = "Post-Sim Quantity of Crops\n(1000-ton CE)")
+
+######## Next ########### 
+### BOXPLOT CODE COPY/PASTED FROM dataprep_US.R ###
+### NEEDS REFORMATTING ###
+df_diff_melt <- df_diff %>%
+  # mutate(year == as.numeric(year(year))) %>% 
+  filter(year == 2012) %>% 
+  st_drop_geometry()
+
+colnames(df_diff_melt)
+str(df_diff_melt)
+
+# melt to change to long
+df_diffpct_melt2 <- melt(df_diff_melt, id.vars = c("year", "state", "name"),
+                         variable.name = "DiffPctVar", value.name = "DiffPct")
+
+df_diffpct_melt2$crop <- sub("Diff.*","",df_diffpct_melt2$DiffPctVar)
+
+ggplot(data = df_diffpct_melt2, aes(x=crop, y=DiffPct)) + 
+  geom_boxplot(aes(fill=DiffPctVar), 
+               #outlier.shape = NA
+  )+
+  geom_jitter(alpha = 0.1, color = 2)
+
+ggplot(data = r_cerr_pct_qland, aes(x=crop, y=DiffPct)) + 
+  geom_boxplot(aes(fill=DiffPctVar), 
+               #outlier.shape = NA
+  )+
+  geom_jitter(alpha = 0.1, color = 2)
 
 
 
