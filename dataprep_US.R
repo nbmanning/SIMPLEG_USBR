@@ -39,7 +39,9 @@ library(tigris) # for FIPS database
 library(fiftystater) # for us state map; note: had to install from GitHub for my current R, version 4.2.2 
 library(RColorBrewer)
 library(classInt) # for mapping and setting breaks 
+library(reshape2)
 
+#library(lubridate)
 #library(terra)
 
 # constants
@@ -107,46 +109,21 @@ df <- df %>% rename("state" = "STUSPS", "name" = "NAME") %>%
               "soybeansYieldIrrig",    "soybeansYieldNonIrrig"), as.numeric)
 
 # select only area harvested, production, and yield
-df2 <- df %>% select("year", "state", "name", "fips", 
-                     "cornArea", "cornProd", "cornYield",
-                     "soybeansArea", "soybeansProd", "soybeansYield")
+df2 <- df %>% 
+  select("year", "state", "name", "fips", 
+         "cornArea", "cornAreaPlanted", "cornProd", "cornYield",
+         "soybeansArea", "soybeansAreaPlanted", "soybeansProd", "soybeansYield") %>% 
+  rename("cornAreaHarvested" = "cornArea",
+         "soybeansAreaHarvested" = "soybeansArea")
 
 # create corn/soy data by combining production and area harvest, then calculating yield 
 df2 <- df2 %>% 
   mutate(
-    cornSoyArea = cornArea + soybeansArea,
+    cornSoyAreaHarvested = cornAreaHarvested + cornAreaHarvested,
+    cornSoyAreaPlanted = cornAreaPlanted + soybeansAreaPlanted,
     cornSoyProd = cornProd + soybeansProd,
-    cornSoyYield = cornSoyProd/cornSoyArea
+    cornSoyYield = cornSoyProd/cornSoyAreaPlanted
   )
-
-# write as shapefile for easier plotting - OMIT; DIDN'T WORK
-# st_write(df2, dsn = paste0(file_path, "usda_cornSoy_hpy.tif"), driver = "ESRI Shapefile")
-
-# set as sf for mapping - OMIT BECAUSE THIS JUST GETS POINTS FOR EACH COUNTY
-# df <- st_as_sf(df, coords = c("longitude", "latitude"))
-# df<- st_set_crs(x = df, value = 4326) # NOTE: maybe "EPSG:4326"??
-
-# get data aggregated to state level (OMIT; DIDN'T WORK) -------
-# 
-# df_st_prodarea <- df2 %>% 
-#   #select(-c("longitude", "latitude", "fips", "name")) %>% 
-#   na.omit() %>% 
-#   group_by(year, state) %>% 
-#   summarise_at(vars(matches("Prod|Area")), sum)
-# 
-# df_st_yield <- df2 %>% 
-#   #select(-c("longitude", "latitude", "fips", "name")) %>% 
-#   na.omit() %>% 
-#   group_by(year, state) %>% 
-#   summarise_at(vars(matches("yield")), mean)
-# 
-# 
-# ggplot(df_st_prodarea)+
-#   geom_sf(aes(fill = soybeansProd))
-# 
-# # not worth it to have state level data to plot!!! 
-# df_st <- left_join(st_drop_geometry(df_st_prodarea), 
-#                    st_drop_geometry(df_st_yield), by = c("year", "state"))
 
 
 ## 1.2: Initial Mapping --------------
@@ -174,8 +151,8 @@ ggplot(df2)+
   theme_bw()+
   labs(title = "Counties in US-Midwest", color = "State")
 
-#save 
-ggsave("../Figures/shock_eda/counties.png")
+# save 
+# ggsave("../Figures/shock_eda/counties.png")
 
 
 ## 1.3 Mapping Yield, Prod, Area ---------
@@ -195,36 +172,6 @@ df2_yr <- df2 %>% filter(year == yr_one)
 df2_range <- df2 %>% filter(year %in% yr_range)
 
 ### 1.3.1: Map Single Year Single Var --------
-
-# Test fxn 
-
-# ggplot()+
-#   geom_sf(data = df2,# %>% filter(year == 2010), 
-#           aes(fill = soybeansYield), 
-#           #col = "lightgrey", 
-#           lwd = 0.1)+
-#   geom_sf(data = midwest, col = col_border, lwd = 0.3, fill = NA)+
-#   theme_bw()+
-#   theme(
-#     #axis.ticks = element_blank(),
-#     #axis.text= element_blank(), 
-#     axis.line = element_blank(),
-#     panel.border = element_blank(),
-#     panel.grid.major = element_line(color='transparent'),
-#     panel.grid.minor = element_line(color='transparent'),
-#     panel.background = element_blank(),
-#     plot.background = element_rect(fill = "transparent",color='transparent'),
-#     
-#     plot.title = element_text(size=18, hjust = 0.5),
-#     legend.position="bottom", legend.box = "horizontal", 
-#     #legend.justification='right',
-#     legend.title = element_text(size=13), #change legend title font size
-#     legend.text = element_text(size=11)
-#   )+
-#   scale_fill_distiller(palette = "Greens", direction = 1
-#   )+
-#   labs(title = paste("US-MW", "soybeansYield", yr))
-
 
 # Function for one year of interest and one variable
 F_plot_single <- function(data, var, yr){
@@ -274,9 +221,9 @@ F_plot_single <- function(data, var, yr){
 F_plot_single(df2_range, "cornSoyProd", yr = 2012)
 
 # get prod, area, yield vars
-var_names <- c("cornArea", "cornProd", "cornYield", 
-               "soybeansArea", "soybeansProd",  "soybeansYield",
-               "cornSoyArea", "cornSoyProd", "cornSoyYield") 
+var_names <- c("cornAreaHarvested", "cornProd", "cornYield", "cornAreaPlanted", 
+               "cornAreaHarvested", "soybeansProd",  "soybeansYield", "soybeansAreaPlanted",
+               "cornSoyAreaHarvested", "cornSoyProd", "cornSoyYield", "cornSoyAreaPlanted") 
 
 # # # UNCOMMENT TO RUN OVER ALL VARIABLES # # #
 ##### TO-DO: Fix Legend Labels and Title ----
@@ -284,35 +231,8 @@ var_names <- c("cornArea", "cornProd", "cornYield",
 
 
 ### 1.3.2: facet_wrap by year ---------
-# facet_wrap by year
-# ggplot(df2)+
-#   geom_sf(# %>% filter(year == 2010), 
-#           aes(fill = soybeansYield), 
-#           #col = "lightgrey", 
-#           lwd = 0, col = NA)+
-#   #geom_sf(data = midwest, col = col_border, lwd = 1, fill = NA)+
-#   theme_bw()+
-#   theme(
-#     axis.ticks = element_blank(),
-#     axis.text= element_blank(), 
-#     axis.line = element_blank(),
-#     panel.border = element_blank(),
-#     panel.grid.major = element_line(color='transparent'),
-#     panel.grid.minor = element_line(color='transparent'),
-#     panel.background = element_blank(),
-#     plot.background = element_rect(fill = "transparent",color='transparent'),
-#     
-#     plot.title = element_text(size=18, hjust = 0.5),
-#     legend.position="bottom", legend.box = "horizontal", 
-#     #legend.justification='right',
-#     legend.title = element_text(size=13), #change legend title font size
-#     legend.text = element_text(size=11)
-#   )+
-#   scale_fill_distiller(palette = "Greens", direction = 1
-#   )+
-#   labs(title = paste("US-MW soybeanYield"))+
-#   facet_wrap("year")
 
+# facet_wrap by year
 
 # plotting function
 F_plot_facet <- function(data, var){
@@ -361,12 +281,13 @@ F_plot_facet <- function(data, var){
 F_plot_facet(df2_range, "soybeansProd")
 
 # get prod, area, yield vars
-var_names <- c("cornArea", "cornProd", "cornYield", 
-               "soybeansArea", "soybeansProd",  "soybeansYield",
-               "cornSoyArea", "cornSoyProd", "cornSoyYield"
+var_names <- c("cornAreaHarvested", "cornProd", "cornYield", "cornAreaPlanted",
+               "cornAreaHarvested", "soybeansProd",  "soybeansYield", "soybeansAreaPlanted",
+               "cornSoyAreaHarvested", "cornSoyProd", "cornSoyYield", "cornSoyAreaPlanted"
                ) 
 
-lapply(var_names, F_plot_facet, data = df2_range)
+# # # UNCOMMENT TO RUN OVER ALL VARIABLES # # #
+# lapply(var_names, F_plot_facet, data = df2_range)
 
 ## 1.4: Plot Changes from 2011-2012 in corn, soy, corn/soy --------
 
@@ -377,29 +298,33 @@ df_diff <- df2_range %>%
     # Difference = 2012 - 2011 per county
     # cornSoyDiffYield = cornSoyYield - lag(cornSoyYield),
     # cornSoyDiffProd = cornSoyProd - lag(cornSoyProd),
-    # cornSoyDiffArea = cornSoyArea - lag(cornSoyArea),
+    # cornSoyDiffArea = cornSoyAreaHarvested - lag(cornSoyAreaHarvested),
     
     # Percent Change = ( (2012value - 2011value) / 2011value ) *100
+    
     # cornSoy
     cornSoyDiffPctYield = ((cornSoyYield - lag(cornSoyYield))/lag(cornSoyYield))*100,
     cornSoyDiffPctProd = ((cornSoyProd - lag(cornSoyProd))/lag(cornSoyProd))*100,
-    cornSoyDiffPctArea = ((cornSoyArea - lag(cornSoyArea))/lag(cornSoyArea))*100,
+    cornSoyDiffPctAreaHarvested = ((cornSoyAreaHarvested - lag(cornSoyAreaHarvested))/lag(cornSoyAreaHarvested))*100,
+    cornSoyDiffPctAreaPlanted = ((cornSoyAreaPlanted - lag(cornSoyAreaPlanted))/lag(cornSoyAreaPlanted))*100,
     
     # Corn
     cornDiffPctYield = ((cornYield - lag(cornYield))/lag(cornYield))*100,
     cornDiffPctProd = ((cornProd - lag(cornProd))/lag(cornProd))*100,
-    cornDiffPctArea = ((cornArea - lag(cornArea))/lag(cornArea))*100,
+    cornDiffPctAreaHarvested = ((cornAreaHarvested - lag(cornAreaHarvested))/lag(cornAreaHarvested))*100,
+    cornDiffPctAreaPlanted = ((cornAreaPlanted - lag(cornAreaPlanted))/lag(cornAreaPlanted))*100,
     
     # Soy
     soyDiffPctYield = ((soybeansYield - lag(soybeansYield))/lag(soybeansYield))*100,
     soyDiffPctProd = ((soybeansProd - lag(soybeansProd))/lag(soybeansProd))*100,
-    soyDiffPctArea = ((soybeansArea - lag(soybeansArea))/lag(soybeansArea))*100
+    soyDiffPctAreaHarvested = ((soybeansAreaHarvested - lag(soybeansAreaHarvested))/lag(soybeansAreaHarvested))*100,
+    soyDiffPctAreaPlanted = ((soybeansAreaPlanted - lag(soybeansAreaPlanted))/lag(soybeansAreaPlanted))*100
   ) %>% 
   select(year, state, name, 
          #cornSoyDiffYield, cornSoyDiffProd, cornSoyDiffArea, 
-         cornDiffPctYield, cornDiffPctProd, cornDiffPctArea,
-         soyDiffPctYield, soyDiffPctProd, soyDiffPctArea,
-         cornSoyDiffPctYield, cornSoyDiffPctProd, cornSoyDiffPctArea,
+         cornDiffPctYield, cornDiffPctProd, cornDiffPctAreaHarvested, cornDiffPctAreaPlanted,
+         soyDiffPctYield, soyDiffPctProd, soyDiffPctAreaHarvested, soyDiffPctAreaPlanted,
+         cornSoyDiffPctYield, cornSoyDiffPctProd, cornSoyDiffPctAreaHarvested, cornSoyDiffPctAreaPlanted
          ) %>% 
   na.omit()
 
@@ -424,10 +349,10 @@ F_plot_gg_diffpct <- function(data, var, yr){
   y_var <- as.character(var)
   
   # get "soy" from "soyDiffPctYield
-  y_var_crop <- sub("Diff.*","",y_var)
+  y_var_crop <- as.character(sub("Diff.*","",y_var))
   
   # get "Yield" from soyDiffPctYield
-  y_var_metric <- sub(".*Pct", "", t)
+  y_var_metric <- as.character(sub(".*Pct", "", y_var))
   
   # set classes
   #class <- classIntervals(round(data[[y_var]]), n = 11, style = "fisher")
@@ -449,11 +374,13 @@ F_plot_gg_diffpct <- function(data, var, yr){
     theme_bw()+
     scale_fill_brewer(palette = "PiYG", direction = 1, drop = F)+
     labs(
-      title = 
-        paste("US-MW % Change in", 
-              str_to_title(paste(y_var_crop, y_var_metric,
-                           "from", yr-1, "to", yr))),
-      fill = str_to_title(paste(y_var_metric,"% Change"))
+      title = paste("US-MW % Change in",
+        str_to_title(paste(
+          y_var_crop, y_var_metric,
+          "from", yr-1, "to", yr))),
+      fill = str_to_title(paste(
+        y_var_metric,
+        "% Change"))
     )
   
   # save figure
@@ -469,9 +396,10 @@ F_plot_gg_diffpct <- function(data, var, yr){
 # get all columns except the constants
 y <- colnames(df_diff)
 y <- y[! y %in% c('year', 'state', 'name', 'geometry')]
-y[1]
+y
+y1 <- as.character(y[1])
 
-F_plot_gg_diffpct(df_diff, y[1], 2012)
+F_plot_gg_diffpct(df_diff, "cornSoyDiffPctProd", 2012)
 
 # run fxn over all columns
 lapply(y, F_plot_gg_diffpct, data = df_diff, yr = 2012)
@@ -497,23 +425,81 @@ F_plot_facet(df_diff, "cornSoyDiffPctYield")
 # Only use 2012 to keep it from getting too crazy
 # Follow https://stackoverflow.com/questions/14604439/plot-multiple-boxplot-in-one-graph
 ######## Next ########### 
-library(reshape2)
-library(lubridate)
-
 df_diff_melt <- df_diff %>%
  # mutate(year == as.numeric(year(year))) %>% 
   filter(year == 2012) %>% 
   st_drop_geometry()
+
+colnames(df_diff_melt)
 str(df_diff_melt)
 
-df_diffpct_melt2 <- melt(df_diff_melt, id.vars = c("year", "state", "name"),
+# melt to change to long
+df_diffpct_melt <- melt(df_diff_melt, id.vars = c("year", "state", "name"),
                       variable.name = "DiffPctVar", value.name = "DiffPct")
-str(df_diffpct_melt2)
 
-ggplot(data = df_diffpct_melt2, aes(x=as.numeric(year), y=DiffPct)) + 
-  geom_boxplot(aes(fill=DiffPctVar))
+# get just the crop name 
+df_diffpct_melt <- df_diffpct_melt %>% 
+  mutate(crop = sub("Diff.*", "", DiffPctVar),
+         DiffPctVar = gsub(pattern = "DiffPct", replacement = "", x = DiffPctVar))
 
-### 1.3.2: Time Series & Trends
+
+# Plot 
+ggplot(data = df_diffpct_melt, aes(x=str_to_lower(crop), y=DiffPct)) + 
+  #geom_jitter(alpha = 0.1, aes(color = crop))+
+  geom_boxplot(aes(fill=DiffPctVar), 
+               #outlier.shape = NA
+               )+
+  geom_jitter(alpha = 0.05, aes(color = crop))+
+  #geom_point(position = position_jitterdodge())+
+  guides(color = "none")+
+  theme_light()+
+  labs(
+    y = paste("% Difference from",
+              df_diffpct_melt$year-1, "to",
+              df_diffpct_melt$year),
+    fill = "Crop Variable"
+  )+
+  theme(axis.title.x = element_blank(),
+        axis.text.x = element_text())
+
+# save 
+ggsave("../Figures/shock_eda/box_all_diffpct.png", 
+       width = 12, height = 8)
+
+
+
+# Plot just Yield --
+# filter to yield
+df_diffpct_melt_y <- df_diffpct_melt %>% 
+  filter(str_detect(DiffPctVar, "Yield")) %>% 
+  mutate(DiffPctVar = gsub(pattern = "DiffPct", replacement = "", x = DiffPctVar))
+
+# plot
+ggplot(data = df_diffpct_melt_y, aes(x=str_to_lower(crop), y=DiffPct)) + 
+  #geom_jitter(alpha = 0.1, aes(color = crop))+
+  geom_boxplot(aes(
+    #fill=DiffPctVar
+    ),
+    #outlier.shape = NA
+  )+
+  geom_jitter(alpha = 0.05, aes(color = crop))+
+  #geom_point(position = position_jitterdodge())+
+  guides(color = "none")+
+  theme_bw()+
+  labs(
+    y = "% Difference",
+    title = "% Change in Yield from 2011 to 2012 in the US-MW"
+  )+
+  theme(axis.title.x = element_blank(),
+        axis.text.x = element_text())
+
+# save
+ggsave("../Figures/shock_eda/box_yield_diffpct.png", 
+       width = 12, height = 8)
+
+
+
+### 1.3.2: Time Series & Trends --------
 
 
 # 2: Use tidyUSDA to get data & plot (get inspo from 1_data_import.R) ------
