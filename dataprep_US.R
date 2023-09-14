@@ -230,64 +230,7 @@ var_names <- c("cornAreaHarvested", "cornProd", "cornYield", "cornAreaPlanted",
 #lapply(var_names, F_plot_single, data = df2_range, yr = 2010)
 
 
-### 1.3.2: facet_wrap by year ---------
 
-# facet_wrap by year
-
-# plotting function
-F_plot_facet <- function(data, var){
-  y_var <- as.character(var)
-  p <- ggplot(data)+
-    geom_sf(# %>% filter(year == 2010), 
-      aes(fill = .data[[y_var]]), 
-      #col = "lightgrey", 
-      lwd = 0, col = NA)+
-    #geom_sf(data = midwest, col = col_border, lwd = 1, fill = NA)+
-    theme_bw()+
-    theme(
-      # #remove ticks
-      # axis.ticks = element_blank(),
-      # axis.text= element_blank(), 
-      # axis.line = element_blank(),
-      # panel.border = element_blank(),
-      # # make transparent
-      # panel.grid.major = element_line(color='transparent'),
-      # panel.grid.minor = element_line(color='transparent'),
-      # panel.background = element_blank(),
-      # plot.background = element_rect(fill = "transparent",color='transparent'),
-      
-      plot.title = element_text(size=18, hjust = 0.5),
-      legend.position="bottom", legend.box = "horizontal", 
-      #legend.justification='right',
-      #legend.title = element_text(size=13), #change legend title font size
-      #legend.text = element_text(size=11)
-    )+
-    scale_fill_distiller(palette = "Greens", direction = 1
-    )+
-    labs(title = paste("US-MW", var))+
-    facet_wrap("year")
-  
-  ggsave(paste0("../Figures/shock_eda/",
-                y_var, "_",
-                min(data$year),max(data$year),
-                ".png"), 
-         plot = p)
-  
-  return(p)
-  
-}
-
-### 1.3.2: Apply Facet Wrap ------
-F_plot_facet(df2_range, "soybeansProd")
-
-# get prod, area, yield vars
-var_names <- c("cornAreaHarvested", "cornProd", "cornYield", "cornAreaPlanted",
-               "cornAreaHarvested", "soybeansProd",  "soybeansYield", "soybeansAreaPlanted",
-               "cornSoyAreaHarvested", "cornSoyProd", "cornSoyYield", "cornSoyAreaPlanted"
-               ) 
-
-# # # UNCOMMENT TO RUN OVER ALL VARIABLES # # #
-# lapply(var_names, F_plot_facet, data = df2_range)
 
 ## 1.4: Plot Changes from 2011-2012 in corn, soy, corn/soy --------
 
@@ -415,16 +358,15 @@ F_plot_facet(df_diff, "cornSoyDiffPctYield")
 # plotting yield, prod, area for corn, soybean, corn/soy for 2010 alone 
 # should have 18 plots total
 
-################################
+# # # # # # # # # # # # # ## # # # # 
 
-## 1.3: Initial EDA
+# 2: Initial EDA ---------
 
-###  1.3.1: Boxplots
+##  2.1: Boxplots ------------
 
-# NEED TO MELT ALL THE DIFF PCT's INTO ONE COLUMN
-# Only use 2012 to keep it from getting too crazy
-# Follow https://stackoverflow.com/questions/14604439/plot-multiple-boxplot-in-one-graph
-######## Next ########### 
+### 2.1.1: Prep Data --------------------
+# Follow melt link here: https://stackoverflow.com/questions/14604439/plot-multiple-boxplot-in-one-graph
+
 df_diff_melt <- df_diff %>%
  # mutate(year == as.numeric(year(year))) %>% 
   filter(year == 2012) %>% 
@@ -437,13 +379,14 @@ str(df_diff_melt)
 df_diffpct_melt <- melt(df_diff_melt, id.vars = c("year", "state", "name"),
                       variable.name = "DiffPctVar", value.name = "DiffPct")
 
-# get just the crop name 
+# get just the crop name and remove "DiffPct" 
 df_diffpct_melt <- df_diffpct_melt %>% 
   mutate(crop = sub("Diff.*", "", DiffPctVar),
          DiffPctVar = gsub(pattern = "DiffPct", replacement = "", x = DiffPctVar))
 
 
-# Plot 
+### 2.1.2 : Plot all columns -------------
+# Plot with all columns 
 ggplot(data = df_diffpct_melt, aes(x=str_to_lower(crop), y=DiffPct)) + 
   #geom_jitter(alpha = 0.1, aes(color = crop))+
   geom_boxplot(aes(fill=DiffPctVar), 
@@ -468,13 +411,14 @@ ggsave("../Figures/shock_eda/box_all_diffpct.png",
 
 
 
-# Plot just Yield --
+### 2.1.3 Plot just Yield -----
+
 # filter to yield
 df_diffpct_melt_y <- df_diffpct_melt %>% 
-  filter(str_detect(DiffPctVar, "Yield")) %>% 
-  mutate(DiffPctVar = gsub(pattern = "DiffPct", replacement = "", x = DiffPctVar))
+  filter(str_detect(DiffPctVar, "Yield"))
 
-# plot
+
+# plot just yield 
 ggplot(data = df_diffpct_melt_y, aes(x=str_to_lower(crop), y=DiffPct)) + 
   #geom_jitter(alpha = 0.1, aes(color = crop))+
   geom_boxplot(aes(
@@ -499,10 +443,10 @@ ggsave("../Figures/shock_eda/box_yield_diffpct.png",
 
 
 
-### 1.3.2: Time Series & Trends --------
+## 2.2: Time Series & Trends --------
 
 
-# 2: Use tidyUSDA to get data & plot (get inspo from 1_data_import.R) ------
+# 3: Use tidyUSDA to get data & plot (get inspo from 1_data_import.R) ------
 ##2.0 Acres Planted (test)
 # year_range <- 2009:2018
 # list_year_range <- as.character(year_range)
@@ -520,3 +464,67 @@ ggsave("../Figures/shock_eda/box_yield_diffpct.png",
 #tidy_yield <- 
 ## 2.2 Area Harvested
 ## 2.3 Production
+
+
+
+# graveyard -------------------------------------------
+
+## FACET WRAP -------------------
+### 1.3.2: facet_wrap by year ---------
+
+# facet_wrap by year
+
+# plotting function
+F_plot_facet <- function(data, var){
+  y_var <- as.character(var)
+  p <- ggplot(data)+
+    geom_sf(# %>% filter(year == 2010), 
+      aes(fill = .data[[y_var]]), 
+      #col = "lightgrey", 
+      lwd = 0, col = NA)+
+    #geom_sf(data = midwest, col = col_border, lwd = 1, fill = NA)+
+    theme_bw()+
+    theme(
+      # #remove ticks
+      # axis.ticks = element_blank(),
+      # axis.text= element_blank(), 
+      # axis.line = element_blank(),
+      # panel.border = element_blank(),
+      # # make transparent
+      # panel.grid.major = element_line(color='transparent'),
+      # panel.grid.minor = element_line(color='transparent'),
+      # panel.background = element_blank(),
+      # plot.background = element_rect(fill = "transparent",color='transparent'),
+      
+      plot.title = element_text(size=18, hjust = 0.5),
+      legend.position="bottom", legend.box = "horizontal", 
+      #legend.justification='right',
+      #legend.title = element_text(size=13), #change legend title font size
+      #legend.text = element_text(size=11)
+    )+
+    scale_fill_distiller(palette = "Greens", direction = 1
+    )+
+    labs(title = paste("US-MW", var))+
+    facet_wrap("year")
+  
+  ggsave(paste0("../Figures/shock_eda/",
+                y_var, "_",
+                min(data$year),max(data$year),
+                ".png"), 
+         plot = p)
+  
+  return(p)
+  
+}
+
+### 1.3.2: Apply Facet Wrap ------
+F_plot_facet(df2_range, "soybeansProd")
+
+# get prod, area, yield vars
+var_names <- c("cornAreaHarvested", "cornProd", "cornYield", "cornAreaPlanted",
+               "cornAreaHarvested", "soybeansProd",  "soybeansYield", "soybeansAreaPlanted",
+               "cornSoyAreaHarvested", "cornSoyProd", "cornSoyYield", "cornSoyAreaPlanted"
+) 
+
+# # # UNCOMMENT TO RUN OVER ALL VARIABLES # # #
+# lapply(var_names, F_plot_facet, data = df2_range)
