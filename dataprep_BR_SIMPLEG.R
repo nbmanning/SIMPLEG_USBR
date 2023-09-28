@@ -33,9 +33,10 @@ library(terra)
 library(rasterVis)
 library(readxl)
 library(polyglotr) # translating from Portugeuse to Eng
+library(RColorBrewer)
 
 # data import & export  
-path_import <- "../Data_Source/LandChange/Cerrado/"
+path_import <- "../Data_Source/"
 
 
 # 1: Tabular Transition Data (from package) ---------
@@ -326,22 +327,17 @@ br1 <- br %>%
 
 # get units and descriptions for SPAM data here: https://mapspam.info/methodology/
 
-# library(geodata) # didn't work :(
-# crop_spam(crop = "soybean", 
-#           var = "harv_area", #  "yield", "harv_area" (harvested area), "phys_area" (physical area), "prod" (production) or "val_prod" (value of production)
-#           path = paste0(path_import, "SPAM2010_soyb_harea"))
-
 # bring in harvested area (ha)
-spam_soy_harea <- rast(paste0(path_import, "dataverse_files/spam2010V2r0_global_H_SOYB_A.tif"))
-spam_maize_harea <- rast(paste0(path_import, "dataverse_files/spam2010V2r0_global_H_MAIZ_A.tif"))
+spam_soy_harea <- rast(paste0(path_import, "SPAM2010/spam2010V2r0_global_H_SOYB_A.tif"))
+spam_maize_harea <- rast(paste0(path_import, "SPAM2010/spam2010V2r0_global_H_MAIZ_A.tif"))
 
 # production (mt)
-spam_soy_prod <- rast(paste0(path_import, "dataverse_files/spam2010V2r0_global_P_SOYB_A.tif"))
-spam_maize_prod <- rast(paste0(path_import, "dataverse_files/spam2010V2r0_global_P_MAIZ_A.tif"))
+spam_soy_prod <- rast(paste0(path_import, "SPAM2010/spam2010V2r0_global_P_SOYB_A.tif"))
+spam_maize_prod <- rast(paste0(path_import, "SPAM2010/spam2010V2r0_global_P_MAIZ_A.tif"))
 
 spam <- c(spam_soy_harea, spam_maize_harea, spam_soy_prod, spam_maize_prod)
 plot(spam)
-
+spam_soy_harea
 ## 6.1: Clip to Brazil to test ----
 # Load BR Shapefile
 shp_br <- read_country(year = 2010, 
@@ -359,7 +355,7 @@ r_br
 
 ## 6.2: Get results ----
 ## area= (total area)/(ha)
-#spam_soy_harea <- rast(paste0(path_import, "dataverse_files/spam2010V2r0_global_H_SOYB_A.tif"))
+#spam_soy_harea <- rast(paste0(path_import, "SPAM2010/spam2010V2r0_global_H_SOYB_A.tif"))
 plot(r_br$spam2010V2r0_global_H_SOYB_A)
 plot(spam_soy_harea)
 
@@ -460,7 +456,17 @@ names(spam_perc_all) <- c("soy_harea_perc_gridcell","maize_harea_perc_gridcell",
                           "soy_yield_gridcell", "maize_yield_gridcell")
 
 # plot with 2 columns and 3 rows 
-plot(spam_perc_all, nc = 2, nr = 4)
+plot(spam_perc_all, nc = 2, nr = 4, col = brewer.pal(7, "PiYG"))
+
+plot(spam_perc_all[["soy_yield_gridcell"]], col = brewer.pal(7, "Greens"),
+     main = "2010 Brazil Soy Yield per Grid Cell")
+lines(shp_br, lwd = 0.8, lty = 3, col = "darkgray")
+
+
+plot(spam_perc_all[["maize_yield_gridcell"]], col = brewer.pal(7, "Greens"),
+     main = "2010 Brazil Maize Yield per Grid Cell")
+lines(shp_br, lwd = 0.8, lty = 3, col = "darkgray")
+
 
 # use the harvested area % of total so we can facet_wrap with 'tidyterra'
 spam_perc_total <- spam_perc_total %>% rename(
