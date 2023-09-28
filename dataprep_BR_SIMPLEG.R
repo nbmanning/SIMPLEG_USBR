@@ -327,17 +327,22 @@ br1 <- br %>%
 
 # get units and descriptions for SPAM data here: https://mapspam.info/methodology/
 
-# bring in harvested area (ha)
-spam_soy_harea <- rast(paste0(path_import, "SPAM2010/spam2010V2r0_global_H_SOYB_A.tif"))
-spam_maize_harea <- rast(paste0(path_import, "SPAM2010/spam2010V2r0_global_H_MAIZ_A.tif"))
+# From the readme: global_X_CROP_Y.tif 
+## X = variable (production (P), physical area (A), harvested area (H), yield (Y))
+## Y = Technologies (rainfed, irrigated, etc.); A = All technologies (for simplicity)
 
-# production (mt)
+# bring in physical area (ha)
+spam_soy_parea <- rast(paste0(path_import, "SPAM2010/spam2010V2r0_global_A_SOYB_A.tif"))
+spam_maize_parea <- rast(paste0(path_import, "SPAM2010/spam2010V2r0_global_A_MAIZ_A.tif"))
+
+
+# bring in production (mt)
 spam_soy_prod <- rast(paste0(path_import, "SPAM2010/spam2010V2r0_global_P_SOYB_A.tif"))
 spam_maize_prod <- rast(paste0(path_import, "SPAM2010/spam2010V2r0_global_P_MAIZ_A.tif"))
 
-spam <- c(spam_soy_harea, spam_maize_harea, spam_soy_prod, spam_maize_prod)
+spam <- c(spam_soy_parea, spam_maize_parea, spam_soy_prod, spam_maize_prod)
 plot(spam)
-spam_soy_harea
+
 ## 6.1: Clip to Brazil to test ----
 # Load BR Shapefile
 shp_br <- read_country(year = 2010, 
@@ -355,49 +360,37 @@ r_br
 
 ## 6.2: Get results ----
 ## area= (total area)/(ha)
-#spam_soy_harea <- rast(paste0(path_import, "SPAM2010/spam2010V2r0_global_H_SOYB_A.tif"))
-plot(r_br$spam2010V2r0_global_H_SOYB_A)
-plot(spam_soy_harea)
+#spam_soy_parea <- rast(paste0(path_import, "SPAM2010/spam2010V2r0_global_A_SOYB_A.tif"))
+plot(r_br$spam2010V2r0_global_A_SOYB_A)
+plot(spam_soy_parea)
 
-# testing with small raster (IGNORE) 
-# link (see "Build a spatRaster from Scratch"): http://www.wvview.org/os_sa/15b_Raster_Analysis_terra.html#general-raster-analysis 
-# r_test <- rast(ncols = 10, nrows = 10, xmin = 500000, xmax = 500100, ymin = 4200000, ymax = 4200100, crs="+init=EPSG:26917")
-# r_test
-# 
-# plot(r_test)
-# vals <- sample(c(0:255), 100, replace=TRUE)
-# 
-# values(r_test) <- vals
-# plot(r_test)
-# a <- cellSize(r_test)
-# plot(a)
 
 ### 6.2.1A: Area (% of grid cell) ------ 
 # get area of each grid cell (will be different bc of projection)
-r_br_area <- cellSize(r_br$spam2010V2r0_global_H_SOYB_A, unit = "ha")
+r_br_area <- cellSize(r_br$spam2010V2r0_global_A_SOYB_A, unit = "ha")
 plot(r_br_area)
 
 # get harvested percentages by dividing by area of each grid cell 
-spam_soy_harea_perc <- (r_br$spam2010V2r0_global_H_SOYB_A/r_br_area) #* 100
-plot(spam_soy_harea_perc)
+spam_soy_parea_perc <- (r_br$spam2010V2r0_global_A_SOYB_A/r_br_area) #* 100
+plot(spam_soy_parea_perc)
 
-spam_maize_harea_perc <- (r_br$spam2010V2r0_global_H_MAIZ_A/r_br_area) #* 100
-plot(spam_maize_harea_perc)
+spam_maize_parea_perc <- (r_br$spam2010V2r0_global_A_MAIZ_A/r_br_area) #* 100
+plot(spam_maize_parea_perc)
 
 ### 6.2.1B: Area (% of total) -----
-# get sums 
-sum_harea_soy <- as.numeric(
-  global(classify(r_br$spam2010V2r0_global_H_SOYB_A, cbind(NA, 0)), fun = "sum"))
+# get sum of the total crop produced across this area 
+sum_parea_soy <- as.numeric(
+  global(classify(r_br$spam2010V2r0_global_A_SOYB_A, cbind(NA, 0)), fun = "sum"))
 
-sum_harea_maize <- as.numeric(
-  global(classify(r_br$spam2010V2r0_global_H_MAIZ_A, cbind(NA, 0)), fun = "sum"))
+sum_parea_maize <- as.numeric(
+  global(classify(r_br$spam2010V2r0_global_A_MAIZ_A, cbind(NA, 0)), fun = "sum"))
 
 # divide rasters by total sum for each crop
-spam_soy_harea_perctotal <- r_br$spam2010V2r0_global_H_SOYB_A / sum_harea_soy
-plot(spam_soy_harea_perctotal)
+spam_soy_parea_perctotal <- r_br$spam2010V2r0_global_A_SOYB_A / sum_parea_soy
+plot(spam_soy_parea_perctotal)
 
-spam_maize_harea_perctotal <- r_br$spam2010V2r0_global_H_MAIZ_A / sum_harea_maize
-plot(spam_soy_harea_perctotal)
+spam_maize_parea_perctotal <- r_br$spam2010V2r0_global_A_MAIZ_A / sum_parea_maize
+plot(spam_soy_parea_perctotal)
 
 ### 6.2.2: Production (% of total) ------
 # get production percentage (% of total per grid cell)
@@ -422,36 +415,28 @@ plot(spam_maize_prod_perc)
 
 
 ### 6.2.3: Yield (production / harvested area) (mt / ha) ------
-spam_soy_yield <- r_br$spam2010V2r0_global_P_SOYB_A / r_br$spam2010V2r0_global_H_SOYB_A
-spam_maize_yield <- r_br$spam2010V2r0_global_P_MAIZ_A / r_br$spam2010V2r0_global_H_MAIZ_A
+spam_soy_yield <- r_br$spam2010V2r0_global_P_SOYB_A / r_br$spam2010V2r0_global_A_SOYB_A
+spam_maize_yield <- r_br$spam2010V2r0_global_P_MAIZ_A / r_br$spam2010V2r0_global_A_MAIZ_A
 
 plot(spam_soy_yield)
 
 ## 6.3: Combine to Get Percentage Raster Stack ---------
 # Combine percentage rasters 
-spam_perc <- c(spam_soy_harea_perc, spam_maize_harea_perc, spam_soy_prod_perc, spam_maize_prod_perc)
+spam_perc <- c(spam_soy_parea_perc, spam_maize_parea_perc, spam_soy_prod_perc, spam_maize_prod_perc)
 plot(spam_perc)
 
-spam_perc_total <- c(spam_soy_harea_perctotal, spam_maize_harea_perctotal, spam_soy_prod_perc, spam_maize_prod_perc)
+spam_perc_total <- c(spam_soy_parea_perctotal, spam_maize_parea_perctotal, spam_soy_prod_perc, spam_maize_prod_perc)
 plot(spam_perc_total)
 
-spam_perc_all <- c(spam_soy_harea_perc, spam_maize_harea_perc, spam_soy_harea_perctotal, spam_maize_harea_perctotal, spam_soy_prod_perc, spam_maize_prod_perc, spam_soy_yield, spam_maize_yield)
+spam_perc_all <- c(spam_soy_parea_perc, spam_maize_parea_perc, spam_soy_parea_perctotal, spam_maize_parea_perctotal, spam_soy_prod_perc, spam_maize_prod_perc, spam_soy_yield, spam_maize_yield)
 
 
 ## 6.4: Plot Brazil -------
-# rename layers for final set that includes harvested area % by grid cell 
-spam_perc <- spam_perc %>% rename(
-  soy_harea_perc_2010 = spam2010V2r0_global_H_SOYB_A,
-  maize_harea_perc_2010 = spam2010V2r0_global_H_MAIZ_A,
-  soy_prod_perc_2010 = spam2010V2r0_global_P_SOYB_A,
-  maize_prod_perc_2010 = spam2010V2r0_global_P_MAIZ_A
-)
-
-plot(spam_perc)
 
 # rename layers from _all
-names(spam_perc_all) <- c("soy_harea_perc_gridcell","maize_harea_perc_gridcell",
-                          "soy_harea_perc_total","maize_harea_perc_total",
+names(spam_perc_all)
+names(spam_perc_all) <- c("soy_parea_perc_gridcell","maize_parea_perc_gridcell",
+                          "soy_parea_perc_total","maize_parea_perc_total",
                           "soy_prod_perc_total","maize_prod_perc_total",
                           "soy_yield_gridcell", "maize_yield_gridcell")
 
@@ -468,17 +453,6 @@ plot(spam_perc_all[["maize_yield_gridcell"]], col = brewer.pal(7, "Greens"),
 lines(shp_br, lwd = 0.8, lty = 3, col = "darkgray")
 
 
-# use the harvested area % of total so we can facet_wrap with 'tidyterra'
-spam_perc_total <- spam_perc_total %>% rename(
-  soy_harea_perc_2010 = spam2010V2r0_global_H_SOYB_A,
-  maize_harea_perc_2010 = spam2010V2r0_global_H_MAIZ_A,
-  soy_prod_perc_2010 = spam2010V2r0_global_P_SOYB_A,
-  maize_prod_perc_2010 = spam2010V2r0_global_P_MAIZ_A
-)
-
-ggplot()+
-  geom_spatraster(data = spam_perc_total)+
-  facet_wrap(~lyr)
 
 ## 6.5: Clip to Cerrado to Plot -------
 
@@ -497,9 +471,100 @@ r_cerr <- terra::crop(spam_perc_all, ext_cerr, mask = T)
 r_cerr <- mask(r_cerr, shp_br_cerr)
 terra::plot(r_cerr, axes = F, nc = 4, nr = 2)
 
+
+# plot specific w lines
+plot(r_cerr[["soy_yield_gridcell"]], col = brewer.pal(9, "Greens"),
+     main = "2010 Cerrado Soy Yield per Grid Cell",
+     #breaks = c(0, 2, 4, 6, 8, 10)
+     #breaks = c(0, 5, 10, 15, 20, 25)
+     )
+lines(shp_br_cerr, lwd = 0.8, lty = 3, col = "darkgray")
+
+
+plot(r_cerr[["maize_yield_gridcell"]], col = brewer.pal(9, "Greens"),
+     main = "2010 Cerrado Maize Yield per Grid Cell",
+     #breaks = c(0, 5, 10, 15, 20, 25)
+     )
+lines(shp_br_cerr, lwd = 0.8, lty = 3, col = "darkgray")
+
+
+
 ## 6.6: Export SPAM BR & Cerrado Data --------
+writeRaster(spam_perc_all, paste0(path_import, "spam2010_soyb_maize_parea_prod_yield_br.tif"),
+            overwrite = T)
+writeRaster(r_cerr, paste0(path_import, "spam2010_soyb_maize_parea_prod_yield_cerr.tif"),
+            overwrite = T)
 
-writeRaster(spam_perc_all, paste0(path_import, "spam2010_soyb_maize_h_p_y_br.tif"))
-writeRaster(r_cerr, paste0(path_import, "spam2010_soyb_maize_h_p_y_cerr.tif"))
 
 
+
+
+
+
+## 6.7: Test SPAM Yield Data - Why didn't we use this in the first place? -------------------
+# bring in production (mt)
+spam_soy_testyield <- rast(paste0(path_import, "SPAM2010/spam2010V2r0_global_Y_SOYB_A.tif"))
+spam_maize_testyield <- rast(paste0(path_import, "SPAM2010/spam2010V2r0_global_Y_MAIZ_A.tif"))
+
+spam_test <- c(spam_soy_testyield, spam_maize_testyield)
+plot(spam_test)
+
+# plot basic BR results by cropping and masking to just BR extent
+r_br_test <- terra::crop(spam_test, ext_br, mask = T) 
+r_br_test <- mask(r_br_test, shp_br)
+#terra::plot(r_br_test, axes = F, type = "interval", legend = "bottomleft")
+#r_br_test                       
+
+
+### 6.7.1: Compare ----
+# Compare SPAM2010 Provided Yield w Calculated Yield
+plot(r_br_test$spam2010V2r0_global_Y_SOYB_A,
+    #breaks = c(0, 2000, 4000, 6000, 8000, 10000)
+    )
+
+plot(spam_perc_all[["soy_yield_gridcell"]],
+     #breaks = c(0, 2, 4, 6, 8, 10),
+     main = "2010 Brazil Soy Yield per Grid Cell"
+     )
+
+
+
+# GRAVEYARD -----------
+
+# library(tidyterra)
+# # use the harvested area % of total so we can facet_wrap with 'tidyterra'
+# spam_perc_total <- spam_perc_total %>% rename(
+#   soy_parea_perc_2010 = spam2010V2r0_global_A_SOYB_A,
+#   maize_parea_perc_2010 = spam2010V2r0_global_A_MAIZ_A,
+#   soy_prod_perc_2010 = spam2010V2r0_global_P_SOYB_A,
+#   maize_prod_perc_2010 = spam2010V2r0_global_P_MAIZ_A
+# )
+# 
+# ggplot()+
+#   geom_spatraster(data = spam_perc_total)+
+#   facet_wrap(~lyr)
+
+
+# testing with small raster (IGNORE) 
+# link (see "Build a spatRaster from Scratch"): http://www.wvview.org/os_sa/15b_Raster_Analysis_terra.html#general-raster-analysis 
+# r_test <- rast(ncols = 10, nrows = 10, xmin = 500000, xmax = 500100, ymin = 4200000, ymax = 4200100, crs="+init=EPSG:26917")
+# r_test
+# 
+# plot(r_test)
+# vals <- sample(c(0:255), 100, replace=TRUE)
+# 
+# values(r_test) <- vals
+# plot(r_test)
+# a <- cellSize(r_test)
+# plot(a)
+
+
+# # rename layers for final set that includes harvested area % by grid cell 
+# spam_perc <- spam_perc %>% rename(
+#   soy_parea_perc_2010 = spam2010V2r0_global_A_SOYB_A,
+#   maize_parea_perc_2010 = spam2010V2r0_global_A_MAIZ_A,
+#   soy_prod_perc_2010 = spam2010V2r0_global_P_SOYB_A,
+#   maize_prod_perc_2010 = spam2010V2r0_global_P_MAIZ_A
+# )
+# 
+# plot(spam_perc)
