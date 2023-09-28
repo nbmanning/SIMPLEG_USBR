@@ -219,7 +219,7 @@ F_plot_single <- function(data, var, yr){
 }
 
 ### 1.3.1: Apply Single Year Single Var ------
-F_plot_single(df2_range, "cornSoyProd", yr = 2012)
+F_plot_single(df2_range, "cornSoyProd", yr = yr_one)
 
 # get prod, area, yield vars
 var_names <- c("cornAreaHarvested", "cornProd", "cornYield", "cornAreaPlanted", 
@@ -274,7 +274,7 @@ df_diff <- df2_range %>%
 
 
 # get just the changes from 2011-2012
-df_diff_2012 <- df_diff %>% filter(year == 2012)
+df_diff_2012 <- df_diff %>% filter(year == yr_one)
 
 # mess with str_split
 # help: https://statisticsglobe.com/extract-substring-before-or-after-pattern-in-r
@@ -343,10 +343,10 @@ y <- y[! y %in% c('year', 'state', 'name', 'geometry')]
 y
 y1 <- as.character(y[1])
 
-F_plot_gg_diffpct(df_diff, "cornSoyDiffPctProd", 2012)
+F_plot_gg_diffpct(df_diff, "cornSoyDiffPctProd", yr_one)
 
 # run fxn over all columns
-lapply(y, F_plot_gg_diffpct, data = df_diff, yr = 2012)
+lapply(y, F_plot_gg_diffpct, data = df_diff, yr = yr_one)
 
 
 ### PLOTTING GOALS: ### 
@@ -365,7 +365,7 @@ lapply(y, F_plot_gg_diffpct, data = df_diff, yr = 2012)
 
 df_diffpct_melt <- df_diff %>%
  # mutate(year == as.numeric(year(year))) %>% 
-  filter(year == 2012) %>% 
+  filter(year == yr_one) %>% 
   st_drop_geometry()
 
 # colnames(df_diff_melt)
@@ -377,15 +377,21 @@ df_diffpct_melt <- melt(df_diffpct_melt, id.vars = c("year", "state", "name"),
 
 # get just the crop name and remove "DiffPct" 
 df_diffpct_melt <- df_diffpct_melt %>% 
-  mutate(crop = sub("Diff.*", "", DiffPctVar),
-         DiffPctVar = gsub(pattern = "DiffPct", replacement = "", x = DiffPctVar))
-
+  mutate(crop = str_to_lower(sub("Diff.*", "", DiffPctVar)),
+         crop = as.factor(crop),
+         
+         DiffPctVar = gsub(pattern = "DiffPct", replacement = "", x = DiffPctVar),
+         DiffPctVar_t = str_to_title(gsub('([[:upper:]])', ' \\1', DiffPctVar)),
+         DiffPctVar_t = sub("Corn Soy", "CornSoy", DiffPctVar_t),
+         
+         
+         )
 
 ### 2.1.2 : Plot all columns -------------
 # Plot with all columns 
 ggplot(data = df_diffpct_melt, aes(x=str_to_lower(crop), y=DiffPct)) + 
   #geom_jitter(alpha = 0.1, aes(color = crop))+
-  geom_boxplot(aes(fill=DiffPctVar), 
+  geom_boxplot(aes(fill=DiffPctVar_t), 
                #outlier.shape = NA
                )+
   geom_jitter(alpha = 0.05, aes(color = crop))+
@@ -422,7 +428,7 @@ ggplot(data = df_diffpct_melt_y, aes(x=str_to_lower(crop), y=DiffPct)) +
     ),
     #outlier.shape = NA
   )+
-  geom_jitter(alpha = 0.05, aes(color = crop))+
+  geom_jitter(alpha = 0.1, aes(color = crop))+
   #geom_point(position = position_jitterdodge())+
   guides(color = "none")+
   theme_bw()+
@@ -460,6 +466,13 @@ ggsave("../Figures/shock_eda/box_yield_diffpct.png",
 #tidy_yield <- 
 ## 2.2 Area Harvested
 ## 2.3 Production
+
+
+
+
+
+
+
 
 
 
