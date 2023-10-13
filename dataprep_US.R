@@ -314,7 +314,7 @@ F_plot_gg_diffpct <- function(data, var, yr){
   
   # plot changes
   p <- ggplot(data)+
-    geom_sf(aes(fill = DiffCut), col = NA)+
+    geom_sf(aes(fill = DiffCut), col = "darkgray", linewidth = 0.02)+
     theme_bw()+
     scale_fill_brewer(palette = "PiYG", direction = 1, drop = F)+
     labs(
@@ -326,6 +326,7 @@ F_plot_gg_diffpct <- function(data, var, yr){
         y_var_metric,
         "% Change"))
     )
+  #lines(shp_br_cerr_states, lwd = 0.8, lty = 3, col = "darkgray")
   
   # save figure
   ggsave(paste0("../Figures/shock_eda/",
@@ -337,13 +338,14 @@ F_plot_gg_diffpct <- function(data, var, yr){
   
 }
 
+# test
+F_plot_gg_diffpct(df_diff, "cornSoyDiffPctProd", yr_one)
+
 # get all columns except the constants
 y <- colnames(df_diff)
 y <- y[! y %in% c('year', 'state', 'name', 'geometry')]
 y
 y1 <- as.character(y[1])
-
-F_plot_gg_diffpct(df_diff, "cornSoyDiffPctProd", yr_one)
 
 # run fxn over all columns
 lapply(y, F_plot_gg_diffpct, data = df_diff, yr = yr_one)
@@ -387,7 +389,7 @@ df_diffpct_melt <- df_diffpct_melt %>%
          
          )
 
-### 2.1.2 : Plot all columns -------------
+### 2.1.2 : Boxplot all columns -------------
 # Plot with all columns 
 ggplot(data = df_diffpct_melt, aes(x=str_to_lower(crop), y=DiffPct)) + 
   #geom_jitter(alpha = 0.1, aes(color = crop))+
@@ -413,7 +415,7 @@ ggsave("../Figures/shock_eda/box_all_diffpct.png",
 
 
 
-### 2.1.3 Plot just Yield -----
+### 2.1.3 Boxplot just Yield -----
 
 # filter to yield
 df_diffpct_melt_y <- df_diffpct_melt %>% 
