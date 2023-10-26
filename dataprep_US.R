@@ -476,11 +476,14 @@ ggsave("../Figures/shock_eda/box_yield_diffpct.png",
 
 
 
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #  
+
+# GRAVEYARD ----------------------------------------------------------------------------------------------------
+
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #  
 
 
-# graveyard -------------------------------------------
-
-## FACET WRAP -------------------
+## Facet Wrap -------------------
 ### 1.3.2: facet_wrap by year ---------
 
 # facet_wrap by year
@@ -543,3 +546,7 @@ var_names <- c("cornAreaHarvested", "cornProd", "cornYield", "cornAreaPlanted",
 
 ### 1.4.2 Plot using facet_wrap ----
 F_plot_facet(df_diff, "cornSoyDiffPctYield")
+
+
+
+
