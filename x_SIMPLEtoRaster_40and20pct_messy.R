@@ -20,8 +20,9 @@ library(geobr) # use to load BR & Cerrado extent shapefiles
 library(tigris) # use to load US and US-MW shapefiles
 
 
+# 1: Prep SIMPLE-G Results --------------------
 
-#1: import output from SIMPLE-G run ----------
+# 1.1: import and modify the output from the SIMPLE-G model ----------
 getwd()
 
 # NOTE: change this when you change the result file 
@@ -47,7 +48,7 @@ writeLines(new.lines, newfile, sep="\n")
 dat <- read.table(newfile, sep=",", header=T)
 
 
-####### KEY FOR RESULTS ######################## 
+## KEY FOR RESULTS ######################## 
 
 # GRIDOUT.GRID.VAR == The Grid Cell ID
 
@@ -103,17 +104,17 @@ raster::plot(prct_ras)
 
 # 4: Get Shapefiles: US-MW, BR, & Cerrado ------------
 
-# # Load US Shapefile
-# shp_us <- states(cb = TRUE, resolution = "20m") %>% 
-#   filter(!STUSPS %in% c("AK", "HI", "PR"))
-# 
-# #plot(shp_us)
-# 
-# # Load US-MW Shapefile
-# shp_us_mw <- shp_us %>% 
-#   filter(STUSPS %in% c("IA", "IL", "IN", "KS", "MI", "MN",
-#                        "MO", "ND", "NE", "OH", "SD", "WI"))
-# plot(shp_us_mw)
+# Load US Shapefile
+shp_us <- states(cb = TRUE, resolution = "20m") %>%
+  filter(!STUSPS %in% c("AK", "HI", "PR"))
+
+#plot(shp_us)
+
+# Load US-MW Shapefile
+shp_us_mw <- shp_us %>%
+  filter(STUSPS %in% c("IA", "IL", "IN", "KS", "MI", "MN",
+                       "MO", "ND", "NE", "OH", "SD", "WI"))
+plot(shp_us_mw)
 
 
 # Load Cerrado Shapefile
@@ -170,30 +171,30 @@ r_new_qcrop <- subset(r, "new_QCROP")
 
 
 ## 5.0 US RESULTS ------
-# # get extent as terra object for plotting
-# ext_us <- vect(ext(shp_us))
-# 
-# # plot basic us results by cropping and masking to just us extent
-# r_us <- terra::crop(r, ext_us, mask = T) 
-# r_us <- mask(r_us, shp_us)
-# terra::plot(r_us, axes = F, type = "continuous")
-# 
-# # subset to each band 
-# r_us_pct_qland <- subset(r_us, "pct_QLAND")
-# minmax(r_us_pct_qland)
-# terra::hist(r_us_pct_qland)
-# 
-# r_us_new_qland <- subset(r_us, "new_QLAND")
-# minmax(r_us_new_qland)
-# hist(r_us_new_qland)
-# 
-# r_us_pct_qcrop <- subset(r_us, "pct_QCROP")
-# # minmax(r_us_pct_qcrop)
-# hist(r_us_pct_qcrop)
-# 
-# r_us_new_qcrop <- subset(r_us, "new_QCROP")
-# # minmax(r_us_new_qcrop)
-# hist(r_us_new_qcrop)
+# get extent as terra object for plotting
+ext_us <- vect(ext(shp_us))
+
+# plot basic us results by cropping and masking to just us extent
+r_us <- terra::crop(r, ext_us, mask = T)
+r_us <- mask(r_us, shp_us)
+terra::plot(r_us, axes = F, type = "continuous")
+
+# subset to each band
+r_us_pct_qland <- subset(r_us, "pct_QLAND")
+#minmax(r_us_pct_qland)
+#terra::hist(r_us_pct_qland)
+
+r_us_new_qland <- subset(r_us, "new_QLAND")
+#minmax(r_us_new_qland)
+#hist(r_us_new_qland)
+
+r_us_pct_qcrop <- subset(r_us, "pct_QCROP")
+# minmax(r_us_pct_qcrop)
+#hist(r_us_pct_qcrop)
+
+r_us_new_qcrop <- subset(r_us, "new_QCROP")
+# minmax(r_us_new_qcrop)
+#hist(r_us_new_qcrop)
 
 
 # set up plotting dimensions - comment to keep one plot at a time
@@ -201,26 +202,26 @@ r_new_qcrop <- subset(r, "new_QCROP")
 par(mfrow=c(2,2), oma = c(0,0,2,0))
 
 ### 5.0.1: (omit) Plot US original results individually ----------
-# terra::plot(r_us_pct_qland, 
-#             type = "continuous",
-#             #type="classes", 
-#             col = brewer.pal(9, "PiYG"), 
-#             main = "% Change in Cropland Area", plg = list(x="bottomleft"))
-# 
-# terra::plot(r_us_new_qland, 
-#             #type="interval", 
-#             col = brewer.pal(5, "Oranges"), 
-#             main = "Change in Cropland Area (1000 ha)", plg = list(x="bottomleft"))
-# 
-# terra::plot(r_us_pct_qcrop, 
-#             type="continuous", 
-#             col = brewer.pal(11, "PiYG"), 
-#             main = "% Change in Crop Production Index", plg = list(x="bottomleft"))
-# 
-# terra::plot(r_us_new_qcrop, 
-#             #type="classes", 
-#             col = brewer.pal(7, "Oranges"), 
-#             main = "Change in Quantity of Crops (1000-ton CE)", plg = list(x="bottomleft"))
+terra::plot(r_us_pct_qland,
+            type = "continuous",
+            #type="classes",
+            col = brewer.pal(9, "PiYG"),
+            main = "% Change in Cropland Area", plg = list(x="bottomleft"))
+
+terra::plot(r_us_new_qland,
+            #type="interval",
+            col = brewer.pal(5, "Oranges"),
+            main = "Change in Cropland Area (1000 ha)", plg = list(x="bottomleft"))
+
+terra::plot(r_us_pct_qcrop,
+            type="continuous",
+            col = brewer.pal(11, "PiYG"),
+            main = "% Change in Crop Production Index", plg = list(x="bottomleft"))
+
+terra::plot(r_us_new_qcrop,
+            #type="classes",
+            col = brewer.pal(7, "Oranges"),
+            main = "Change in Quantity of Crops (1000-ton CE)", plg = list(x="bottomleft"))
 
 
 
@@ -295,11 +296,11 @@ r_br_new_qcrop_rc <- classify(r_br_new_qcrop, c(0, 1, 5, 10, 25, 50, 100, 150))
 
 
 #### TO-DO: 20 PERCENT RECLASSIFICATION BREAKS #########################################
-r_br_pct_qland_rc <- classify(r_br_pct_qland, c(-5, -1, -0.5, -0.1, 0, 0.1, 0.5, 2, 5))
-r_br_new_qland_rc <- classify(r_br_new_qland, c(0, 0.5, 1, 1.5, 2, 2.5, 3, 4))
-
-r_br_pct_qcrop_rc <- classify(r_br_pct_qcrop,c(-5, -1, 0.1, 0, 0.1, 1, 5, 10))
-r_br_new_qcrop_rc <- classify(r_br_new_qcrop, c(0, 1, 5, 10, 25, 50, 100, 150))
+# r_br_pct_qland_rc <- classify(r_br_pct_qland, c(-5, -1, -0.5, -0.1, 0, 0.1, 0.5, 2, 5))
+# r_br_new_qland_rc <- classify(r_br_new_qland, c(0, 0.5, 1, 1.5, 2, 2.5, 3, 4))
+# 
+# r_br_pct_qcrop_rc <- classify(r_br_pct_qcrop,c(-5, -1, 0.1, 0, 0.1, 1, 5, 10))
+# r_br_new_qcrop_rc <- classify(r_br_new_qcrop, c(0, 1, 5, 10, 25, 50, 100, 150))
 
 
 ### 5.1.5 Plot Reclassified Results -----------
@@ -366,7 +367,7 @@ r_cerr_new_qcrop <- subset(r_cerr, "new_QCROP")
 minmax(r_cerr_new_qcrop)
 
 # hists
-hist(r_cerr_pct_qland)
+terra::hist(r_cerr_pct_qland)
 hist(r_cerr_new_qland)
 hist(r_cerr_pct_qcrop)
 hist(r_cerr_new_qcrop)
