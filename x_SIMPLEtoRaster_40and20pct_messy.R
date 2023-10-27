@@ -22,7 +22,7 @@ library(tigris) # use to load US and US-MW shapefiles
 
 # 1: Prep SIMPLE-G Results --------------------
 
-# 1.1: import and modify the output from the SIMPLE-G model ----------
+## 1.1: import and modify the output from the SIMPLE-G model ----------
 getwd()
 
 # NOTE: change this when you change the result file 
@@ -48,7 +48,7 @@ writeLines(new.lines, newfile, sep="\n")
 dat <- read.table(newfile, sep=",", header=T)
 
 
-## KEY FOR RESULTS ######################## 
+###### **SIMPLE-G Results Key** ------------
 
 # GRIDOUT.GRID.VAR == The Grid Cell ID
 
@@ -104,20 +104,20 @@ raster::plot(prct_ras)
 
 # 4: Get Shapefiles: US-MW, BR, & Cerrado ------------
 
-# Load US Shapefile
+### Load US Shapefile ###
 shp_us <- states(cb = TRUE, resolution = "20m") %>%
   filter(!STUSPS %in% c("AK", "HI", "PR"))
 
 #plot(shp_us)
 
-# Load US-MW Shapefile
+#### Load US-MW Shapefile ###
 shp_us_mw <- shp_us %>%
   filter(STUSPS %in% c("IA", "IL", "IN", "KS", "MI", "MN",
                        "MO", "ND", "NE", "OH", "SD", "WI"))
-plot(shp_us_mw)
+#plot(shp_us_mw)
 
 
-# Load Cerrado Shapefile
+#### Load Cerrado Shapefile ###
 shp_br_cerr <- read_biomes(
   year = 2019,
   simplified = T,
@@ -127,7 +127,7 @@ shp_br_cerr <- read_biomes(
 #plot(shp_br_cerr)
 
 
-# Load BR Shapefile
+#### Load BR Shapefile ###
 shp_br <- read_country(
   year = 2019, 
   simplified = T, 
@@ -201,7 +201,7 @@ r_us_new_qcrop <- subset(r_us, "new_QCROP")
 # display.brewer.all(colorblindFriendly = T)
 par(mfrow=c(2,2), oma = c(0,0,2,0))
 
-### 5.0.1: (omit) Plot US original results individually ----------
+### 5.0.1: Plot US original results individually ----------
 terra::plot(r_us_pct_qland,
             type = "continuous",
             #type="classes",
@@ -223,11 +223,18 @@ terra::plot(r_us_new_qcrop,
             col = brewer.pal(7, "Oranges"),
             main = "Change in Quantity of Crops (1000-ton CE)", plg = list(x="bottomleft"))
 
+### 5.0.2 Plot US with Different Breaks -------------
+terra::plot(r_us_pct_qland,
+            type = "interval",
+            #breaks = c(-200, -50, -20, -10, -1, 1, 10, 20, 50, 200),
+            #type="classes",
+            col = brewer.pal(9, "PiYG"),
+            main = "% Change in Cropland Area", plg = list(x="bottomleft"))
 
 
-## 5.1 BRAZIL RESULTS ------
+## 5.1 BRAZIL RESULTS ------------------------------------------
 
-### 5.1.1: Clip BR -----------
+### 5.1.1: Clip to BR Extent -----------
 # get extent as terra object for plotting
 ext_br <- vect(ext(shp_br))
 
@@ -286,21 +293,11 @@ terra::plot(r_br_new_qcrop,
 ### 5.1.4: Reclassify Results - PER PCT RESULT ------
 ### NOTE: THIS SECTION IS NOT REPRODUCIBLE WITH OTHER RESULTS 
 
-##### 40 PERCENT RECLASSIFICATION BREAKS ##############################################
 r_br_pct_qland_rc <- classify(r_br_pct_qland, c(-5, -1, -0.5, -0.1, 0, 0.1, 0.5, 1, 5))
 r_br_new_qland_rc <- classify(r_br_new_qland, c(0, 0.5, 1, 1.5, 2, 2.5, 3, 5))
 
 r_br_pct_qcrop_rc <- classify(r_br_pct_qcrop,c(-5, -1, 0.1, 0, 0.1, 1, 5, 10))
 r_br_new_qcrop_rc <- classify(r_br_new_qcrop, c(0, 1, 5, 10, 25, 50, 100, 150))
-
-
-
-#### TO-DO: 20 PERCENT RECLASSIFICATION BREAKS #########################################
-# r_br_pct_qland_rc <- classify(r_br_pct_qland, c(-5, -1, -0.5, -0.1, 0, 0.1, 0.5, 2, 5))
-# r_br_new_qland_rc <- classify(r_br_new_qland, c(0, 0.5, 1, 1.5, 2, 2.5, 3, 4))
-# 
-# r_br_pct_qcrop_rc <- classify(r_br_pct_qcrop,c(-5, -1, 0.1, 0, 0.1, 1, 5, 10))
-# r_br_new_qcrop_rc <- classify(r_br_new_qcrop, c(0, 1, 5, 10, 25, 50, 100, 150))
 
 
 ### 5.1.5 Plot Reclassified Results -----------
@@ -333,18 +330,19 @@ terra::plot(r_br_new_qcrop_rc, type="classes", col = brewer.pal(7, "Oranges"),
 
 ## 5.2: CERRADO RESULTS ------------ 
 
-### 5.2.1: Clip & Subset Cerrado States & MATOPIBA ------ 
-# get MATOPIBA outline
-shp_br_st <- read_state(
+### 5.2.1: Clip & Subset Cerrado States ------ 
+
+# get Cerrado States outline
+shp_br_cerr_states <- read_state(
   year = 2019,
   simplified = T,
   #showProgress = T
 ) 
 
-shp_br_mapitoba <- shp_br_st %>% dplyr::filter(abbrev_state %in% c("MA", "PI", "TO", "BA"))
+shp_br_cerr_states <- shp_br_cerr_states %>% 
+  dplyr::filter(abbrev_state %in% c("TO","MA","PI","BA","MG",
+                                    "SP","MS","MT","GO","DF"))
 
-shp_br_cerr_states <- shp_br_st %>% dplyr::filter(abbrev_state %in% c("TO","MA","PI","BA","MG",
-                                        "SP","MS","MT","GO","DF"))
 # get Cerrado extent as terra object 
 ext_cerr <- vect(ext(shp_br_cerr))
 
@@ -355,100 +353,159 @@ terra::plot(r_cerr, axes = F)
 
 ### 5.2.2 Subset & EDA -----------
 r_cerr_pct_qland <- subset(r_cerr, "pct_QLAND")
-minmax(r_cerr_pct_qland)
-
 r_cerr_new_qland <- subset(r_cerr, "new_QLAND")
-minmax(r_cerr_new_qland)
-
 r_cerr_pct_qcrop <- subset(r_cerr, "pct_QCROP")
-minmax(r_cerr_pct_qcrop)
-
 r_cerr_new_qcrop <- subset(r_cerr, "new_QCROP")
-minmax(r_cerr_new_qcrop)
 
-# hists
-terra::hist(r_cerr_pct_qland)
-hist(r_cerr_new_qland)
-hist(r_cerr_pct_qcrop)
-hist(r_cerr_new_qcrop)
+#### Histograms -------
+terra::hist(r_cerr_pct_qland, main = "% Change in Cropland Area")
+hist(r_cerr_new_qland,  main = "Post-Sim Cropland Area (1000 ha)")
+hist(r_cerr_pct_qcrop, main = "% Change in Crop Production Index")
+hist(r_cerr_new_qcrop, main = "Post-Sim Quantity of Crops\n(1000-ton CE)")
 
-#summaries
+#### Summaries -------
 summary(r_cerr)
-summary(r_cerr_pct_qland)
-summary(r_cerr_new_qland)
-summary(r_cerr_pct_qcrop)
-summary(r_cerr_new_qcrop)
 
-#boxplots
-#terra::boxplot(r_cerr)
+
+#### Boxplots -------
 terra::boxplot(r_cerr_pct_qland, main = "% Change in Cropland Area")
 terra::boxplot(r_cerr_new_qland, main = "Post-Sim Cropland Area (1000 ha)")
 terra::boxplot(r_cerr_pct_qcrop, main = "% Change in Crop Production Index")
 terra::boxplot(r_cerr_new_qcrop, main = "Post-Sim Quantity of Crops\n(1000-ton CE)")
 
 
-###### reset par() options -----
+###### **reset par() options** -----
 dev.off()
 
 # plot 2x2 grid
 par(mfrow=c(2,2), oma = c(0,0,2,0))
 
 
-### 5.2.3: Plot Originals ----------- 
+### 5.2.3: Plot Original Cerrado Result Rasters ----------- 
 # plot originals individually
 terra::plot(r_cerr_pct_qland, 
-            #type = "interval",
-            #type="classes", 
             col = brewer.pal(11, "PiYG"), 
             main = "% Change in Cropland Area", plg = list(x="topleft"))
 
 terra::plot(r_cerr_new_qland, 
-            #type="interval", 
             col = brewer.pal(9, "Oranges"), 
             main = "Post-Sim Cropland Area (1000 ha)", plg = list(x="topleft"))
 
 terra::plot(r_cerr_pct_qcrop, 
-            #type="classes", 
             col = brewer.pal(9, "PiYG"), 
             main = "% Change in Crop Production Index", plg = list(x="topleft"))
 
 terra::plot(r_cerr_new_qcrop, 
-            #type="classes", 
             col = brewer.pal(7, "Oranges"), 
             main = "Post-Sim Quantity of Crops (1000-ton CE)", plg = list(x="topleft"))
 
 
+### 5.2.4  Reclassify Results to Custom Breaks from EDA ----------------------
 
-### 5.2.4  Reclassify Results - PER PCT RESULT ----------------------
+# Reclassify with custom breaks 
+r_cerr_pct_qland_rc <- classify(r_cerr_pct_qland, c(-6, -2, -1, -0.5, 0, 0.5, 1, 2, 4, 6))
 
-##### 40 PERCENT RECLASSIFICATION BREAKS ##################################
-# WITH MIN MAX; [1] == MIN, [2] == MAX
+r_cerr_new_qland_rc <- classify(r_cerr_new_qland, c(0, 0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 5))
+
+r_cerr_pct_qcrop_rc <- classify(r_cerr_pct_qcrop,c(-2, -1, -0.5, -.1, 0, 0.1, 0.5, 1, 2))
+
+r_cerr_new_qcrop_rc <- classify(r_cerr_new_qcrop, c(0, 10, 25, 50, 75, 100, 150))
+
+
+### 5.2.5: Plot Reclassified Results ---------------
+
+# restack reclassified results
+r_cerr_rc_list <- list(r_cerr_pct_qland_rc, r_cerr_new_qland_rc, r_cerr_pct_qcrop_rc, r_cerr_new_qcrop_rc)
+r_cerr_reclass <- rast(r_cerr_rc_list)
+
+# plot basic then reclassified raster results
+terra::plot(r_cerr, col = rev(brewer.pal(9, "PiYG")))
+terra::plot(r_cerr_reclass, type="classes", col = rev(brewer.pal(9, "PiYG")))
+
+# Set a plot for 2x2 grid
+dev.off()
+# par(mfrow=c(2,2), oma = c(0,0,2,0))
+
+
+#### Plot Each Reclassified with Lines -------------
+# NOTE: change brewer.pal(#) to number of reclassified categories)
+
+terra::plot(r_cerr_pct_qland_rc, type="classes", col = rev(brewer.pal(9, "PiYG")), 
+            main = "% Change in Cropland Area", plg = list(x="topleft"))
+lines(shp_br_cerr_states, lwd = 0.8, lty = 3, col = "darkgray")
+
+
+terra::plot(r_cerr_new_qland_rc, type="classes", col = brewer.pal(6, "Oranges"), 
+            main = "Post-Sim Cropland Area (1000 ha)", plg = list(x="topleft"))
+lines(shp_br_cerr_states, lwd = 0.8, lty = 3, col = "darkgray")
+
+
+terra::plot(r_cerr_pct_qcrop_rc, type="classes", col = rev(brewer.pal(9, "PiYG")), 
+            main = "% Change in Crop Production Index", plg = list(x="topleft"))
+lines(shp_br_cerr_states, lwd = 0.8, lty = 3, col = "darkgray")
+
+
+terra::plot(r_cerr_new_qcrop_rc, type="classes", col = brewer.pal(6, "Oranges"), 
+            main = "Post-Sim Quantity of Crops (1000-ton CE)",plg = list(x="topleft"))
+lines(shp_br_cerr_states, lwd = 0.8, lty = 3, col = "darkgray")
+north(cbind(-59, -22))
+
+#### Write rasters for export (optional) -----------
+# writeRaster(r_cerr_reclass$pct_QLAND, paste0(ras_file, "rc", "qLand_pct_", pct, ".tif"), overwrite=TRUE)
+# writeRaster(r_cerr_reclass$new_QLAND, paste0(ras_file, "rc", "qLand_new_", pct, ".tif"), overwrite=TRUE)
+# writeRaster(r_cerr_reclass$pct_QCROP, paste0(ras_file, "rc", "qCrop_pct_", pct, ".tif"), overwrite=TRUE)
+# writeRaster(r_cerr_reclass$new_QCROP, paste0(ras_file, "rc", "qCrop_new_", pct, ".tif"), overwrite=TRUE)
+
+
+
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #  
+# FUTURE WORK ----------------------------------------------------------------
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+
+## Select within plot to keep clean rather than reclassify ---------------
+
+# plot with breaks defined, not reclassifying the data
+terra::plot(r_cerr, "pct_QCROP",
+            type="interval", 
+            #breakby = "jenks",
+            breaks = c(-2, -1, -0.5, -0.1, -0.01, 0.01, 0.1, 0.5, 1, 2), # experimental breaks
+            #breaks = c(-2, -1, -0.5, -.1, 0, 0.1, 0.5, 1, 2), # the breaks used in the reclassified
+            col = rev(brewer.pal(9, "PiYG")), 
+            main = "% Change in Crop Production Index", 
+            plg = list(x="topleft"))
+
+# compare with reclassified plot
+terra::plot(r_cerr_pct_qcrop_rc, type="classes", col = rev(brewer.pal(9, "PiYG")), 
+            main = "% Change in Crop Production Index", plg = list(x="topleft"))
+
+# why does it look so different?? 
+## we're reclassifying and using "classes" in the latter, whereas in the former we are including the breaks with the actual data  
+
+
+## Reclassify with Min/Max --------------------------
+# Reclassify with MIN MAX; [1] == MIN, [2] == MAX
 # essentially, "Round the min or max value here to 1 decimal point"
 
-#r_cerr_pct_qland_rc <- classify(r_cerr_pct_qland, c(-6, -2, -1, -0.5, 0, 0.5, 1, 2, 4, 6))
 r_cerr_pct_qland_rc <- classify(r_cerr_pct_qland, c(round((minmax(r_cerr_pct_qland)[1]), 1),
                                                     -2, -1, -0.5, 0, 0.5, 1, 2, 4, 
                                                     round((minmax(r_cerr_pct_qland)[2]), 1)))
 
 
-#r_cerr_new_qland_rc <- classify(r_cerr_new_qland, c(0, 0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 5))
-# r_cerr_new_qland_rc <- classify(r_cerr_new_qland, c(0, 0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 
-#                                                     round((minmax(r_cerr_new_qland)[2]), 1)))
 r_cerr_new_qland_rc <- classify(r_cerr_new_qland, c(0, 0.5, 1, 2, 3, 4, 
                                                     round((minmax(r_cerr_new_qland)[2]), 1)))
 
-#r_cerr_pct_qcrop_rc <- classify(r_cerr_pct_qcrop,c(-2, -1, -0.5, -.1, 0, 0.1, 0.5, 1, 2))
 r_cerr_pct_qcrop_rc <- classify(r_cerr_pct_qcrop,c(round((minmax(r_cerr_pct_qcrop)[1])),
-                                                         -1, -0.5, -.1, 0, 0.1, 0.5, 1,
+                                                   -1, -0.5, -.1, 0, 0.1, 0.5, 1,
                                                    round((minmax(r_cerr_pct_qcrop)[2]))))
 
-
-#r_cerr_new_qcrop_rc <- classify(r_cerr_new_qcrop, c(0, 10, 25, 50, 75,100, 150))
-r_cerr_new_qcrop_rc <- classify(r_cerr_new_qcrop, c(0, 10, 25, 50, 75,100, 
+r_cerr_new_qcrop_rc <- classify(r_cerr_new_qcrop, c(0, 10, 25, 50, 75, 100, 
                                                     round((minmax(r_cerr_new_qcrop)[2]))))
 
 
-# 40 PCT Box Plots --------------
+
+
+
+## Prettier Box Plots --------------
 
 # NEED TO MELT ALL THE DIFF PCT's INTO ONE COLUMN
 # Only use 2012 to keep it from getting too crazy
@@ -460,7 +517,6 @@ terra::boxplot(r_cerr_pct_qland, main = "% Change in Cropland Area")
 terra::boxplot(r_cerr_pct_qcrop, main = "% Change in Crop Production Index")
 #terra::boxplot(r_cerr_new_qcrop, main = "Post-Sim Quantity of Crops\n(1000-ton CE)")
 
-######## Next ########### 
 ### BOXPLOT CODE COPY/PASTED FROM dataprep_US.R ###
 ### NEEDS REFORMATTING ###
 df_diff_melt <- df_diff %>%
@@ -491,7 +547,13 @@ ggplot(data = r_cerr_pct_qland, aes(x=crop, y=DiffPct)) +
 
 
 
-##### TO-DO: 20 PERCENT RECLASSIFICATION BREAKS ##################################
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+# GRAVEYARD ------------------------------------------------------------------
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+
+## 1: 20% Reclassifying Plans -----------------------------
+
+### 20 PERCENT RECLASSIFICATION BREAKS ##################################
 # r_cerr_pct_qland_rc <- classify(r_cerr_pct_qland, c(-6, -2, -1, -0.5, 0, 0.5, 1, 2, 4, 6))
 # 
 # #r_cerr_new_qland_rc <- classify(r_cerr_new_qland, c(0, .25, 0.5, 1, 1.5, 2, 2.5, 3, 4, 5))
@@ -502,50 +564,10 @@ ggplot(data = r_cerr_pct_qland, aes(x=crop, y=DiffPct)) +
 # #r_cerr_new_qcrop_rc <- classify(r_cerr_new_qcrop, c(0, 1, 5, 10, 25, 50, 100, 150))
 # r_cerr_new_qcrop_rc <- classify(r_cerr_new_qcrop, c(0, 10, 25, 50, 75,100, 150))
 
-
-
-### 5.2.5: Plot Reclassified Results ---------------
-
-# restack reclassified results
-r_cerr_rc_list <- list(r_cerr_pct_qland_rc, r_cerr_new_qland_rc, r_cerr_pct_qcrop_rc, r_cerr_new_qcrop_rc)
-r_cerr_reclass <- rast(r_cerr_rc_list)
-
-# plot basic then reclassified raster results
-terra::plot(r_cerr, col = rev(brewer.pal(9, "PiYG")))
-terra::plot(r_cerr_reclass, type="classes", col = rev(brewer.pal(9, "PiYG")))
-
-# Set a plot for 2x2 grid
-dev.off()
-# par(mfrow=c(2,2), oma = c(0,0,2,0))
-
-#Plot (NOTE: change brewer.pal(#) to number of reclassified categories)
-################### PICK UP HERE RECLASSIFYING 20 PCT RESULTS ########################################
-terra::plot(r_cerr_pct_qland_rc, type="classes", col = rev(brewer.pal(9, "PiYG")), 
-            main = "% Change in Cropland Area", plg = list(x="topleft"))
-#lines(shp_br_matopiba, lwd = 0.8, lty = 3, col = "darkgray")
-lines(shp_br_cerr_states, lwd = 0.8, lty = 3, col = "darkgray")
-
-
-terra::plot(r_cerr_new_qland_rc, type="classes", col = brewer.pal(6, "Oranges"), 
-            main = "Post-Sim Cropland Area (1000 ha)", plg = list(x="topleft"))
-lines(shp_br_cerr_states, lwd = 0.8, lty = 3, col = "darkgray")
-
-
-terra::plot(r_cerr_pct_qcrop_rc, type="classes", col = rev(brewer.pal(9, "PiYG")), 
-            main = "% Change in Crop Production Index", plg = list(x="topleft"))
-lines(shp_br_cerr_states, lwd = 0.8, lty = 3, col = "darkgray")
-
-
-terra::plot(r_cerr_new_qcrop_rc, type="classes", col = brewer.pal(6, "Oranges"), 
-            main = "Post-Sim Quantity of Crops (1000-ton CE)",plg = list(x="topleft"))
-lines(shp_br_cerr_states, lwd = 0.8, lty = 3, col = "darkgray")
-
-
-# write rasters for export to QGIS / ArcGis (optional)
-# writeRaster(r_cerr_reclass$pct_QLAND, paste0(ras_file, "rc", "qLand_pct_", pct, ".tif"), overwrite=TRUE)
-# writeRaster(r_cerr_reclass$new_QLAND, paste0(ras_file, "rc", "qLand_new_", pct, ".tif"), overwrite=TRUE)
-# writeRaster(r_cerr_reclass$pct_QCROP, paste0(ras_file, "rc", "qCrop_pct_", pct, ".tif"), overwrite=TRUE)
-# writeRaster(r_cerr_reclass$new_QCROP, paste0(ras_file, "rc", "qCrop_new_", pct, ".tif"), overwrite=TRUE)
-
-
+### 20 PERCENT RECLASSIFICATION BREAKS #########################################
+# r_br_pct_qland_rc <- classify(r_br_pct_qland, c(-5, -1, -0.5, -0.1, 0, 0.1, 0.5, 2, 5))
+# r_br_new_qland_rc <- classify(r_br_new_qland, c(0, 0.5, 1, 1.5, 2, 2.5, 3, 4))
+# 
+# r_br_pct_qcrop_rc <- classify(r_br_pct_qcrop,c(-5, -1, 0.1, 0, 0.1, 1, 5, 10))
+# r_br_new_qcrop_rc <- classify(r_br_new_qcrop, c(0, 1, 5, 10, 25, 50, 100, 150))
 
