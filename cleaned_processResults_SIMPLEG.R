@@ -1,12 +1,14 @@
-# Read and plot SIMPLE-G results from text format
-# By: Iman Haqiqi
-# Aug 2019
+# Title: processResults_SIMPLEG.R
+# Purpose: Read and plot SIMPLE-G results from text format across US, World, BR, and Cerrado
 
-# edited by Nick Manning -- May 2023
+# Initial SIMPLE-G script by: Iman Haqiqi
+# Initial date: Aug 2019
 
-# note from Iman: use the following command to define the files in your TABLO code, 
-# File (New,text,SSE)
-# I used GP 12.0.001
+# Edited by: Nick Manning 
+# Inital edit date: May 2023
+# Last edited: October 2023
+
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
 
 # 0: Load required libraries ---- 
 rm(list = ls())
