@@ -464,6 +464,12 @@ north(cbind(-59, -22))
 # FUTURE WORK ----------------------------------------------------------------
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
 
+# Look into removing outliers here:
+## https://plantarum.ca/2023/02/13/terra-maps/
+
+# Look into rasterVis for Boxplots: 
+## https://oscarperpinan.github.io/rastervis/
+
 ## Select within plot to keep clean rather than reclassify ---------------
 
 # plot with breaks defined, not reclassifying the data
