@@ -8,31 +8,42 @@
 # Inital edit date: May 2023
 # Last edited: October 2023
 
+# REQUIRES:
+## SIMPLE-G Result files as '.txt' 
+
+# NOTES:
+## Create a folder named 'raster' in the local directory you're using
+
+
+
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
 
 # 0: Load required libraries ---- 
 rm(list = ls())
 
+library(tidyverse)
 library(raster) # use for initial raster stack and basic plotting
 library(terra) # use to wrangle geospatial data and plot
 library(stringr) # use to manipulate result .txt file
 library(RColorBrewer) # use for adding colorblind-friendly color palettes 
-library(dplyr) # use for piping & filtering
 library(geobr) # use to load BR & Cerrado extent shapefiles
 library(tigris) # use to load US and US-MW shapefiles
-
+library(patchwork) # use to arrange maps into result figures  
 
 # 1: Prep SIMPLE-G Results --------------------
 
 ## 1.1: import and modify the output from the SIMPLE-G model ----------
 getwd()
 
-# NOTE: change this when you change the result file 
-# e.g. for the 10% shock result you should input "10p"
-pct <- "40pct" # change when you change 'datafile'
+# NOTE: change this when you change the result file to one of three TXT files
+## hi: enter "_hi";
+## lo: enter "_lo";
+## out: enter "";
+pct <- "" # change when you change 'datafile'
 
 # NOTE: will need to local location
-datafile   <- paste0("../Results/US-BR_SIMPLEG-238/sg1x3x10_v2310_", pct, "-out.txt")
+folder <- "../Results/SIMPLEG-2023-10-29/"
+datafile   <- paste0(folder, "sg1x3x10_v2310", pct, "-out.txt")
 
 # read results and substitute the old row-notation of using "!" on each row
 old.lines  <- readLines(datafile)
@@ -43,7 +54,7 @@ new.lines <-
 
 # write temporary file 
 # NOTE: Will need to change to local location
-newfile = "../Results/US-BR_SIMPLEG-238/temp.txt"
+newfile = paste0(folder, "temp.txt")
 writeLines(new.lines, newfile, sep="\n")
 
 # read in new data table -- takes a bit
@@ -84,7 +95,7 @@ gridded(dat) = T
 prct_ras = stack(dat) 
 
 # add rasters to file - uncomment and change 'ras_file' to local location
-ras_file <- "../Results/US-BR_SIMPLEG-238/raster/"
+ras_file <- paste0(folder, "raster/")
  
 # writeRaster(prct_ras$pct_QLAND, paste0(ras_file, "qLand_pct_", pct, ".tif"), format="GTiff", overwrite=TRUE)
 # writeRaster(prct_ras$new_QLAND, paste0(ras_file, "qLand_new_", pct, ".tif"), format="GTiff", overwrite=TRUE)
@@ -92,8 +103,8 @@ ras_file <- "../Results/US-BR_SIMPLEG-238/raster/"
 # writeRaster(prct_ras$new_QCROP, paste0(ras_file, "qCrop_new_", pct, ".tif"), format="GTiff", overwrite=TRUE)
 
 # add Longitude and Latitude rasters (only need to do this one time, they aren't different for diff percents)
-# writeRaster(prct_ras$LON, "../Results/US-BR_SIMPLEG-238/raster/USBR_SIMPLEG_238_LON.tif", format="GTiff", overwrite=TRUE)
-# writeRaster(prct_ras$LAT, "../Results/US-BR_SIMPLEG-238/raster/USBR_SIMPLEG_238_LAT.tif", format="GTiff", overwrite=TRUE)
+writeRaster(prct_ras$LON, paste0(ras_file, "USBR_SIMPLEG_10292023_LON.tif"), format="GTiff", overwrite=TRUE)
+writeRaster(prct_ras$LAT, paste0(ras_file, "USBR_SIMPLEG_10292023_LAT.tif"), format="GTiff", overwrite=TRUE)
 
 
 # 3: Make basic plots using 'raster' -----------
@@ -204,34 +215,47 @@ r_us_new_qcrop <- subset(r_us, "new_QCROP")
 par(mfrow=c(2,2), oma = c(0,0,2,0))
 
 ### 5.0.1: Plot US original results individually ----------
-terra::plot(r_us_pct_qland,
+p_us_pct_qland <- terra::plot(r_us_pct_qland,
             type = "continuous",
             #type="classes",
-            col = brewer.pal(9, "PiYG"),
+            # col = brewer.pal(9, "PiYG"),
+            col = rev(brewer.pal(9, "YlOrRd")),
             main = "% Change in Cropland Area", plg = list(x="bottomleft"))
 
-terra::plot(r_us_new_qland,
+p_us_new_qland <- terra::plot(r_us_new_qland,
             #type="interval",
-            col = brewer.pal(5, "Oranges"),
+            col = brewer.pal(7, "Oranges"),
             main = "Change in Cropland Area (1000 ha)", plg = list(x="bottomleft"))
 
-terra::plot(r_us_pct_qcrop,
+p_us_pct_qcrop <- terra::plot(r_us_pct_qcrop,
             type="continuous",
-            col = brewer.pal(11, "PiYG"),
+            #col = brewer.pal(11, "PiYG"),
+            col = rev(brewer.pal(9, "YlOrRd")),
             main = "% Change in Crop Production Index", plg = list(x="bottomleft"))
 
-terra::plot(r_us_new_qcrop,
+p_us_new_qcrop <- terra::plot(r_us_new_qcrop,
             #type="classes",
             col = brewer.pal(7, "Oranges"),
             main = "Change in Quantity of Crops (1000-ton CE)", plg = list(x="bottomleft"))
 
-### 5.0.2 Plot US with Different Breaks -------------
-terra::plot(r_us_pct_qland,
-            type = "interval",
-            #breaks = c(-200, -50, -20, -10, -1, 1, 10, 20, 50, 200),
-            #type="classes",
-            col = brewer.pal(9, "PiYG"),
-            main = "% Change in Cropland Area", plg = list(x="bottomleft"))
+### (Manual for Now) Save US Plots -----
+# jpeg(filename = paste0("../Figures/102923/us_shock_og", pct, ".jpg"),
+#     width = 480, height = 480)
+# 
+# ggsave(plot = last_plot(), filename = paste0("../Figures/102923/us_shock_og.png", pct), 
+#        width = 12, height = 8)
+# 
+# p_us_og <- p_us_pct_qland + p_us_new_qland + p_us_pct_qcrop + p_us_new_qcrop
+
+### (FUTURE) 5.0.2 Plot US with Different Breaks -------------
+# terra::plot(r_us,
+#             type = "interval",
+#             #breaks = c(-200, -50, -20, -10, -1, 1, 10, 20, 50, 200),
+#             #type="classes",
+#             col = brewer.pal(9, "PiYG"),
+#             main = "% Change in Cropland Area", plg = list(x="bottomleft"))
+
+# (FUTURE) Save US Plots -------
 
 
 ## 5.1 BRAZIL RESULTS ------------------------------------------
@@ -273,24 +297,25 @@ par(mfrow=c(2,2), oma = c(0,0,2,0))
 terra::plot(r_br_pct_qland, 
             type = "continuous",
             #type="classes", 
-            col = brewer.pal(9, "PiYG"), 
+            #col = brewer.pal(9, "PiYG"), 
+            col = brewer.pal(9, "YlOrRd"),
             main = "% Change in Cropland Area", plg = list(x="bottomleft"))
 
 terra::plot(r_br_new_qland, 
             #type="interval", 
-            col = brewer.pal(5, "Oranges"), 
+            col = brewer.pal(9, "Oranges"), 
             main = "Post-Sim Cropland Area (1000 ha)", plg = list(x="bottomleft"))
 
 terra::plot(r_br_pct_qcrop, 
             type="continuous", 
-            col = brewer.pal(11, "PiYG"), 
+            #col = brewer.pal(11, "PiYG"),
+            col = brewer.pal(9, "YlOrRd"),
             main = "% Change in Crop Production Index", plg = list(x="bottomleft"))
 
 terra::plot(r_br_new_qcrop, 
             #type="classes", 
-            col = brewer.pal(7, "Oranges"), 
+            col = brewer.pal(9, "Oranges"), 
             main = "Post-Sim Quantity of Crops (1000-ton CE)", plg = list(x="bottomleft"))
-
 
 ### 5.1.4: Reclassify Results - PER PCT RESULT ------
 ### NOTE: THIS SECTION IS NOT REPRODUCIBLE WITH OTHER RESULTS 
