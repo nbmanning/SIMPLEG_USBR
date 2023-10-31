@@ -32,7 +32,7 @@ getwd()
 pct <- "40pct" # change when you change 'datafile'
 
 # NOTE: will need to local location
-datafile   <- paste0("../Results/US-BR_SIMPLEG-238/US_", pct, "-out.txt")
+datafile   <- paste0("../Results/US-BR_SIMPLEG-238/sg1x3x10_v2310_", pct, "-out.txt")
 
 # read results and substitute the old row-notation of using "!" on each row
 old.lines  <- readLines(datafile)
