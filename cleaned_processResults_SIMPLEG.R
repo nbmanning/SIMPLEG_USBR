@@ -12,7 +12,7 @@
 ## SIMPLE-G Result files as '.txt' 
 
 # NOTES:
-## Create a folder named 'raster' in the local directory you're using
+## Create a folder named 'raster' in your local directory before running
 
 
 
@@ -103,8 +103,8 @@ ras_file <- paste0(folder, "raster/")
 # writeRaster(prct_ras$new_QCROP, paste0(ras_file, "qCrop_new_", pct, ".tif"), format="GTiff", overwrite=TRUE)
 
 # add Longitude and Latitude rasters (only need to do this one time, they aren't different for diff percents)
-writeRaster(prct_ras$LON, paste0(ras_file, "USBR_SIMPLEG_10292023_LON.tif"), format="GTiff", overwrite=TRUE)
-writeRaster(prct_ras$LAT, paste0(ras_file, "USBR_SIMPLEG_10292023_LAT.tif"), format="GTiff", overwrite=TRUE)
+# writeRaster(prct_ras$LON, paste0(ras_file, "USBR_SIMPLEG_10292023_LON.tif"), format="GTiff", overwrite=TRUE)
+# writeRaster(prct_ras$LAT, paste0(ras_file, "USBR_SIMPLEG_10292023_LAT.tif"), format="GTiff", overwrite=TRUE)
 
 
 # 3: Make basic plots using 'raster' -----------
@@ -148,13 +148,24 @@ shp_br <- read_country(
   
 #plot(shp_br)
 
+# get Brazil States outline
+shp_br_cerr_states <- read_state(
+  year = 2019,
+  simplified = T,
+  #showProgress = T
+) 
 
+# filter to Cerrado States
+shp_br_cerr_states <- shp_br_cerr_states %>% 
+  dplyr::filter(abbrev_state %in% c("TO","MA","PI","BA","MG",
+                                    "SP","MS","MT","GO","DF"))
 
 # 5: Plot Results using 'terra' -------------------
 
 # create SpatRaster using terra
 r <- terra::rast(dat)
 r <- subset(r, c("pct_QLAND", "new_QLAND", "pct_QCROP", "new_QCROP"))
+
 
 ## 5.0: WORLD RESULTS ---------
 
@@ -359,17 +370,6 @@ terra::plot(r_br_new_qcrop_rc, type="classes", col = brewer.pal(7, "Oranges"),
 
 ### 5.2.1: Clip & Subset Cerrado States ------ 
 
-# get Cerrado States outline
-shp_br_cerr_states <- read_state(
-  year = 2019,
-  simplified = T,
-  #showProgress = T
-) 
-
-shp_br_cerr_states <- shp_br_cerr_states %>% 
-  dplyr::filter(abbrev_state %in% c("TO","MA","PI","BA","MG",
-                                    "SP","MS","MT","GO","DF"))
-
 # get Cerrado extent as terra object 
 ext_cerr <- vect(ext(shp_br_cerr))
 
@@ -523,14 +523,20 @@ r_cerr_pct_qland_rc <- classify(r_cerr_pct_qland, c(round((minmax(r_cerr_pct_qla
                                                     -2, -1, -0.5, 0, 0.5, 1, 2, 4, 
                                                     round((minmax(r_cerr_pct_qland)[2]), 1)))
 
-
-r_cerr_new_qland_rc <- classify(r_cerr_new_qland, c(0, 0.5, 1, 2, 3, 4, 
+cerr_new_qland_rc <- classify(r_cerr_new_qland, c(0, 0.5, 1, 2, 3, 4, 
                                                     round((minmax(r_cerr_new_qland)[2]), 1)))
 
-r_cerr_pct_qcrop_rc <- classify(r_cerr_pct_qcrop,c(round((minmax(r_cerr_pct_qcrop)[1])),
-                                                   -1, -0.5, -.1, 0, 0.1, 0.5, 1,
-                                                   round((minmax(r_cerr_pct_qcrop)[2]))))
+# r_cerr_pct_qcrop_rc <- classify(r_cerr_pct_qcrop,c(round((minmax(r_cerr_pct_qcrop)[1])),
+#                                                    -1, -0.5, -.1, 0, 0.1, 0.5, 1,
+#                                                    round((minmax(r_cerr_pct_qcrop)[2]))))
+r_cerr_pct_qcrop_rc <- classify(r_cerr_pct_qcrop,c(round((minmax(r_cerr_pct_qcrop)[1]), digits = 1),
+                                                   0.1, 0.5, 1, 2, 2.5, 3,
+                                                   round((minmax(r_cerr_pct_qcrop)[2]),digits = 1)))
 
+terra::plot(r_cerr_pct_qcrop_rc, type="classes", col = brewer.pal(9, "Oranges"), 
+            main = "% Change in Crop Production Index", plg = list(x="topleft"))
+
+r_
 r_cerr_new_qcrop_rc <- classify(r_cerr_new_qcrop, c(0, 10, 25, 50, 75, 100, 
                                                     round((minmax(r_cerr_new_qcrop)[2]))))
 
