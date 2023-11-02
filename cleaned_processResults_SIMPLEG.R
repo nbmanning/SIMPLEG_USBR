@@ -39,9 +39,9 @@ getwd()
 ## hi: enter "_hi";
 ## lo: enter "_lo";
 ## out: enter "";
-pct <- "" # change when you change 'datafile'
+pct <- "_hi" # change when you change 'datafile'
 
-# NOTE: will need to local location
+# NOTE: will need to change to local location
 folder <- "../Results/SIMPLEG-2023-10-29/"
 datafile   <- paste0(folder, "sg1x3x10_v2310", pct, "-out.txt")
 
@@ -106,13 +106,20 @@ ras_file <- paste0(folder, "raster/")
 # writeRaster(prct_ras$LON, paste0(ras_file, "USBR_SIMPLEG_10292023_LON.tif"), format="GTiff", overwrite=TRUE)
 # writeRaster(prct_ras$LAT, paste0(ras_file, "USBR_SIMPLEG_10292023_LAT.tif"), format="GTiff", overwrite=TRUE)
 
+## Save 'terra' object ------ 
+# create SpatRaster using terra
+r <- terra::rast(dat)
+r <- subset(r, c("pct_QLAND", "new_QLAND", "pct_QCROP", "new_QCROP"))
+
+saveRDS(r, file = paste0("../Data_Derived/r", pct, ".rds"))
+
+## SWITCH OVER TO OTHER SCRIPT NOW ##
 
 # 3: Make basic plots using 'raster' -----------
 
 # plot using base R & 'raster'
 prct_ras <- subset(prct_ras, c("pct_QLAND", "new_QLAND", "pct_QCROP", "new_QCROP"))
 raster::plot(prct_ras)
-
 
 
 # 4: Get Shapefiles: US-MW, BR, & Cerrado ------------
@@ -160,11 +167,13 @@ shp_br_cerr_states <- shp_br_cerr_states %>%
   dplyr::filter(abbrev_state %in% c("TO","MA","PI","BA","MG",
                                     "SP","MS","MT","GO","DF"))
 
-# 5: Plot Results using 'terra' -------------------
+## Save Shapefiles ------ 
+save(shp_br, shp_br_cerr,shp_br_cerr_states, 
+     shp_us, shp_us_mw,
+     file = "../Data_Derived/shp_usbr.RData")
 
-# create SpatRaster using terra
-r <- terra::rast(dat)
-r <- subset(r, c("pct_QLAND", "new_QLAND", "pct_QCROP", "new_QCROP"))
+
+# 5: Plot Results using 'terra' -------------------
 
 
 ## 5.0: WORLD RESULTS ---------
