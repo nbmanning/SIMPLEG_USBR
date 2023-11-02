@@ -1,3 +1,6 @@
+### THIS SCRIPT IS NO LONGER NECESSARY ##
+## MERGED WITH processResults_SIMPLEG.R on 11/2/2023 ##
+
 # x_processResults_SIMPLEG.R
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
