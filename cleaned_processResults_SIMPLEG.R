@@ -14,7 +14,9 @@
 # NOTES:
 ## Create a folder named 'raster' in your local directory before running
 
-
+# Next Steps:
+## Save each plotting window after running the 'Best Maps' Section
+## Maybe create new script to bring all of these plots in and use 'patchwork' to arrange them
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
 
@@ -28,7 +30,8 @@ library(stringr) # use to manipulate result .txt file
 library(RColorBrewer) # use for adding colorblind-friendly color palettes 
 library(geobr) # use to load BR & Cerrado extent shapefiles
 library(tigris) # use to load US and US-MW shapefiles
-library(patchwork) # use to arrange maps into result figures  
+library(rasterVis) # use for easy violin plot 
+library(reshape2) # use for melting data to then use ggplot
 
 # 1: Prep SIMPLE-G Results --------------------
 
