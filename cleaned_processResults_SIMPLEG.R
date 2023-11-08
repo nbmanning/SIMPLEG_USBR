@@ -15,14 +15,15 @@
 ## Create a folder named 'raster' in your local directory before running
 
 # Next Steps:
-## Change % Change to Raw Change Maps 
+
+## Change Pre-processing into Fxn and remove the EDA plots
+
+## Change % Change to Raw Change Maps -- DONE; could change color schemes
 ### US
 ### BR 
 ### Cerrado
 
-## Save each plotting window after running the 'Best Maps' Section
-
-## Maybe create new script to bring all of these plots in and use 'patchwork' to arrange them
+## Save each plotting window after running the 'Best Maps' Section -- DONE
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
 
@@ -54,7 +55,8 @@ pct_title <- "" # for plotting, either " - High" or " - Low"
 
 # NOTE: will need to change to local location
 folder <- "../Results/SIMPLEG-2023-10-29/"
-der_folder <- "../Data_Derived/"
+folder_plot <- "../Figures/102923/"
+folder_der <- "../Data_Derived/"
 datafile   <- paste0(folder, "sg1x3x10_v2310", pct, "-out.txt")
 
 # read results and substitute the old row-notation of using "!" on each row
@@ -182,14 +184,27 @@ save(shp_br, shp_cerr, shp_cerr_states,
      shp_us, shp_us_mw,
      file = "../Data_Derived/shp_usbr.RData")
 
+# PICK UP HERE --------------
+pct <- pct
+pct_title <- pct_title
+folder_plot <- "../Figures/102923/"
+load("../Data_Derived/shp_usbr.RData")
+
+r <- readRDS(file = paste0("../Data_Derived/r", pct, ".rds"))
 
 # 5: Edit Stack & Check Values -------------------
 
 ## 5.1: Calc & Add Raw Change from % and New -------
 # Formula: new - (new / ((pct_change/100)+1))
 
-# rawch = Raw Change
+# subset 
+r_pct_qland <- subset(r, "pct_QLAND")
+r_new_qland <- subset(r, "new_QLAND")
 
+r_pct_qcrop <- subset(r, "pct_QCROP")
+r_new_qcrop <- subset(r, "new_QCROP")
+
+# rawch = Raw Change
 r_rawch_qcrop <- r_new_qcrop - (r_new_qcrop / ((r_pct_qcrop/100)+1))
 r_rawch_qland <- r_new_qland - (r_new_qland / ((r_pct_qland/100)+1))
 
@@ -205,11 +220,10 @@ names(r) <- c("pct_QLAND", "new_QLAND", "pct_QCROP", "new_QCROP", "rawch_QCROP",
 # get and replace values that were over 50,000 ha per grid cell (impossible)
 # link: https://gis.stackexchange.com/questions/421821/how-to-subset-a-spatraster-by-value-in-r
 
-r_new_qland <- subset(r, "new_QLAND")
 # set values over 50,000 to 50,000
-x <- clamp(r_new_qland, upper=50000)
+#x <- clamp(r_new_qland, upper=50000)
 # set values over 50,000 to NA
-x2 <- clamp(r_new_qland, upper=50000, values = F)
+#x2 <- clamp(r_new_qland, upper=50000, values = F)
 
 # set up a Master Raster (MR); i.e. a raster with valid cells as 1 and invalid as NA for multiplying with other rasters 
 masterraster <- ifel(r_new_qland > 50000, NA, 1)
@@ -222,9 +236,11 @@ ncell(y[y==999999])
 ## 5.3: WORLD RESULTS ---------
 
 # Plot World Results
+r2 <- r*masterraster
 terra::plot(r, axes = F)
+terra::plot(r2, axes = F)
 
-# subset to each band - uncomment to do simple Exploratory Data Analysis
+# re-subset to each band - uncomment to do simple Exploratory Data Analysis
 r_pct_qland <- subset(r, "pct_QLAND")
 # minmax(r_pct_qland)
 # hist(r_pct_qland)
@@ -250,10 +266,10 @@ r_rawch_qcrop <- subset(r, "rawch_QCROP")
 # hist(r_rawch_qcrop)
 # boxplot(r_rawch_qcrop)
 
-r_rawch_qcrop <- subset(r, "rawch_QCROP")
-# minmax(r_rawch_qcrop)
-# hist(r_rawch_qcrop)
-# boxplot(r_rawch_qcrop)
+r_rawch_qland <- subset(r, "rawch_QLAND")
+# minmax(r_rawch_qland)
+# hist(r_rawch_qland)
+# boxplot(r_rawch_qland)
 
 
 # 6: US RESULTS ----------------------------
@@ -280,12 +296,14 @@ y <- ifel(r_us_new_qland > 50000, 999999, r_us_new_qland)
 ncell(y[y==999999])
 
 # set values over 50,000 to 50,000
-r_us_new_qland <- clamp(r_us_new_qland, upper=50000)
+# r_us_new_qland <- clamp(r_us_new_qland, upper=50000)
 
 # FUTURE: Apply Master Raster to set all invalid grid cells to NA
 r_us <- r_us * mr_us
 
 # subset to each band
+
+# QLAND - Cropland Area (ha)
 r_us_new_qland <- r_us %>% 
   subset("new_QLAND") %>% 
   # set values over 50,000 to 50,000
@@ -294,7 +312,7 @@ r_us_new_qland <- r_us %>%
 r_us_pct_qland <- r_us %>% subset("pct_QLAND")
 r_us_rawch_qland <- r_us %>% subset("rawch_QLAND")
 
-# 
+# QCROP - Crop Production Index (1000-ton Corn Equivalent)
 r_us_new_qcrop <- r_us %>% 
   subset("new_QCROP") %>% 
   # set values over 50,000 to 50,000
@@ -310,17 +328,31 @@ r_us <- c(r_us_new_qland, r_us_pct_qland, r_us_rawch_qland,
 ### Summaries ----------------------------
 table_us <- summary(r_us, size = 1000000)
 table_us
-write.csv(t, file = paste0(folder, "table_us_102923", pct, ".csv"))
+write.csv(table_us, file = paste0(folder, "table_us_102923", pct, ".csv"))
 
 ### EDA Plots ----------------------------
 # terra::boxplot(r_us %>% subset(c("pct_QLAND", "pct_QCROP")))
 # terra::boxplot(r_us %>% subset(c("new_QLAND", "new_QCROP")))
-
+png(filename = paste0(folder_plot, "us_hist", pct, ".png"))
 terra::hist(r_us)
+dev.off()
+
+png(filename = paste0(folder_plot, "us_hist_log", pct, ".png"))
 terra::hist(log(r_us))
+dev.off()
+
 
 # Violin Plots 
 F_p_violin <- function(df, area){
+  
+  # histograms
+  png(filename = paste0(folder_plot, str_to_lower(area), "_hist", pct, ".png"))
+  terra::hist(df)
+  dev.off()
+  
+  png(filename = paste0(folder_plot, str_to_lower(area), "_hist_log", pct, ".png"))
+  terra::hist(log(df))
+  dev.off()
   
   # subset
   df_pct <- df %>% subset(c("pct_QLAND", "pct_QCROP"))
@@ -337,9 +369,18 @@ F_p_violin <- function(df, area){
   p3 <- bwplot(df_new, 
                main = paste(area, "Post-Sim Values", pct_title),
                ylab = "Area (ha) or 1000-ton CE")
+  
+  png(filename = paste0(folder_plot, str_to_lower(area), "_bw", "_pctchange", pct, ".png"))
   plot(p1)
+  dev.off()
+  
+  png(filename = paste0(folder_plot, str_to_lower(area), "_bw", "_rawchange", pct, ".png"))
   plot(p2)
+  dev.off()
+  
+  png(filename = paste0(folder_plot, str_to_lower(area), "_bw", "_newvalues", pct, ".png"))
   plot(p3)
+  dev.off()
 }
 
 F_p_violin(r_us, "US")
@@ -351,7 +392,7 @@ F_p_violin(r_us, "US")
 terra::plot(r_us, axes = F, type = "continuous")
 
 ## plot individually ##
-par(mfrow=c(2,2), oma = c(0,0,2,0))
+par(mfrow=c(3,2), oma = c(0,0,2,0))
 # r_us_pct_qland@ptr[["names"]][[1]]
 
 # set new continuous color scheme
@@ -434,11 +475,17 @@ F_EDA_us_new_map(r_us_new_qcrop, "Post-Sim Values of Crop Index")
 par(mfrow=c(3,2), oma = c(0,0,0,0))
 par(mfrow=c(1,1), oma = c(0,0,0,0))
 
+
 ### Create mycolors ###
 #display.brewer.all(colorblindFriendly = T)
 mycolors <- colorRampPalette(brewer.pal(9, "PiYG"))(100) #changed from PiYG bc I needed a monochrome change for 
 mycolors2 <- colorRampPalette(brewer.pal(9, "YlGn"))(100)
 mycolors3 <- colorRampPalette(brewer.pal(9, "RdPu"))(100)
+
+# Open Save Function
+png(filename = paste0(folder_plot, "us_", "maps", pct, ".png"),
+    width = 450, height = 500)
+par(mfrow=c(3,2), oma = c(0,0,0,0))
 
 
 ### OLD % Change in Cropland Area ###
@@ -511,7 +558,8 @@ terra::plot(r_us_new_qland/1000,
             col = brewer.pal(9, "YlGn"),
             #col = brewer.pal(9, "Greens"),
             main = paste("US Post-Simulation Crop Area", pct_title), 
-            plg = list(x="bottomright"))
+            #plg = list(x="bottomright")
+            )
 lines(shp_us_mw, lwd = 0.8, lty = 3, col = "darkgray")
 
 ### Post-Sim Crop Index ###
@@ -522,7 +570,8 @@ terra::plot(r_us_new_qcrop/1000,
             #col = brewer.pal(9, "YlOrRd"),
             col = brewer.pal(9, "YlGn"),
             main = paste("US Post-Simulation Crop Index", pct_title), 
-            plg = list(x="bottomright"))
+            #plg = list(x="bottomright")
+            )
 lines(shp_us_mw, lwd = 0.8, lty = 3, col = "darkgray")
 
 
@@ -541,7 +590,8 @@ terra::plot(r_us_rawch_qland/1000,
             breaks = test_breaks,
             col = rev(mycolors3),
             main = paste("US Raw Change in Cropland Area", pct_title),
-            plg = list(x="bottomright"))
+            #plg = list(x="bottomright")
+            )
 lines(shp_us_mw, lwd = 0.8, lty = 3, col = "darkgray")
 #north(cbind(-121, 29))
 
@@ -553,11 +603,12 @@ terra::plot(r_us_rawch_qcrop/1000,
             breaks = test_breaks,
             col = rev(mycolors3),
             main = paste("US Raw Change in Crop Production Index", pct_title),
-            plg = list(x="bottomright"))
+            #plg = list(x="bottomright")
+            )
 lines(shp_us_mw, lwd = 0.8, lty = 3, col = "darkgray")
 #north(cbind(-121, 29))
 
-
+dev.off()
 
 
 # 7: BRAZIL RESULTS ----------------------------
@@ -590,6 +641,7 @@ r_br_new_qland <- clamp(r_br_new_qland, upper=50000)
 r_br <- r_br * mr_br
 
 # subset to each band
+# QLAND
 r_br_new_qland <- r_br %>% 
   subset("new_QLAND") %>% 
   # set values over 50,000 to 50,000
@@ -598,7 +650,7 @@ r_br_new_qland <- r_br %>%
 r_br_pct_qland <- r_br %>% subset("pct_QLAND")
 r_br_rawch_qland <- r_br %>% subset("rawch_QLAND")
 
-# 
+# QCROP
 r_br_new_qcrop <- r_br %>% 
   subset("new_QCROP") %>% 
   # set values over 50,000 to 50,000
@@ -618,7 +670,7 @@ write.csv(table_br, file = paste0(folder, "table_br_102923", pct, ".csv"))
 
 ### Boxplots ----------------------------
 F_p_violin(r_br, "Brazil")
-hist(log(r_br))
+
 ## 7.3: Plot BR Results ----------------------------
 terra::plot(r_br, axes = F, type = "interval")
 
@@ -695,7 +747,12 @@ F_EDA_br_new_map(r_br_new_qland, "Post-Sim Values of Cropland Area")
 F_EDA_br_new_map(r_br_new_qcrop, "Post-Sim Values of Crop Index")
 
 ### Plot Best Map ---------
+
+# Open Save Function
+png(filename = paste0(folder_plot, "brazil_", "maps", pct, ".png"),
+    width = 450, height = 500)
 par(mfrow=c(3,2), oma = c(0,0,0,0))
+
 
 # ### OLD % Change in Cropland Area ###
 # terra::plot(r_br_pct_qland,
@@ -810,7 +867,7 @@ terra::plot(r_br_rawch_qcrop/1000,
             plg = list(x="bottomright"))
 lines(shp_cerr_states, lwd = 0.8, lty = 3, col = "darkgray")
 #north(cbind(-121, 29))
-
+dev.off()
 
 
 
@@ -881,8 +938,7 @@ write.csv(table_cerr, file = paste0(folder, "table_cerr_102923", pct, ".csv"))
 
 ### Boxplots ----------------------------
 F_p_violin(r_cerr, "Cerrado")
-hist(r_cerr)
-hist(log(r_cerr))
+
 
 ## 8.3: Plot Cerrado Results ----------------------------
 ### Create Functions -------
@@ -958,8 +1014,12 @@ F_EDA_cerr_new_map(r_cerr_new_qland, "Post-Sim Values of Cropland Area")
 F_EDA_cerr_new_map(r_cerr_new_qcrop, "Post-Sim Values of Crop Index")
 
 ### Plot Best Map ---------
+
+# Open Save Function
+png(filename = paste0(folder_plot, "cerrado_", "maps", pct, ".png"),
+    width = 450, height = 500)
 par(mfrow=c(3,2), oma = c(0,0,0,0))
-#par(mfrow=c(1,1), oma = c(0,0,0,0))
+
 
 ### OLD % Change in Cropland Area ###
 # terra::plot(r_cerr_pct_qland,
@@ -1077,7 +1137,7 @@ terra::plot(r_cerr_rawch_qcrop/1000,
             plg = list(x="bottomright"))
 lines(shp_cerr_states, lwd = 0.8, lty = 3, col = "darkgray")
 #north(cbind(-121, 29))
-
+dev.off()
 
 
 
