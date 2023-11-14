@@ -283,8 +283,8 @@ r_us <- crop(r, ext_us, mask = T)
 r_us <- mask(r_us, shp_us)
 
 # set Master Raster to US Extent
-mr_us <- crop(masterraster, ext_us, mask = T)
-mr_us <- mask(mr_us, shp_us)
+# mr_us <- crop(masterraster, ext_us, mask = T)
+# mr_us <- mask(mr_us, shp_us)
 
 ## 6.2 Subset and do EDA ----------------------------
 
@@ -299,7 +299,7 @@ ncell(y[y==999999])
 # r_us_new_qland <- clamp(r_us_new_qland, upper=50000)
 
 # FUTURE: Apply Master Raster to set all invalid grid cells to NA
-r_us <- r_us * mr_us
+#r_us <- r_us * mr_us
 
 # subset to each band
 
@@ -333,14 +333,6 @@ write.csv(table_us, file = paste0(folder, "table_us_102923", pct, ".csv"))
 ### EDA Plots ----------------------------
 # terra::boxplot(r_us %>% subset(c("pct_QLAND", "pct_QCROP")))
 # terra::boxplot(r_us %>% subset(c("new_QLAND", "new_QCROP")))
-png(filename = paste0(folder_plot, "us_hist", pct, ".png"))
-terra::hist(r_us)
-dev.off()
-
-png(filename = paste0(folder_plot, "us_hist_log", pct, ".png"))
-terra::hist(log(r_us))
-dev.off()
-
 
 # Violin Plots 
 F_p_violin <- function(df, area){
@@ -383,100 +375,106 @@ F_p_violin <- function(df, area){
   dev.off()
 }
 
-F_p_violin(r_us, "US")
 
+F_p_violin(df, area)
+#######################################################################################################
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+### MAKE A FUNCTION ------------------------------------------
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+
+# PICK UP HERE ---------------
+
+# this function:
+## 1) clips "r" to an area of interest
+## 2) counts the number of invalid cells
+## 3) Truncates Cropland Area & CPI at 50,000
+## 4) Restacks Rasters ... 
+F_EDA <- function(shp, area){
+  ## 7.1 Clip to Brazil Extent ----------------------------
+  
+  # get extent as terra object for plotting
+  ext_area <- vect(ext(shp))
+  
+  # plot basic BR results by cropping and masking to just BR extent
+  r_area <- terra::crop(r, ext_area, mask = T) 
+  r_area <- mask(r_area, shp)
+  
+  ## 7.2 Subset and do EDA ----------------------------
+  r_area_new_qland <- r_area %>% subset("new_QLAND")
+  r_area_new_qcrop <- r_area %>% subset("new_QCROP")
+  
+  # Count Invalid Cells & Modify
+  # count cells over 50,000 -- Can't just count NA from MR because others 
+  y <- ifel(r_area_new_qland > 50000, 999999, r_area_new_qland)
+  y_land <- ncell(y[y==999999])
+  print(paste(area, "Cropland Area cells over 50,000:", y_land))
+  
+  y <- ifel(r_area_new_qcrop > 50000, 999999, r_area_new_qcrop)
+  y_crop <- ncell(y[y==999999])
+  print(paste(area, "Crop Production Index cells over 50,000:", y_crop))
+  
+  # subset to each band
+  ## QLAND ##
+  r_area_new_qland <- r_area %>% 
+    subset("new_QLAND") %>% 
+    # set values over 50,000 to 50,000
+    clamp(upper=50000)
+  
+  r_area_pct_qland <- r_area %>% subset("pct_QLAND")
+  r_area_rawch_qland <- r_area %>% subset("rawch_QLAND")
+  
+  ## QCROP ##
+  r_area_new_qcrop <- r_area %>% 
+    subset("new_QCROP") %>% 
+    # set values over 50,000 to 50,000
+    clamp(upper=50000)
+  
+  r_area_pct_qcrop <- r_area %>% subset("pct_QCROP")
+  r_area_rawch_qcrop <- r_area %>% subset("rawch_QCROP")
+  
+  # re-stack and re-order
+  r_area <- c(r_area_new_qland, r_area_pct_qland, r_area_rawch_qland,
+            r_area_new_qcrop, r_area_pct_qcrop, r_area_rawch_qcrop)
+  
+  ### Summaries ----------------------------
+  table_area <- summary(r_area, size = 1000000) # set size to not use a sample
+  table_area
+  write.csv(table_area, file = paste0(folder, "table_", area, "_102923", pct, ".csv"))
+  
+  ### Boxplots ----------------------------
+  F_p_violin(r_area, str_to_title(area))
+  
+  ## 7.3: Plot BR Results ----------------------------
+  terra::plot(r_area, axes = F, type = "interval")
+}
+
+F_EDA(r_us, "US")
+# end function
+
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+######################################################################################################
 
 ## 6.3: Plot US Results ----------------------------
 
 ## plot all together ##
 terra::plot(r_us, axes = F, type = "continuous")
 
-## plot individually ##
-par(mfrow=c(3,2), oma = c(0,0,2,0))
-# r_us_pct_qland@ptr[["names"]][[1]]
+#r_us_pct_qland@ptr[["names"]][[1]]
 
-# set new continuous color scheme
-col_split <- colorRampPalette(brewer.pal(9, "YlOrRd"))(50)
-
-### Create Functions -------
-F_EDA_us_pct_map <- function(layer, title){
-  
-  par(mfrow=c(2,2), oma = c(0,0,0,0))
-  terra::plot(layer,
-              type = "continuous",
-              col = rev(col_split),
-              main = paste(title, "- default", pct_title), 
-              plg = list(x="bottomright"))
-  
-  terra::plot(layer,
-              type = "interval",
-              breaks = c(seq(-25, 5, by = 5)),
-              col = rev(brewer.pal(9, "YlOrRd")),
-              main = paste(title, "- breaks; seq()", pct_title), 
-              plg = list(x="bottomright"))
-  
-  terra::plot(layer,
-              type = "interval",
-              breakby = "cases",
-              col = rev(brewer.pal(9, "YlOrRd")),
-              main = paste(title, "- breaks; equal quantile", pct_title), 
-              plg = list(x="bottomright"))
-  
-  terra::plot(layer,
-              type = "interval",
-              breakby = "eqint",
-              col = rev(brewer.pal(9, "YlOrRd")),
-              main = paste(title, "- breaks; equal interval", pct_title), 
-              plg = list(x="bottomright"))
-}
-
-
-
-F_EDA_us_new_map <- function(layer, title){
-  
-  par(mfrow=c(2,2), oma = c(0,0,0,0))
-  terra::plot(layer,
-              type = "continuous",
-              col = col_split,
-              main = paste(title, "- default", pct_title), 
-              plg = list(x="bottomright"))
-  
-  terra::plot(layer,
-              type = "interval",
-              breaks = c(seq(0, 250000, by = 50000)),
-              col = brewer.pal(9, "YlOrRd"),
-              main = paste(title, "- breaks; seq()", pct_title), 
-              plg = list(x="bottomright"))
-  
-  terra::plot(layer,
-              type = "interval",
-              breakby = "cases",
-              col = brewer.pal(9, "YlOrRd"),
-              main = paste(title, "- breaks; equal quantile", pct_title), 
-              plg = list(x="bottomright"))
-  
-  terra::plot(layer,
-              type = "interval",
-              breakby = "eqint",
-              col = brewer.pal(9, "YlOrRd"),
-              main = paste(title, "- breaks; equal interval", pct_title), 
-              plg = list(x="bottomright"))
-}
-
-### Plot EDA --------
-F_EDA_us_pct_map(r_us_pct_qland, "% Change in Cropland Area")
-F_EDA_us_pct_map(r_us_pct_qcrop, "% Change in Crop Index")
-
-F_EDA_us_new_map(r_us_new_qland, "Post-Sim Values of Cropland Area")
-F_EDA_us_new_map(r_us_new_qcrop, "Post-Sim Values of Crop Index")
 
 
 ### Plot Best Map ---------
+
+
 par(mfrow=c(3,2), oma = c(0,0,0,0))
 par(mfrow=c(1,1), oma = c(0,0,0,0))
 
 
 ### Create mycolors ###
+# set new continuous color scheme
+col_split <- colorRampPalette(brewer.pal(9, "YlOrRd"))(50)
+
 #display.brewer.all(colorblindFriendly = T)
 mycolors <- colorRampPalette(brewer.pal(9, "PiYG"))(100) #changed from PiYG bc I needed a monochrome change for 
 mycolors2 <- colorRampPalette(brewer.pal(9, "YlGn"))(100)
@@ -672,79 +670,9 @@ write.csv(table_br, file = paste0(folder, "table_br_102923", pct, ".csv"))
 F_p_violin(r_br, "Brazil")
 
 ## 7.3: Plot BR Results ----------------------------
-terra::plot(r_br, axes = F, type = "interval")
-
-### Create Functions -------
-F_EDA_br_pct_map <- function(layer, title){
-  
-  par(mfrow=c(2,2), oma = c(0,0,0,0))
-  terra::plot(layer,
-              type = "continuous",
-              col = col_split,
-              main = paste(title, "- default", pct_title), 
-              plg = list(x="bottomright"))
-  
-  terra::plot(layer,
-              type = "interval",
-              breaks = c(seq(0, 4, by = 0.5)),
-              col = brewer.pal(9, "YlOrRd"),
-              main = paste(title, "- breaks; seq()", pct_title), 
-              plg = list(x="bottomright"))
-  
-  terra::plot(layer,
-              type = "interval",
-              breakby = "cases",
-              col = brewer.pal(9, "YlOrRd"),
-              main = paste(title, "- breaks; equal quantile", pct_title), 
-              plg = list(x="bottomright"))
-  
-  terra::plot(layer,
-              type = "interval",
-              breakby = "eqint",
-              col = brewer.pal(9, "YlOrRd"),
-              main = paste(title, "- breaks; equal interval", pct_title), 
-              plg = list(x="bottomright"))
-}
+terra::plot(r_br, axes = F, type = "continuous")
 
 
-
-F_EDA_br_new_map <- function(layer, title){
-  
-  par(mfrow=c(2,2), oma = c(0,0,0,0))
-  terra::plot(layer,
-              type = "continuous",
-              col = col_split,
-              main = paste(title, "- default", pct_title), 
-              plg = list(x="bottomright"))
-  
-  terra::plot(layer,
-              type = "interval",
-              breaks = c(seq(0, 50000, by = 5000)),
-              col = brewer.pal(9, "YlOrRd"),
-              main = paste(title, "- breaks; seq()", pct_title), 
-              plg = list(x="bottomright"))
-  
-  terra::plot(layer,
-              type = "interval",
-              breakby = "cases",
-              col = brewer.pal(9, "YlOrRd"),
-              main = paste(title, "- breaks; equal quantile", pct_title), 
-              plg = list(x="bottomright"))
-  
-  terra::plot(layer,
-              type = "interval",
-              breakby = "eqint",
-              col = brewer.pal(9, "YlOrRd"),
-              main = paste(title, "- breaks; equal interval", pct_title), 
-              plg = list(x="bottomright"))
-}
-
-### Plot EDA --------
-F_EDA_br_pct_map(r_br_pct_qland, "% Change in Cropland Area")
-F_EDA_br_pct_map(r_br_pct_qcrop, "% Change in Crop Index")
-
-F_EDA_br_new_map(r_br_new_qland, "Post-Sim Values of Cropland Area")
-F_EDA_br_new_map(r_br_new_qcrop, "Post-Sim Values of Crop Index")
 
 ### Plot Best Map ---------
 
@@ -941,77 +869,7 @@ F_p_violin(r_cerr, "Cerrado")
 
 
 ## 8.3: Plot Cerrado Results ----------------------------
-### Create Functions -------
-F_EDA_cerr_pct_map <- function(layer, title){
-  
-  par(mfrow=c(2,2), oma = c(0,0,0,0))
-  terra::plot(layer,
-              type = "continuous",
-              col = col_split,
-              main = paste(title, "- default"), 
-              plg = list(x="topleft"))
-  
-  terra::plot(layer,
-              type = "interval",
-              breaks = c(seq(0, 4, by = 0.5)),
-              col = brewer.pal(9, "YlOrRd"),
-              main = paste(title, "- breaks; seq()"), 
-              plg = list(x="topleft"))
-  
-  terra::plot(layer,
-              type = "interval",
-              breakby = "cases",
-              col = brewer.pal(9, "YlOrRd"),
-              main = paste(title, "- breaks; equal quantile"), 
-              plg = list(x="topleft"))
-  
-  terra::plot(layer,
-              type = "interval",
-              breakby = "eqint",
-              col = brewer.pal(9, "YlOrRd"),
-              main = paste(title, "- breaks; equal interval"), 
-              plg = list(x="topleft"))
-}
 
-
-
-F_EDA_cerr_new_map <- function(layer, title){
-  
-  par(mfrow=c(2,2), oma = c(0,0,0,0))
-  terra::plot(layer,
-              type = "continuous",
-              col = col_split,
-              main = paste(title, "- default"), 
-              plg = list(x="topleft"))
-  
-  terra::plot(layer,
-              type = "interval",
-              breaks = c(seq(0, 450000, by = 100000)),
-              col = brewer.pal(9, "YlOrRd"),
-              main = paste(title, "- breaks; seq()"), 
-              plg = list(x="topleft"))
-  
-  terra::plot(layer,
-              type = "interval",
-              breakby = "cases",
-              col = brewer.pal(9, "YlOrRd"),
-              main = paste(title, "- breaks; equal quantile"), 
-              plg = list(x="topleft"))
-  
-  terra::plot(layer,
-              type = "interval",
-              breakby = "eqint",
-              col = brewer.pal(9, "YlOrRd"),
-              main = paste(title, "- breaks; equal interval"), 
-              plg = list(x="topleft"))
-}
-
-### Plot EDA --------
-F_EDA_cerr_pct_map(r_cerr_pct_qland, "% Change in Cropland Area")
-F_EDA_cerr_pct_map(r_cerr_pct_qcrop, "% Change in Crop Index")
-
-F_EDA_cerr_new_map(r_cerr_new_qland, "Post-Sim Values of Cropland Area")
-F_EDA_cerr_new_map(r_cerr_new_qcrop, "Post-Sim Values of Crop Index")
 
 ### Plot Best Map ---------
 
@@ -1314,3 +1172,221 @@ F_calc_area_change <- function(new, pct_change){
   # might need to add omit.na??
   new - (new / ((pct_change/100)+1))
 }
+
+# 5: Old EDA Plotting Sections --------------
+### Create US Functions -------
+F_EDA_us_pct_map <- function(layer, title){
+  
+  par(mfrow=c(2,2), oma = c(0,0,0,0))
+  terra::plot(layer,
+              type = "continuous",
+              col = rev(col_split),
+              main = paste(title, "- default", pct_title), 
+              plg = list(x="bottomright"))
+  
+  terra::plot(layer,
+              type = "interval",
+              breaks = c(seq(-25, 5, by = 5)),
+              col = rev(brewer.pal(9, "YlOrRd")),
+              main = paste(title, "- breaks; seq()", pct_title), 
+              plg = list(x="bottomright"))
+  
+  terra::plot(layer,
+              type = "interval",
+              breakby = "cases",
+              col = rev(brewer.pal(9, "YlOrRd")),
+              main = paste(title, "- breaks; equal quantile", pct_title), 
+              plg = list(x="bottomright"))
+  
+  terra::plot(layer,
+              type = "interval",
+              breakby = "eqint",
+              col = rev(brewer.pal(9, "YlOrRd")),
+              main = paste(title, "- breaks; equal interval", pct_title), 
+              plg = list(x="bottomright"))
+}
+
+
+
+F_EDA_us_new_map <- function(layer, title){
+  
+  par(mfrow=c(2,2), oma = c(0,0,0,0))
+  terra::plot(layer,
+              type = "continuous",
+              col = col_split,
+              main = paste(title, "- default", pct_title), 
+              plg = list(x="bottomright"))
+  
+  terra::plot(layer,
+              type = "interval",
+              breaks = c(seq(0, 250000, by = 50000)),
+              col = brewer.pal(9, "YlOrRd"),
+              main = paste(title, "- breaks; seq()", pct_title), 
+              plg = list(x="bottomright"))
+  
+  terra::plot(layer,
+              type = "interval",
+              breakby = "cases",
+              col = brewer.pal(9, "YlOrRd"),
+              main = paste(title, "- breaks; equal quantile", pct_title), 
+              plg = list(x="bottomright"))
+  
+  terra::plot(layer,
+              type = "interval",
+              breakby = "eqint",
+              col = brewer.pal(9, "YlOrRd"),
+              main = paste(title, "- breaks; equal interval", pct_title), 
+              plg = list(x="bottomright"))
+}
+
+### Plot US EDA --------
+F_EDA_us_pct_map(r_us_pct_qland, "% Change in Cropland Area")
+F_EDA_us_pct_map(r_us_pct_qcrop, "% Change in Crop Index")
+
+F_EDA_us_new_map(r_us_new_qland, "Post-Sim Values of Cropland Area")
+F_EDA_us_new_map(r_us_new_qcrop, "Post-Sim Values of Crop Index")
+
+
+### Create BR Functions -------
+F_EDA_br_pct_map <- function(layer, title){
+  
+  par(mfrow=c(2,2), oma = c(0,0,0,0))
+  terra::plot(layer,
+              type = "continuous",
+              col = col_split,
+              main = paste(title, "- default", pct_title), 
+              plg = list(x="bottomright"))
+  
+  terra::plot(layer,
+              type = "interval",
+              breaks = c(seq(0, 4, by = 0.5)),
+              col = brewer.pal(9, "YlOrRd"),
+              main = paste(title, "- breaks; seq()", pct_title), 
+              plg = list(x="bottomright"))
+  
+  terra::plot(layer,
+              type = "interval",
+              breakby = "cases",
+              col = brewer.pal(9, "YlOrRd"),
+              main = paste(title, "- breaks; equal quantile", pct_title), 
+              plg = list(x="bottomright"))
+  
+  terra::plot(layer,
+              type = "interval",
+              breakby = "eqint",
+              col = brewer.pal(9, "YlOrRd"),
+              main = paste(title, "- breaks; equal interval", pct_title), 
+              plg = list(x="bottomright"))
+}
+
+
+
+F_EDA_br_new_map <- function(layer, title){
+  
+  par(mfrow=c(2,2), oma = c(0,0,0,0))
+  terra::plot(layer,
+              type = "continuous",
+              col = col_split,
+              main = paste(title, "- default", pct_title), 
+              plg = list(x="bottomright"))
+  
+  terra::plot(layer,
+              type = "interval",
+              breaks = c(seq(0, 50000, by = 5000)),
+              col = brewer.pal(9, "YlOrRd"),
+              main = paste(title, "- breaks; seq()", pct_title), 
+              plg = list(x="bottomright"))
+  
+  terra::plot(layer,
+              type = "interval",
+              breakby = "cases",
+              col = brewer.pal(9, "YlOrRd"),
+              main = paste(title, "- breaks; equal quantile", pct_title), 
+              plg = list(x="bottomright"))
+  
+  terra::plot(layer,
+              type = "interval",
+              breakby = "eqint",
+              col = brewer.pal(9, "YlOrRd"),
+              main = paste(title, "- breaks; equal interval", pct_title), 
+              plg = list(x="bottomright"))
+}
+
+### Plot BR EDA --------
+F_EDA_br_pct_map(r_br_pct_qland, "% Change in Cropland Area")
+F_EDA_br_pct_map(r_br_pct_qcrop, "% Change in Crop Index")
+
+F_EDA_br_new_map(r_br_new_qland, "Post-Sim Values of Cropland Area")
+F_EDA_br_new_map(r_br_new_qcrop, "Post-Sim Values of Crop Index")
+
+### Create Cerrado Functions -------
+F_EDA_cerr_pct_map <- function(layer, title){
+  
+  par(mfrow=c(2,2), oma = c(0,0,0,0))
+  terra::plot(layer,
+              type = "continuous",
+              col = col_split,
+              main = paste(title, "- default"), 
+              plg = list(x="topleft"))
+  
+  terra::plot(layer,
+              type = "interval",
+              breaks = c(seq(0, 4, by = 0.5)),
+              col = brewer.pal(9, "YlOrRd"),
+              main = paste(title, "- breaks; seq()"), 
+              plg = list(x="topleft"))
+  
+  terra::plot(layer,
+              type = "interval",
+              breakby = "cases",
+              col = brewer.pal(9, "YlOrRd"),
+              main = paste(title, "- breaks; equal quantile"), 
+              plg = list(x="topleft"))
+  
+  terra::plot(layer,
+              type = "interval",
+              breakby = "eqint",
+              col = brewer.pal(9, "YlOrRd"),
+              main = paste(title, "- breaks; equal interval"), 
+              plg = list(x="topleft"))
+}
+
+
+
+F_EDA_cerr_new_map <- function(layer, title){
+  
+  par(mfrow=c(2,2), oma = c(0,0,0,0))
+  terra::plot(layer,
+              type = "continuous",
+              col = col_split,
+              main = paste(title, "- default"), 
+              plg = list(x="topleft"))
+  
+  terra::plot(layer,
+              type = "interval",
+              breaks = c(seq(0, 450000, by = 100000)),
+              col = brewer.pal(9, "YlOrRd"),
+              main = paste(title, "- breaks; seq()"), 
+              plg = list(x="topleft"))
+  
+  terra::plot(layer,
+              type = "interval",
+              breakby = "cases",
+              col = brewer.pal(9, "YlOrRd"),
+              main = paste(title, "- breaks; equal quantile"), 
+              plg = list(x="topleft"))
+  
+  terra::plot(layer,
+              type = "interval",
+              breakby = "eqint",
+              col = brewer.pal(9, "YlOrRd"),
+              main = paste(title, "- breaks; equal interval"), 
+              plg = list(x="topleft"))
+}
+
+### Plot Cerrado EDA --------
+F_EDA_cerr_pct_map(r_cerr_pct_qland, "% Change in Cropland Area")
+F_EDA_cerr_pct_map(r_cerr_pct_qcrop, "% Change in Crop Index")
+
+F_EDA_cerr_new_map(r_cerr_new_qland, "Post-Sim Values of Cropland Area")
+F_EDA_cerr_new_map(r_cerr_new_qcrop, "Post-Sim Values of Crop Index")
