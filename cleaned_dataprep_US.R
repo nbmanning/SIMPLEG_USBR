@@ -3,7 +3,7 @@
 # Purpose: Import US yield, production, and area harvested data from USDA and
 # do some EDA and mapping to determine the best way to display this data
 # Creation Date: 8/24/23
-# Last Updated: October 2023
+# Last Updated: November 2023
 
 # Links: 
 ## StackExchange link for plotting fifty_states: https://stackoverflow.com/questions/50499363/how-to-draw-the-outline-of-multiple-us-states-in-r
@@ -202,7 +202,7 @@ df_diff <- df_range %>%
     soyDiffPctAreaHarvested = ((soybeansAreaHarvested - lag(soybeansAreaHarvested))/lag(soybeansAreaHarvested))*100,
     soyDiffPctAreaPlanted = ((soybeansAreaPlanted - lag(soybeansAreaPlanted))/lag(soybeansAreaPlanted))*100
   ) %>% 
-  select(year, state, name,
+  select(year, state, name, fips,
          cornDiffPctYield, cornDiffPctProd, cornDiffPctAreaHarvested, cornDiffPctAreaPlanted,
          soyDiffPctYield, soyDiffPctProd, soyDiffPctAreaHarvested, soyDiffPctAreaPlanted,
          cornSoyDiffPctYield, cornSoyDiffPctProd, cornSoyDiffPctAreaHarvested, cornSoyDiffPctAreaPlanted
@@ -213,6 +213,8 @@ df_diff <- df_range %>%
 # get just the changes from 2011-2012
 df_diff_2012 <- df_diff %>% filter(year == yr_one)
 
+# SAVE
+save(file = "../Data_Derived/diff_soyb_corn.Rda", df_diff)
 
 ## 1.4.2: Create Plotting Fxn
 F_plot_gg_diffpct <- function(data, var, yr){
