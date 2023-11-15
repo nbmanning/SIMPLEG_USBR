@@ -235,10 +235,6 @@ ext_us <- vect(ext(shp_us))
 r_us <- crop(r, ext_us, mask = T)
 r_us <- mask(r_us, shp_us)
 
-# set Master Raster to US Extent
-# mr_us <- crop(masterraster, ext_us, mask = T)
-# mr_us <- mask(mr_us, shp_us)
-
 ## 6.2 Subset and do EDA ----------------------------
 
 r_us_new_qland <- r_us %>% subset("new_QLAND")
@@ -330,7 +326,7 @@ F_p_violin <- function(df, area){
 
 
 F_p_violin(df, area)
-#######################################################################################################
+
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
 ### MAKE A FUNCTION ------------------------------------------
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
