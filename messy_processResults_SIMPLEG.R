@@ -27,9 +27,10 @@
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
 
-# 0: Load required libraries ---- 
+# 0: Load Libraries & Set Constants ---- 
 rm(list = ls())
 
+## Libraries ##
 library(tidyverse)
 library(raster) # use for initial raster stack and basic plotting
 library(terra) # use to wrangle geospatial data and plot
@@ -40,11 +41,8 @@ library(tigris) # use to load US and US-MW shapefiles
 library(rasterVis) # use for easy violin plot 
 library(reshape2) # use for melting data to then use ggplot
 
-# INITIAL PREP & SAVE -----------------------------------------------------------
-# 1: Prep SIMPLE-G Results --------------------
 
-## 1.1: import and modify the output from the SIMPLE-G model ----------
-getwd()
+## Constants ##
 
 # NOTE: change this when you change the result file to one of three TXT files
 ## hi: enter "_hi";
@@ -58,6 +56,14 @@ pct_title <- "" # for plotting, either " - High" or " - Low"
 folder <- "../Results/SIMPLEG-2023-10-29/"
 folder_plot <- "../Figures/102923/"
 datafile   <- paste0(folder, "sg1x3x10_v2310", pct, "-out.txt")
+
+
+
+# INITIAL PREP & SAVE -----------------------------------------------------------
+# 1: Prep SIMPLE-G Results --------------------
+
+## 1.1: import and modify the output from the SIMPLE-G model ----------
+getwd()
 
 # read results and substitute the old row-notation of using "!" on each row
 old.lines  <- readLines(datafile)
@@ -284,6 +290,7 @@ write.csv(table_us, file = paste0(folder, "table_us_102923", pct, ".csv"))
 # terra::boxplot(r_us %>% subset(c("new_QLAND", "new_QCROP")))
 
 # Violin Plots 
+#### TO-DO: Fxn Works but doesn't display all in the plotting window #######
 F_p_violin <- function(df, area){
   
   # histograms
@@ -322,8 +329,11 @@ F_p_violin <- function(df, area){
   png(filename = paste0(folder_plot, str_to_lower(area), "_bw", "_newvalues", pct, ".png"))
   plot(p3)
   dev.off()
+  
+  return(p1)
+  return(p2)
+  return(p3)
 }
-
 
 F_p_violin(df, area)
 
@@ -338,66 +348,81 @@ F_p_violin(df, area)
 ## 2) counts the number of invalid cells
 ## 3) Truncates Cropland Area & CPI at 50,000
 ## 4) Restacks Rasters ... 
-F_EDA <- function(shp, area){
+
+# fxn to count the cells over 50,000 in a layer (either new_QLAND or new_QCROP)
+F_count_invalid <- function(df, layer_name){
+  # get just the layer of interest
+  df_new <- df %>% subset(layer_name)
+  
+  # Count Invalid Cells & Modify
+  y <- ifel(df_new > 50000, 999999, df_new)
+  y_land <- ncell(y[y==999999])
+  
+  print(paste(layer_name, "Cropland Area cells over 50,000:", y_land))
+}
+
+
+# fxn to max layers out at 50,000
+F_clamp <- function(df, layer_name){
+  # get just one layer 
+  df_new <- df %>% subset(layer_name)
+  
+  # set values over 50,000 to 50,000
+  df_new <- df_new %>% 
+    clamp(upper=50000)
+}
+
+
+# incorporate both of these into one function
+F_aoi_prep <- function(shp, area_name){
   ## 7.1 Clip to Brazil Extent ----------------------------
   
   # get extent as terra object for plotting
   ext_area <- vect(ext(shp))
   
-  # plot basic BR results by cropping and masking to just BR extent
-  r_area <- terra::crop(r, ext_area, mask = T) 
-  r_area <- mask(r_area, shp)
+  # crop and masking to just the extent of interest
+  r_aoi <- terra::crop(r, ext_area, mask = T) 
+  r_aoi <- mask(r_aoi, shp)
   
   ## 7.2 Subset and do EDA ----------------------------
-  r_area_new_qland <- r_area %>% subset("new_QLAND")
-  r_area_new_qcrop <- r_area %>% subset("new_QCROP")
-  
-  # Count Invalid Cells & Modify
-  # count cells over 50,000 -- Can't just count NA from MR because others 
-  y <- ifel(r_area_new_qland > 50000, 999999, r_area_new_qland)
-  y_land <- ncell(y[y==999999])
-  print(paste(area, "Cropland Area cells over 50,000:", y_land))
-  
-  y <- ifel(r_area_new_qcrop > 50000, 999999, r_area_new_qcrop)
-  y_crop <- ncell(y[y==999999])
-  print(paste(area, "Crop Production Index cells over 50,000:", y_crop))
-  
+
   # subset to each band
   ## QLAND ##
-  r_area_new_qland <- r_area %>% 
-    subset("new_QLAND") %>% 
-    # set values over 50,000 to 50,000
-    clamp(upper=50000)
-  
-  r_area_pct_qland <- r_area %>% subset("pct_QLAND")
-  r_area_rawch_qland <- r_area %>% subset("rawch_QLAND")
-  
+  F_count_invalid(r_aoi, "new_QLAND")
+  r_aoi_new_qland <- F_clamp(r_aoi, "new_QLAND")
+
   ## QCROP ##
-  r_area_new_qcrop <- r_area %>% 
-    subset("new_QCROP") %>% 
-    # set values over 50,000 to 50,000
-    clamp(upper=50000)
+  F_count_invalid(r_aoi, "new_QCROP")
+  r_aoi_new_qcrop <- F_clamp(r_aoi, "new_QCROP")
   
-  r_area_pct_qcrop <- r_area %>% subset("pct_QCROP")
-  r_area_rawch_qcrop <- r_area %>% subset("rawch_QCROP")
+  # get other layers
+  r_aoi_pct_qland <- r_aoi %>% subset("pct_QLAND")
+  r_aoi_rawch_qland <- r_aoi %>% subset("rawch_QLAND")
+  r_aoi_pct_qcrop <- r_aoi %>% subset("pct_QCROP")
+  r_aoi_rawch_qcrop <- r_aoi %>% subset("rawch_QCROP")
   
   # re-stack and re-order
-  r_area <- c(r_area_new_qland, r_area_pct_qland, r_area_rawch_qland,
-            r_area_new_qcrop, r_area_pct_qcrop, r_area_rawch_qcrop)
-  
-  ### Summaries ----------------------------
-  table_area <- summary(r_area, size = 1000000) # set size to not use a sample
-  table_area
-  write.csv(table_area, file = paste0(folder, "table_", area, "_102923", pct, ".csv"))
-  
-  ### Boxplots ----------------------------
-  F_p_violin(r_area, str_to_title(area))
-  
-  ## 7.3: Plot BR Results ----------------------------
-  terra::plot(r_area, axes = F, type = "interval")
+  r_aoi <- c(r_aoi_new_qland, r_aoi_pct_qland, r_aoi_rawch_qland,
+            r_aoi_new_qcrop, r_aoi_pct_qcrop, r_aoi_rawch_qcrop)
+  return(r_aoi)
 }
 
-F_EDA(r_us, "US")
+F_EDA <- function(r_aoi, area_name){  
+  ### Summaries ----------------------------
+  table_area <- summary(r_aoi, size = 1000000) # set size to not use a sample
+  table_area
+  write.csv(table_area, file = paste0(folder, "fxn_table_", area_name, "_102923", pct, ".csv"))
+  
+  ### Boxplots ----------------------------
+  F_p_violin(r_aoi, str_to_title(area_name))
+  
+  ## 7.3: Plot BR Results ----------------------------
+  terra::plot(r_aoi, axes = F, type = "interval")
+}
+
+F_EDA(r_aoi = test, area_name = "US")
+
+
 # end function
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
