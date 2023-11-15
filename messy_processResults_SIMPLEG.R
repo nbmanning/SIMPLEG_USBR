@@ -185,7 +185,6 @@ save(shp_br, shp_cerr, shp_cerr_states,
 ## 4) Save the Summary tables and use the Violin Plot fxn 
 
 # fxn to Create and Save Violin Plots and Basic Histograms 
-### TO-DO: Fxn Works but doesn't display all in the plotting window #######
 F_p_violin <- function(df, area){
   
   # histograms
@@ -352,14 +351,14 @@ y <- ifel(r_new_qland > 50000, 999999, r_new_qland)
 ncell(y[y==999999])
 
 
-## 4.3: WORLD RESULTS ---------
+## 4.3: World Results ---------
 
 # Plot World Results
 terra::plot(r, axes = F)
 
 
 
-# 5: US RESULTS  ----------------------------
+# 5: US Results  ----------------------------
 
 ## 5.0 Manual Calculation (Keep for Fxn Debugging) ----------
 # 
@@ -512,7 +511,7 @@ dev.off()
 
 
 
-# 6: BRAZIL RESULTS ----------------------------
+# 6: Brazil Results ----------------------------
 
 ## 6.1 Prep BR Data -----------
 
@@ -603,7 +602,7 @@ dev.off()
 
 
 
-# 7: CERRADO RESULTS ----------------------------
+# 7: Cerrado Results ----------------------------
 
 ## 7.1 Prep Data -----------
 # Call fxn to clip, count, and clamp data 
@@ -690,17 +689,23 @@ lines(shp_cerr_states, lwd = 0.8, lty = 3, col = "darkgray")
 dev.off()
 
 
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #  
+# END ----------------------------------------------------------------
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+
 
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #  
 # FUTURE WORK ----------------------------------------------------------------
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
 
-# Look into removing outliers here:
-## https://plantarum.ca/2023/02/13/terra-maps/
+## Get 'F_p_violin' to plot in the plotting window as well as saving ----
 
-# Look into rasterVis for Boxplots: 
-## https://oscarperpinan.github.io/rastervis/
+## Look into removing outliers ----
+### link: https://plantarum.ca/2023/02/13/terra-maps/
+
+## Look into rasterVis for Boxplots ---- 
+### link: https://oscarperpinan.github.io/rastervis/
 
 ## Select within plot to keep clean rather than reclassify ---------------
 
