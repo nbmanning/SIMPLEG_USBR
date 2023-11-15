@@ -134,7 +134,7 @@ r <- subset(r, c("pct_QLAND", "new_QLAND", "pct_QCROP", "new_QCROP"))
 saveRDS(r, file = paste0("../Data_Derived/r", pct, ".rds"))
 
 
-# 4: Get Shapefiles: US-MW, BR, & Cerrado ------------
+# 3: Get Shapefiles: US-MW, BR, & Cerrado ------------
 
 ### Load US Shapefile ###
 shp_us <- states(cb = TRUE, resolution = "20m") %>%
@@ -175,14 +175,144 @@ save(shp_br, shp_cerr, shp_cerr_states,
      shp_us, shp_us_mw,
      file = "../Data_Derived/shp_usbr.RData")
 
+# CREATE FUNCTIONS --------------
+
+# these functions:
+## 1) Plot EDA
+## 2) Count the number of Invalid Grid Cells and cap at 50,000
+## 3) Prep the AOI Rasters by using the Count and Clamp Functions
+## 4) Print the Summary tables and use the Violin Plot fxn 
+
+# fxn to Create and Save Violin Plots and Basic Histograms 
+### TO-DO: Fxn Works but doesn't display all in the plotting window #######
+F_p_violin <- function(df, area){
+  
+  # histograms
+  png(filename = paste0(folder_plot, str_to_lower(area), "_hist", pct, ".png"))
+  terra::hist(df)
+  dev.off()
+  
+  png(filename = paste0(folder_plot, str_to_lower(area), "_hist_log", pct, ".png"))
+  terra::hist(log(df))
+  dev.off()
+  
+  # subset
+  df_pct <- df %>% subset(c("pct_QLAND", "pct_QCROP"))
+  df_rawch <- df %>% subset(c("rawch_QLAND", "rawch_QCROP"))
+  df_new <- df %>% subset(c("new_QLAND", "new_QCROP"))
+  
+  # plot
+  p1 <- bwplot(df_pct, 
+               main = paste(area, "% Change", pct_title),
+               ylab = "% Change")
+  p2 <- bwplot(df_rawch, 
+               main = paste(area, "Raw Change", pct_title),
+               ylab = "Area (ha) or 1000-ton CE")
+  p3 <- bwplot(df_new, 
+               main = paste(area, "Post-Sim Values", pct_title),
+               ylab = "Area (ha) or 1000-ton CE")
+  
+  png(filename = paste0(folder_plot, str_to_lower(area), "_bw", "_pctchange", pct, ".png"))
+  plot(p1)
+  dev.off()
+  
+  png(filename = paste0(folder_plot, str_to_lower(area), "_bw", "_rawchange", pct, ".png"))
+  plot(p2)
+  dev.off()
+  
+  png(filename = paste0(folder_plot, str_to_lower(area), "_bw", "_newvalues", pct, ".png"))
+  plot(p3)
+  dev.off()
+  
+  return(p1)
+  return(p2)
+  return(p3)
+}
+
+
+# fxn to count the cells over 50,000 in a layer (either new_QLAND or new_QCROP)
+F_count_invalid <- function(df, layer_name){
+  # get just the layer of interest
+  df_new <- df %>% subset(layer_name)
+  
+  # Count Invalid Cells & Modify
+  y <- ifel(df_new > 50000, 999999, df_new)
+  y_land <- ncell(y[y==999999])
+  
+  print(paste(layer_name, "Cropland Area cells over 50,000:", y_land))
+}
+
+
+# fxn to max layers out at 50,000
+F_clamp <- function(df, layer_name){
+  # get just one layer 
+  df_new <- df %>% subset(layer_name)
+  
+  # set values over 50,000 to 50,000
+  df_new <- df_new %>% 
+    clamp(upper=50000)
+}
+
+
+# Work Flow Functions #
+
+# fxn to incorporate both of these into one function
+F_aoi_prep <- function(shp, area_name){
+  
+  ## Clip to AOI Extent ##
+  # get extent as terra object for plotting
+  ext_area <- vect(ext(shp))
+  
+  # crop and masking to just the extent of interest
+  r_aoi <- terra::crop(r, ext_area, mask = T) 
+  r_aoi <- mask(r_aoi, shp)
+  
+  ## Call Count and Clamp functions to cap the grid cells at 50,000 ##
+  # QLAND #
+  F_count_invalid(r_aoi, "new_QLAND")
+  r_aoi_new_qland <- F_clamp(r_aoi, "new_QLAND")
+  
+  # QCROP #
+  F_count_invalid(r_aoi, "new_QCROP")
+  r_aoi_new_qcrop <- F_clamp(r_aoi, "new_QCROP")
+  
+  # get other layers
+  r_aoi_pct_qland <- r_aoi %>% subset("pct_QLAND")
+  r_aoi_rawch_qland <- r_aoi %>% subset("rawch_QLAND")
+  r_aoi_pct_qcrop <- r_aoi %>% subset("pct_QCROP")
+  r_aoi_rawch_qcrop <- r_aoi %>% subset("rawch_QCROP")
+  
+  # re-stack and re-order
+  r_aoi <- c(r_aoi_new_qland, r_aoi_pct_qland, r_aoi_rawch_qland,
+             r_aoi_new_qcrop, r_aoi_pct_qcrop, r_aoi_rawch_qcrop)
+  
+  return(r_aoi)
+}
+
+# fxn to get summary of data, call the violin fxn, and plot a basic map
+F_EDA <- function(r_aoi, area_name){  
+  # Get and save a summary table
+  table_area <- summary(r_aoi, size = 1000000) # set size to not use a sample
+  print(table_area)
+  write.csv(table_area, file = paste0(folder, "fxn_table_", area_name, "_102923", pct, ".csv"))
+  
+  # Call EDA fxn to get and save violin plots 
+  F_p_violin(r_aoi, str_to_title(area_name))
+  
+  # Plot basic initial maps
+  terra::plot(r_aoi, axes = F, type = "interval")
+}
+
+F_EDA(r_aoi = test, area_name = "US")
+
 # PROCESS RESULTS -----------------------------------------------------------
 
 load("../Data_Derived/shp_usbr.RData")
 r <- readRDS(file = paste0("../Data_Derived/r", pct, ".rds"))
 
-# 5: Edit Stack & Check Values -------------------
+# 4: Edit Stack & Check Values -------------------
 
-## 5.1: Calc & Add Raw Change from % and New -------
+## 4.1: Calc & Add Raw Change from % and New -------
 # Formula: new - (new / ((pct_change/100)+1))
 
 # subset 
@@ -209,7 +339,7 @@ names(r) <- c("pct_QLAND",
               "rawch_QLAND")
 
 
-## 5.2: Modify New Land Values ----- 
+## 4.2: Count New Land Values ----- 
 # get and replace values that were over 50,000 ha per grid cell (>50,000 ha per grid cell is impossible)
 # link: https://gis.stackexchange.com/questions/421821/how-to-subset-a-spatraster-by-value-in-r
 
@@ -218,7 +348,7 @@ y <- ifel(r_new_qland > 50000, 999999, r_new_qland)
 ncell(y[y==999999])
 
 
-## 5.3: WORLD RESULTS ---------
+## 4.3: WORLD RESULTS ---------
 
 # Plot World Results
 terra::plot(r, axes = F)
@@ -231,9 +361,11 @@ r_new_qcrop <- subset(r, "new_QCROP")
 r_rawch_qcrop <- subset(r, "rawch_QCROP")
 r_rawch_qland <- subset(r, "rawch_QLAND")
 
-# 6: US RESULTS ----------------------------
+# 5: US RESULTS  ----------------------------
 
-## 6.1 Clip to US Extent ----------------------------
+## 5.0 Manual Calculation (Keep for Fxn Debugging) ----------
+
+## 6.1 Clip to US Extent ##
 # get extent as terra object for plotting
 ext_us <- vect(ext(shp_us))
 
@@ -241,8 +373,9 @@ ext_us <- vect(ext(shp_us))
 r_us <- crop(r, ext_us, mask = T)
 r_us <- mask(r_us, shp_us)
 
-## 6.2 Subset and do EDA ----------------------------
 
+
+## 6.2 Subset and do EDA ##
 r_us_new_qland <- r_us %>% subset("new_QLAND")
 
 # Count Invalid Cells & Modify
@@ -280,165 +413,29 @@ r_us_rawch_qcrop <- r_us %>% subset("rawch_QCROP")
 r_us <- c(r_us_new_qland, r_us_pct_qland, r_us_rawch_qland,
           r_us_new_qcrop, r_us_pct_qcrop, r_us_rawch_qcrop)
 
-### Summaries ----------------------------
+### Summaries ###
 table_us <- summary(r_us, size = 1000000)
 table_us
 write.csv(table_us, file = paste0(folder, "table_us_102923", pct, ".csv"))
 
-### EDA Plots ----------------------------
+### EDA Plots ###
 # terra::boxplot(r_us %>% subset(c("pct_QLAND", "pct_QCROP")))
 # terra::boxplot(r_us %>% subset(c("new_QLAND", "new_QCROP")))
 
-# Violin Plots 
-#### TO-DO: Fxn Works but doesn't display all in the plotting window #######
-F_p_violin <- function(df, area){
-  
-  # histograms
-  png(filename = paste0(folder_plot, str_to_lower(area), "_hist", pct, ".png"))
-  terra::hist(df)
-  dev.off()
-  
-  png(filename = paste0(folder_plot, str_to_lower(area), "_hist_log", pct, ".png"))
-  terra::hist(log(df))
-  dev.off()
-  
-  # subset
-  df_pct <- df %>% subset(c("pct_QLAND", "pct_QCROP"))
-  df_rawch <- df %>% subset(c("rawch_QLAND", "rawch_QCROP"))
-  df_new <- df %>% subset(c("new_QLAND", "new_QCROP"))
-
-  # plot
-  p1 <- bwplot(df_pct, 
-               main = paste(area, "% Change", pct_title),
-               ylab = "% Change")
-  p2 <- bwplot(df_rawch, 
-               main = paste(area, "Raw Change", pct_title),
-               ylab = "Area (ha) or 1000-ton CE")
-  p3 <- bwplot(df_new, 
-               main = paste(area, "Post-Sim Values", pct_title),
-               ylab = "Area (ha) or 1000-ton CE")
-  
-  png(filename = paste0(folder_plot, str_to_lower(area), "_bw", "_pctchange", pct, ".png"))
-  plot(p1)
-  dev.off()
-  
-  png(filename = paste0(folder_plot, str_to_lower(area), "_bw", "_rawchange", pct, ".png"))
-  plot(p2)
-  dev.off()
-  
-  png(filename = paste0(folder_plot, str_to_lower(area), "_bw", "_newvalues", pct, ".png"))
-  plot(p3)
-  dev.off()
-  
-  return(p1)
-  return(p2)
-  return(p3)
-}
-
-F_p_violin(df, area)
-
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
-### MAKE A FUNCTION ------------------------------------------
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
-
-# PICK UP HERE ---------------
-
-# this function:
-## 1) clips "r" to an area of interest
-## 2) counts the number of invalid cells
-## 3) Truncates Cropland Area & CPI at 50,000
-## 4) Restacks Rasters ... 
-
-# fxn to count the cells over 50,000 in a layer (either new_QLAND or new_QCROP)
-F_count_invalid <- function(df, layer_name){
-  # get just the layer of interest
-  df_new <- df %>% subset(layer_name)
-  
-  # Count Invalid Cells & Modify
-  y <- ifel(df_new > 50000, 999999, df_new)
-  y_land <- ncell(y[y==999999])
-  
-  print(paste(layer_name, "Cropland Area cells over 50,000:", y_land))
-}
-
-
-# fxn to max layers out at 50,000
-F_clamp <- function(df, layer_name){
-  # get just one layer 
-  df_new <- df %>% subset(layer_name)
-  
-  # set values over 50,000 to 50,000
-  df_new <- df_new %>% 
-    clamp(upper=50000)
-}
-
-
-# incorporate both of these into one function
-F_aoi_prep <- function(shp, area_name){
-  ## 7.1 Clip to Brazil Extent ----------------------------
-  
-  # get extent as terra object for plotting
-  ext_area <- vect(ext(shp))
-  
-  # crop and masking to just the extent of interest
-  r_aoi <- terra::crop(r, ext_area, mask = T) 
-  r_aoi <- mask(r_aoi, shp)
-  
-  ## 7.2 Subset and do EDA ----------------------------
-
-  # subset to each band
-  ## QLAND ##
-  F_count_invalid(r_aoi, "new_QLAND")
-  r_aoi_new_qland <- F_clamp(r_aoi, "new_QLAND")
-
-  ## QCROP ##
-  F_count_invalid(r_aoi, "new_QCROP")
-  r_aoi_new_qcrop <- F_clamp(r_aoi, "new_QCROP")
-  
-  # get other layers
-  r_aoi_pct_qland <- r_aoi %>% subset("pct_QLAND")
-  r_aoi_rawch_qland <- r_aoi %>% subset("rawch_QLAND")
-  r_aoi_pct_qcrop <- r_aoi %>% subset("pct_QCROP")
-  r_aoi_rawch_qcrop <- r_aoi %>% subset("rawch_QCROP")
-  
-  # re-stack and re-order
-  r_aoi <- c(r_aoi_new_qland, r_aoi_pct_qland, r_aoi_rawch_qland,
-            r_aoi_new_qcrop, r_aoi_pct_qcrop, r_aoi_rawch_qcrop)
-  return(r_aoi)
-}
-
-F_EDA <- function(r_aoi, area_name){  
-  ### Summaries ----------------------------
-  table_area <- summary(r_aoi, size = 1000000) # set size to not use a sample
-  table_area
-  write.csv(table_area, file = paste0(folder, "fxn_table_", area_name, "_102923", pct, ".csv"))
-  
-  ### Boxplots ----------------------------
-  F_p_violin(r_aoi, str_to_title(area_name))
-  
-  ## 7.3: Plot BR Results ----------------------------
-  terra::plot(r_aoi, axes = F, type = "interval")
-}
-
-F_EDA(r_aoi = test, area_name = "US")
-
-
-# end function
-
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
-######################################################################################################
-
-## 6.3: Plot US Results ----------------------------
-
-## plot all together ##
-terra::plot(r_us, axes = F, type = "continuous")
-
-#r_us_pct_qland@ptr[["names"]][[1]]
 
 
 
-### Plot Best Map ---------
+## 5.1 Prep Data -------
+
+# Call fxn to clip, count, and clamp data 
+r_us <- F_aoi_prep(shp = shp_us, area_name = "US")
+
+# call fxn to create EDA plots of the clipped data 
+F_EDA(r_aoi = r_us, area_name = "USa")
+
+
+
+## 5.2 Plot Best US Map ---------
 
 
 par(mfrow=c(3,2), oma = c(0,0,0,0))
@@ -583,72 +580,21 @@ lines(shp_us_mw, lwd = 0.8, lty = 3, col = "darkgray")
 dev.off()
 
 
-# 7: BRAZIL RESULTS ----------------------------
-
-## 7.1 Clip to Brazil Extent ----------------------------
-
-# get extent as terra object for plotting
-ext_br <- vect(ext(shp_br))
-
-# plot basic BR results by cropping and masking to just BR extent
-r_br <- terra::crop(r, ext_br, mask = T) 
-r_br <- mask(r_br, shp_br)
-
-# set Master Raster to BR Extent
-mr_br <- crop(masterraster, ext_br, mask = T)
-mr_br <- mask(mr_br, shp_br)
-
-## 7.2 Subset and do EDA ----------------------------
-r_br_new_qland <- r_br %>% subset("new_QLAND")
-
-# Count Invalid Cells & Modify
-# count cells over 50,000 -- Can't just count NA from MR because others 
-y <- ifel(r_br_new_qland > 50000, 999999, r_br_new_qland)
-ncell(y[y==999999])
-
-# set values over 50,000 to 50,000
-r_br_new_qland <- clamp(r_br_new_qland, upper=50000)
-
-# FUTURE: Apply Master Raster to set all invalid grid cells to NA
-r_br <- r_br * mr_br
-
-# subset to each band
-# QLAND
-r_br_new_qland <- r_br %>% 
-  subset("new_QLAND") %>% 
-  # set values over 50,000 to 50,000
-  clamp(upper=50000)
-
-r_br_pct_qland <- r_br %>% subset("pct_QLAND")
-r_br_rawch_qland <- r_br %>% subset("rawch_QLAND")
-
-# QCROP
-r_br_new_qcrop <- r_br %>% 
-  subset("new_QCROP") %>% 
-  # set values over 50,000 to 50,000
-  clamp(upper=50000)
-
-r_br_pct_qcrop <- r_br %>% subset("pct_QCROP")
-r_br_rawch_qcrop <- r_br %>% subset("rawch_QCROP")
-
-# re-stack and re-order
-r_br <- c(r_br_new_qland, r_br_pct_qland, r_br_rawch_qland,
-          r_br_new_qcrop, r_br_pct_qcrop, r_br_rawch_qcrop)
-
-### Summaries ----------------------------
-table_br <- summary(r_br, size = 1000000) # set size to not use a sample
-table_br
-write.csv(table_br, file = paste0(folder, "table_br_102923", pct, ".csv"))
-
-### Boxplots ----------------------------
-F_p_violin(r_br, "Brazil")
-
-## 7.3: Plot BR Results ----------------------------
-terra::plot(r_br, axes = F, type = "continuous")
 
 
 
-### Plot Best Map ---------
+# 6: BRAZIL RESULTS ----------------------------
+
+## 6.1 Prep BR Data -----------
+
+# Call fxn to clip, count, and clamp data 
+r_br <- F_aoi_prep(shp = shp_br, area_name = "Brazil2")
+
+# call fxn to create EDA plots of the clipped data 
+F_EDA(r_aoi = r_br, area_name = "Brazil2")
+
+
+## 6.2 Plot Best BR Map ---------
 
 # Open Save Function
 png(filename = paste0(folder_plot, "brazil_", "maps", pct, ".png"),
@@ -776,76 +722,15 @@ dev.off()
 
 # 8: CERRADO RESULTS ----------------------------
 
-## 8.1 Clip to Cerrado Extent ----------------------------
-# get Cerrado extent as terra object 
-ext_cerr <- vect(ext(shp_cerr))
+## 8.1 Prep Data -----------
+# Call fxn to clip, count, and clamp data 
+r_us <- F_aoi_prep(shp = shp_us, area_name = "US")
 
-# crop and mask
-r_cerr <- terra::crop(r, ext_cerr, mask = T)
-r_cerr <- mask(r_cerr, shp_cerr)
-
-## 8.2 Subset and do EDA ----------------------------
-
-# get extent as terra object for plotting
-ext_cerr <- vect(ext(shp_cerr))
-
-# plot basic BR results by cropping and masking to just BR extent
-r_cerr <- terra::crop(r, ext_cerr, mask = T) 
-r_cerr <- mask(r_cerr, shp_cerr)
-
-# set Master Raster to BR Extent
-mr_cerr <- crop(masterraster, ext_cerr, mask = T)
-mr_cerr <- mask(mr_cerr, shp_cerr)
-
-## 8.2 Subset and do EDA ----------------------------
-r_cerr_new_qland <- r_cerr %>% subset("new_QLAND")
-
-# Count Invalid Cells & Modify
-# count cells over 50,000 -- Can't just count NA from MR because others 
-y <- ifel(r_cerr_new_qland > 50000, 999999, r_cerr_new_qland)
-ncell(y[y==999999])
-
-# set values over 50,000 to 50,000
-r_cerr_new_qland <- clamp(r_cerr_new_qland, upper=50000)
-
-# FUTURE: Apply Master Raster to set all invalid grid cells to NA
-r_cerr <- r_cerr * mr_cerr
-
-# subset to each band -- Cropland Area
-r_cerr_new_qland <- r_cerr %>% 
-  subset("new_QLAND") %>% 
-  # set values over 50,000 to 50,000
-  clamp(upper=50000)
-
-r_cerr_pct_qland <- r_cerr %>% subset("pct_QLAND")
-r_cerr_rawch_qland <- r_cerr %>% subset("rawch_QLAND")
-
-# subset to each band -- Crop Production Index
-r_cerr_new_qcrop <- r_cerr %>% 
-  subset("new_QCROP") %>% 
-  # set values over 50,000 to 50,000
-  clamp(upper=50000)
-
-r_cerr_pct_qcrop <- r_cerr %>% subset("pct_QCROP")
-r_cerr_rawch_qcrop <- r_cerr %>% subset("rawch_QCROP")
-
-# re-stack and re-order
-r_cerr <- c(r_cerr_new_qland, r_cerr_pct_qland, r_cerr_rawch_qland,
-          r_cerr_new_qcrop, r_cerr_pct_qcrop, r_cerr_rawch_qcrop)
-
-### Summaries ----------------------------
-table_cerr <- summary(r_cerr, size = 1000000) # set size to not use a sample
-table_cerr
-write.csv(table_cerr, file = paste0(folder, "table_cerr_102923", pct, ".csv"))
-
-### Boxplots ----------------------------
-F_p_violin(r_cerr, "Cerrado")
+# call fxn to create EDA plots of the clipped data 
+F_EDA(r_aoi = r_us, area_name = "USa")
 
 
-## 8.3: Plot Cerrado Results ----------------------------
-
-
-### Plot Best Map ---------
+## 8.2 Plot Best Cerrado Map ---------
 
 # Open Save Function
 png(filename = paste0(folder_plot, "cerrado_", "maps", pct, ".png"),
@@ -1363,4 +1248,7 @@ F_EDA_cerr_pct_map(r_cerr_pct_qland, "% Change in Cropland Area")
 F_EDA_cerr_pct_map(r_cerr_pct_qcrop, "% Change in Crop Index")
 
 F_EDA_cerr_new_map(r_cerr_new_qland, "Post-Sim Values of Cropland Area")
-F_EDA_cerr_new_map(r_cerr_new_qcrop, "Post-Sim Values of Crop Index")
+F_EDA_cerr_new_map(r_cerr_new_qcrop, "Post-Sim Values of Crop Index")])
+
+# 6: Useful Snippets ----------
+#r_us_pct_qland@ptr[["names"]][[1]]
