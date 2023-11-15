@@ -83,7 +83,7 @@ df_g <- df_g %>%
   
 
 # get csv of all the unique columns
-names_df_g <- df_g %>% select(from_level_4, to_level_4, fromto) %>% distinct()
+names_df_g <- df_g %>% dplyr::select(from_level_4, to_level_4, fromto) %>% distinct()
 write.csv(names_df_g, "../Data_Source/MapBiomas/names_fromto.csv", row.names = F)
 
 # Filter to pasture and soybean
@@ -502,7 +502,7 @@ raw_prod <- read.csv("../Data_Source/FAOSTAT/FAOSTAT_BRUS_AllCrop_20102013.csv")
 names(raw_prod)
 
 prod <- raw_prod %>%
-  select(Area, Element, Item, Year, Unit, Value)
+  dplyr::select(Area, Element, Item, Year, Unit, Value)
 
 # Set Year of Interest
 yr <- 2011
@@ -551,3 +551,4 @@ prod_pct <- prod %>%
 # BR 2011 CornSoy = 54.3% of Area Harvested and 13.2% of Production
 
 # US 2011 
+
