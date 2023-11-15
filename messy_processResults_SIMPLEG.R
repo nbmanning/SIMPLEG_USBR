@@ -27,7 +27,7 @@
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
 
-# 0: Load Libraries & Set Constants ---- 
+# Load Libraries & Set Constants ---- 
 rm(list = ls())
 
 ## Libraries ##
@@ -178,10 +178,11 @@ save(shp_br, shp_cerr, shp_cerr_states,
 # CREATE FUNCTIONS --------------
 
 # these functions:
-## 1) Plot EDA
-## 2) Count the number of Invalid Grid Cells and cap at 50,000
+## 1) Plot EDA (histograms and violin plots)
+## 2) Count the number of Invalid Grid Cells
+## 3) Cap / Clamp the value of a single grid cell at 50,000
 ## 3) Prep the AOI Rasters by using the Count and Clamp Functions
-## 4) Print the Summary tables and use the Violin Plot fxn 
+## 4) Save the Summary tables and use the Violin Plot fxn 
 
 # fxn to Create and Save Violin Plots and Basic Histograms 
 ### TO-DO: Fxn Works but doesn't display all in the plotting window #######
@@ -307,6 +308,8 @@ F_EDA(r_aoi = test, area_name = "US")
 
 # PROCESS RESULTS -----------------------------------------------------------
 
+# NOTE: You can re-run the script starting here if you already ran sections 1, 2, and 3
+
 load("../Data_Derived/shp_usbr.RData")
 r <- readRDS(file = paste0("../Data_Derived/r", pct, ".rds"))
 
@@ -322,7 +325,7 @@ r_new_qland <- subset(r, "new_QLAND")
 r_pct_qcrop <- subset(r, "pct_QCROP")
 r_new_qcrop <- subset(r, "new_QCROP")
 
-# rawch = Raw Change
+# NOTE: rawch = Raw Change
 r_rawch_qcrop <- r_new_qcrop - (r_new_qcrop / ((r_pct_qcrop/100)+1))
 r_rawch_qland <- r_new_qland - (r_new_qland / ((r_pct_qland/100)+1))
 
@@ -340,6 +343,7 @@ names(r) <- c("pct_QLAND",
 
 
 ## 4.2: Count New Land Values ----- 
+
 # get and replace values that were over 50,000 ha per grid cell (>50,000 ha per grid cell is impossible)
 # link: https://gis.stackexchange.com/questions/421821/how-to-subset-a-spatraster-by-value-in-r
 
@@ -353,76 +357,63 @@ ncell(y[y==999999])
 # Plot World Results
 terra::plot(r, axes = F)
 
-# re-subset to each band
-r_pct_qland <- subset(r, "pct_QLAND")
-r_new_qland <- subset(r, "new_QLAND")
-r_pct_qcrop <- subset(r, "pct_QCROP")
-r_new_qcrop <- subset(r, "new_QCROP")
-r_rawch_qcrop <- subset(r, "rawch_QCROP")
-r_rawch_qland <- subset(r, "rawch_QLAND")
+
 
 # 5: US RESULTS  ----------------------------
 
 ## 5.0 Manual Calculation (Keep for Fxn Debugging) ----------
-
-## 6.1 Clip to US Extent ##
-# get extent as terra object for plotting
-ext_us <- vect(ext(shp_us))
-
-# plot basic us results by cropping and masking to just us extent
-r_us <- crop(r, ext_us, mask = T)
-r_us <- mask(r_us, shp_us)
-
-
-
-## 6.2 Subset and do EDA ##
-r_us_new_qland <- r_us %>% subset("new_QLAND")
-
-# Count Invalid Cells & Modify
-# count cells over 50,000 -- Can't just count NA from MR because others 
-y <- ifel(r_us_new_qland > 50000, 999999, r_us_new_qland)
-ncell(y[y==999999])
-
-# set values over 50,000 to 50,000
-# r_us_new_qland <- clamp(r_us_new_qland, upper=50000)
-
-# FUTURE: Apply Master Raster to set all invalid grid cells to NA
-#r_us <- r_us * mr_us
-
-# subset to each band
-
-# QLAND - Cropland Area (ha)
-r_us_new_qland <- r_us %>% 
-  subset("new_QLAND") %>% 
-  # set values over 50,000 to 50,000
-  clamp(upper=50000)
-
-r_us_pct_qland <- r_us %>% subset("pct_QLAND")
-r_us_rawch_qland <- r_us %>% subset("rawch_QLAND")
-
-# QCROP - Crop Production Index (1000-ton Corn Equivalent)
-r_us_new_qcrop <- r_us %>% 
-  subset("new_QCROP") %>% 
-  # set values over 50,000 to 50,000
-  clamp(upper=50000)
-
-r_us_pct_qcrop <- r_us %>% subset("pct_QCROP")
-r_us_rawch_qcrop <- r_us %>% subset("rawch_QCROP")
-
-# re-stack and re-order
-r_us <- c(r_us_new_qland, r_us_pct_qland, r_us_rawch_qland,
-          r_us_new_qcrop, r_us_pct_qcrop, r_us_rawch_qcrop)
-
-### Summaries ###
-table_us <- summary(r_us, size = 1000000)
-table_us
-write.csv(table_us, file = paste0(folder, "table_us_102923", pct, ".csv"))
-
-### EDA Plots ###
-# terra::boxplot(r_us %>% subset(c("pct_QLAND", "pct_QCROP")))
-# terra::boxplot(r_us %>% subset(c("new_QLAND", "new_QCROP")))
-
-
+# 
+# ## Clip to US Extent ##
+# 
+# # get extent as terra object for plotting
+# ext_us <- vect(ext(shp_us))
+# 
+# # plot basic us results by cropping and masking to just us extent
+# r_us <- crop(r, ext_us, mask = T)
+# r_us <- mask(r_us, shp_us)
+# 
+# 
+# ## Subset and do EDA ##
+# r_us_new_qland <- r_us %>% subset("new_QLAND")
+# 
+# # Count invalid cells
+# # count cells over 50,000 -- Can't just count NA from MR because others 
+# y <- ifel(r_us_new_qland > 50000, 999999, r_us_new_qland)
+# ncell(y[y==999999])
+# 
+# 
+# # subset to each band
+# # QLAND - Cropland Area (ha)
+# r_us_new_qland <- r_us %>% 
+#   subset("new_QLAND") %>% 
+#   # set values over 50,000 to 50,000
+#   clamp(upper=50000)
+# 
+# # QCROP - Crop Production Index (1000-ton Corn Equivalent)
+# r_us_new_qcrop <- r_us %>% 
+#   subset("new_QCROP") %>% 
+#   # set values over 50,000 to 50,000
+#   clamp(upper=50000)
+# 
+# # get other layers for re-ordering 
+# r_us_pct_qland <- r_us %>% subset("pct_QLAND")
+# r_us_rawch_qland <- r_us %>% subset("rawch_QLAND")
+# r_us_pct_qcrop <- r_us %>% subset("pct_QCROP")
+# r_us_rawch_qcrop <- r_us %>% subset("rawch_QCROP")
+# 
+# # re-stack and re-order
+# r_us <- c(r_us_new_qland, r_us_pct_qland, r_us_rawch_qland,
+#           r_us_new_qcrop, r_us_pct_qcrop, r_us_rawch_qcrop)
+# 
+# ### Summaries ###
+# table_us <- summary(r_us, size = 1000000)
+# table_us
+# write.csv(table_us, file = paste0(folder, "table_us_102923", pct, ".csv"))
+# 
+# ### EDA Plots ###
+# # terra::boxplot(r_us %>% subset(c("pct_QLAND", "pct_QCROP")))
+# # terra::boxplot(r_us %>% subset(c("new_QLAND", "new_QCROP")))
+# 
 
 
 ## 5.1 Prep Data -------
@@ -434,21 +425,10 @@ r_us <- F_aoi_prep(shp = shp_us, area_name = "US")
 F_EDA(r_aoi = r_us, area_name = "USa")
 
 
-
 ## 5.2 Plot Best US Map ---------
-
-
-par(mfrow=c(3,2), oma = c(0,0,0,0))
-par(mfrow=c(1,1), oma = c(0,0,0,0))
-
 
 ### Create mycolors ###
 # set new continuous color scheme
-col_split <- colorRampPalette(brewer.pal(9, "YlOrRd"))(50)
-
-#display.brewer.all(colorblindFriendly = T)
-mycolors <- colorRampPalette(brewer.pal(9, "PiYG"))(100) #changed from PiYG bc I needed a monochrome change for 
-mycolors2 <- colorRampPalette(brewer.pal(9, "YlGn"))(100)
 mycolors3 <- colorRampPalette(brewer.pal(9, "RdPu"))(100)
 
 # Open Save Function
@@ -457,86 +437,41 @@ png(filename = paste0(folder_plot, "us_", "maps", pct, ".png"),
 par(mfrow=c(3,2), oma = c(0,0,0,0))
 
 
-### OLD % Change in Cropland Area ###
-# terra::plot(r_us_pct_qland,
-#             type = "interval",
-#             #breaks = c(seq(-25, 5, by = 5)),
-#             #breaks = c(-25, -22.5, -20, -17.5, -15, -10, -5, 0, 2.5, 5),
-#             breaks = c(-25, -22.5, -20, -17.5, -15, -5, 0, 5),
-#             col = brewer.pal(7, "RdYlGn"),
-#             #col = brewer.pal(9, "YlOrRd"), # try negative to positive 
-#             main = paste("US % Change in Cropland Area", pct_title), 
-#             plg = list(x="bottomright"))
-# lines(shp_us_mw, lwd = 0.8, lty = 3, col = "darkgray")
-# #north(cbind(-121, 29))
-
-# ### OLD % Change in Crop Index ###
-# terra::plot(r_us_pct_qcrop,
-#             type = "interval",
-#             #breaks = c(seq(-25, 5, by = 5)),
-#             breaks = c(-25, -22.5, -20, -17.5, -15, -5, 0, 5),
-#             col = brewer.pal(7, "RdYlGn"),
-#             #col = brewer.pal(9, "YlOrRd"),
-#             main = paste("US % Change in Crop Index", pct_title), 
-#             plg = list(x="bottomright"))
-# lines(shp_us_mw, lwd = 0.8, lty = 3, col = "darkgray")
-
 ### % Change in Cropland Area ###
-
 # check ranges for plotting
 #global(r_us_pct_qland, quantile, probs=c(0.05, 0.95), na.rm=TRUE)
 #summary(r_us_pct_qland, 1000000)
-
-terra::plot(r_us_pct_qland,
-            # best yet - only problem is it doesn't show the positives on the 
+terra::plot(r_us %>% subset("pct_QLAND"),
             type = "continuous",
-            breaks = c(-25, 3),
-            col = rev(mycolors3), # mycolors3 to highlight the positive changes, or use rev(mycolors3)
-            
-            # # not bad
-            # type = "interval",
-            # breaks = c(-24, -22, -20, -15, -5, 0, 2),
-            # col = rev(mycolors3),
-            
-            # eh
-            # type = "continuous",
-            # breaks = c(-25, 25),
-            # col = mycolors,
-
+            breaks = c(-25, 5),
+            col = rev(mycolors3), 
             main = paste("US % Change in Cropland Area", pct_title),
             plg = list(x="bottomright"))
 lines(shp_us_mw, lwd = 0.8, lty = 3, col = "darkgray")
-#north(cbind(-121, 29))
+north(cbind(-121, 29))
 
 ### % Change in Crop Index ###
-#summary(r_us_pct_qcrop, 1000000)
-terra::plot(r_us_pct_qcrop,
+terra::plot(r_us %>% subset("pct_QCROP"),
             type = "continuous",
-            breaks = c(-25, 3),
+            breaks = c(-25, 5),
             col = rev(mycolors3),
             main = paste("US % Change in Crop Production Index", pct_title),
             plg = list(x="bottomright"))
 lines(shp_us_mw, lwd = 0.8, lty = 3, col = "darkgray")
 
 ### Post-Sim Cropland Area ###
-terra::plot(r_us_new_qland/1000,
+terra::plot(r_us %>% subset("new_QLAND")/1000,
             type = "interval",
-            #breaks = c(0, 0.1, 1, 5, 10, 20, 25, 30, 35, 50),
             breaks = c(0, 1, 5, 10, 20, 25, 30, 35, 45, 50),
-            #col = brewer.pal(9, "YlOrRd"),
             col = brewer.pal(9, "YlGn"),
-            #col = brewer.pal(9, "Greens"),
             main = paste("US Post-Simulation Crop Area", pct_title), 
-            #plg = list(x="bottomright")
             )
 lines(shp_us_mw, lwd = 0.8, lty = 3, col = "darkgray")
 
 ### Post-Sim Crop Index ###
-terra::plot(r_us_new_qcrop/1000,
+terra::plot(r_us %>% subset("new_QCROP")/1000,
             type = "interval",
-            #breaks = c(0, 1, 5, 10, 20, 25, 30, 35, 50),
             breaks = c(0, 1, 5, 10, 20, 25, 30, 35, 45, 50),
-            #col = brewer.pal(9, "YlOrRd"),
             col = brewer.pal(9, "YlGn"),
             main = paste("US Post-Simulation Crop Index", pct_title), 
             #plg = list(x="bottomright")
@@ -546,36 +481,30 @@ lines(shp_us_mw, lwd = 0.8, lty = 3, col = "darkgray")
 
 ### Actual (Raw) Change in Cropland Area ###
 
-# NOTE: the test here is set to the Crop Production INDEX not area! 
-test <- max(abs(minmax(r_us_rawch_qcrop/1000)))
+# NOTE: the test here is set to the Crop Production INDEX not area! They need the same color scheme, so I set it to the QCROP! 
+test <- max(abs(minmax(r_us %>% subset("rawch_QCROP")/1000)))
 test_breaks <- seq(-test, 1, length.out = 100)
 
 # max is 24.1, set to 25 for simplicity
 #test_breaks <- seq(0, 2, length.out = 100)
 #test <- max(abs(minmax(r_us_rawch_qland/1000)))
-terra::plot(r_us_rawch_qland/1000,
+terra::plot(r_us %>% subset("rawch_QCROP")/1000,
             type = "continuous",
-            #breaks = seq(((-test)-(test/5)), test+(test/5), length.out = 100),
             breaks = test_breaks,
             col = rev(mycolors3),
             main = paste("US Raw Change in Cropland Area", pct_title),
-            #plg = list(x="bottomright")
             )
 lines(shp_us_mw, lwd = 0.8, lty = 3, col = "darkgray")
-#north(cbind(-121, 29))
 
 
 ### Actual (Raw) Change in Crop Production Index ###
-terra::plot(r_us_rawch_qcrop/1000,
+terra::plot(r_us %>% subset("rawch_QCROP")/1000,
             type = "continuous",
-            #breaks = seq(((-test)-(test/5)), test+(test/5), length.out = 100),
             breaks = test_breaks,
             col = rev(mycolors3),
             main = paste("US Raw Change in Crop Production Index", pct_title),
-            #plg = list(x="bottomright")
             )
 lines(shp_us_mw, lwd = 0.8, lty = 3, col = "darkgray")
-#north(cbind(-121, 29))
 
 dev.off()
 
@@ -602,135 +531,89 @@ png(filename = paste0(folder_plot, "brazil_", "maps", pct, ".png"),
 par(mfrow=c(3,2), oma = c(0,0,0,0))
 
 
-# ### OLD % Change in Cropland Area ###
-# terra::plot(r_br_pct_qland,
-#             type = "interval",
-#             breaks = c(seq(0, 4, by = 0.5)),
-#             #col = brewer.pal(9, "YlGn"),
-#             col = brewer.pal(9, "YlOrRd"),
-#             main = paste("Brazil % Change in Cropland Area", pct_title),
-#             plg = list(x="bottomright"))
-# lines(shp_cerr_states, lwd = 0.8, lty = 3, col = "darkgray")
-# #north(cbind(-65, -25))
-
-
-### OLD % Change in Crop Index ###
-# terra::plot(r_br_pct_qcrop,
-#             type = "interval",
-#             breaks = c(seq(0, 4, by = 0.5)),
-#             #col = brewer.pal(9, "YlGn"),
-#             col = brewer.pal(9, "YlOrRd"),
-#             main = paste("Brazil % Change in Crop Index", pct_title),
-#             plg = list(x="bottomright"))
-# lines(shp_cerr_states, lwd = 0.8, lty = 3, col = "darkgray")
-
-
-
 ### % Change in Cropland Area ###
-terra::plot(r_br_pct_qland,
-            # type = "interval",
-            # breaks = c(seq(0, 4, by = 0.5)),
-            # col = brewer.pal(9, "YlOrRd"),
-            
+terra::plot(r_br %>% subset("pct_QLAND"),
             type = "continuous",
             col =  mycolors3,
             breaks = c(seq(0, 4, by = 0.5)),
-            
             main = paste("Brazil % Change in Cropland Area", pct_title),
             plg = list(x="bottomright"))
 lines(shp_cerr_states, lwd = 0.8, lty = 3, col = "darkgray")
+north(cbind(-69, -29))
+
 
 ### % Change in Crop Index ###
-terra::plot(r_br_pct_qcrop,
-            # type = "interval",
-            # breaks = c(seq(0, 4, by = 0.5)),
-            # col = brewer.pal(9, "YlOrRd"),
-            
+terra::plot(r_br %>% subset("pct_QCROP"),
             type = "continuous",
             col = mycolors3, 
             breaks = c(seq(0, 4, by = 0.5)),
-            
             main = paste("Brazil % Change in Crop Index", pct_title),
             plg = list(x="bottomright"))
 lines(shp_cerr_states, lwd = 0.8, lty = 3, col = "darkgray")
 
 ### Post-Sim Cropland Area ###
-terra::plot(r_br_new_qland/1000,
+terra::plot(r_br %>% subset("new_QLAND")/1000,
             type = "interval",
-            #breaks = c(0, 0.1, 1, 5, 10, 15, 25, 35, 50),
-            #breaks = c(0, 0.1, 1, 5, 10, 20, 25, 30, 35, 50),
             breaks = c(0, 1, 5, 10, 20, 25, 30, 35, 45, 50),
-            #col = brewer.pal(9, "YlOrRd"),
             col = brewer.pal(9, "YlGn"),
             main = paste("Brazil Post-Simulation Crop Area", pct_title), 
-            #plg = list(x="bottomright")
             )
 lines(shp_cerr_states, lwd = 0.8, lty = 3, col = "darkgray")
 
 ### Post-Sim Crop Index ###
-terra::plot(r_br_new_qcrop/1000,
+terra::plot(r_br %>% subset("new_QCROP")/1000,
             type = "interval",
-            #breaks = c(0, 1, 5, 10, 25, 50, 100, 250, 350, 450),
-            #breaks = c(0, 0.1, 1, 5, 10, 20, 25, 30, 35, 50),
             breaks = c(0, 1, 5, 10, 20, 25, 30, 35, 45, 50),
-            #col = brewer.pal(9, "YlOrRd"),
             col = brewer.pal(9, "YlGn"),
             main = paste("Brazil Post-Simulation Crop Index", pct_title), 
-            #plg = list(x="bottomright")
             )
 lines(shp_cerr_states, lwd = 0.8, lty = 3, col = "darkgray")
 
 
 ### Actual (Raw) Change in Cropland Area ###
 # NOTE: the test here is set to the Crop Production INDEX not area! 
-test <- max(abs(minmax(r_br_rawch_qcrop/1000)))
+test <- max(abs(minmax(r_br %>% subset("rawch_QCROP")/1000)))
 #test_breaks <- seq(0, test, length.out = 100)
 
 # max is 1.84, set to 2 for simplicity
 test_breaks <- seq(0, 2, length.out = 100)
 
 #test <- max(abs(minmax(r_br_rawch_qland/1000)))
-terra::plot(r_br_rawch_qland/1000,
+terra::plot(r_br %>% subset("rawch_QLAND")/1000,
             type = "continuous",
-            #breaks = seq(((-test)-(test/5)), test+(test/5), length.out = 100),
-            #breaks = seq(-test, test, length.out = 100),
             breaks = test_breaks/4,
             col = mycolors3,
             main = paste("Brazil Raw Change in Cropland Area", pct_title),
             plg = list(x="bottomright"))
 lines(shp_cerr_states, lwd = 0.8, lty = 3, col = "darkgray")
-#north(cbind(-121, 29))
 
 
 ### Actual (Raw) Change in Crop Production Index ###
 # test <- max(abs(minmax(r_br_rawch_qcrop/1000)))
 # test_breaks <- seq(0, test, length.out = 100)
-terra::plot(r_br_rawch_qcrop/1000,
+terra::plot(r_br %>% subset("rawch_QCROP")/1000,
             type = "continuous",
-            #breaks = seq(((-test)-(test/5)), test+(test/5), length.out = 100),
-            #breaks = seq(-test, test, length.out = 100),
             breaks = test_breaks,
             col = mycolors3,
             main = paste("Brazil Raw Change in Crop Production Index", pct_title),
             plg = list(x="bottomright"))
 lines(shp_cerr_states, lwd = 0.8, lty = 3, col = "darkgray")
-#north(cbind(-121, 29))
 dev.off()
 
 
 
 
-# 8: CERRADO RESULTS ----------------------------
+# 7: CERRADO RESULTS ----------------------------
 
-## 8.1 Prep Data -----------
+## 7.1 Prep Data -----------
 # Call fxn to clip, count, and clamp data 
-r_us <- F_aoi_prep(shp = shp_us, area_name = "US")
+r_cerr <- F_aoi_prep(shp = shp_cerr, area_name = "Cerrado")
 
 # call fxn to create EDA plots of the clipped data 
-F_EDA(r_aoi = r_us, area_name = "USa")
+F_EDA(r_aoi = r_cerr, area_name = "Cerrado")
 
 
-## 8.2 Plot Best Cerrado Map ---------
+## 7.2 Plot Best Cerrado Map ---------
 
 # Open Save Function
 png(filename = paste0(folder_plot, "cerrado_", "maps", pct, ".png"),
@@ -738,30 +621,8 @@ png(filename = paste0(folder_plot, "cerrado_", "maps", pct, ".png"),
 par(mfrow=c(3,2), oma = c(0,0,0,0))
 
 
-### OLD % Change in Cropland Area ###
-# terra::plot(r_cerr_pct_qland,
-#             type = "interval",
-#             breaks = c(seq(0, 4, by = 0.5)),
-#             #col = brewer.pal(9, "YlGn"),
-#             col = brewer.pal(9, "YlOrRd"),
-#             main = paste("Cerrado % Change in Cropland Area", pct_title), 
-#             plg = list(x="topleft"))
-# lines(shp_cerr_states, lwd = 0.8, lty = 3, col = "darkgray")
-# north(cbind(-59, -22))
-# sbar(d = 400, type = "bar", xy = "bottomright", divs = 4, below = "km")
-
-### OLD % Change in Crop Index ###
-# terra::plot(r_cerr_pct_qcrop,
-#             type = "interval",
-#             breaks = c(seq(0, 4, by = 0.5)),
-#             #col = brewer.pal(9, "YlGn"),
-#             col = brewer.pal(9, "YlOrRd"),
-#             main = paste("Cerrado % Change in Crop Index", pct_title), 
-#             plg = list(x="topleft"))
-# lines(shp_cerr_states, lwd = 0.8, lty = 3, col = "darkgray")
-
 ### % Change in Cropland Area ###
-terra::plot(r_cerr_pct_qland,
+terra::plot(r_cerr %>% subset("pct_QLAND"),
             type = "continuous",
             col =  mycolors3,
             breaks = c(seq(0, 4, by = 0.5)),
@@ -769,11 +630,11 @@ terra::plot(r_cerr_pct_qland,
             main = paste("Cerrado % Change in Cropland Area", pct_title),
             plg = list(x="topleft"))
 lines(shp_cerr_states, lwd = 0.8, lty = 3, col = "darkgray")
-#north(cbind(-59, -22))
-#sbar(d = 400, type = "bar", xy = "bottomright", divs = 4, below = "km")
+north(cbind(-59, -22))
+sbar(d = 400, type = "bar", xy = "bottomright", divs = 4, below = "km")
 
 ### % Change in Crop Index ###
-terra::plot(r_cerr_pct_qcrop,
+terra::plot(r_cerr %>% subset("pct_QCROP"),
             type = "continuous",
             col =  mycolors3,
             breaks = c(seq(0, 4, by = 0.5)),
@@ -782,78 +643,50 @@ terra::plot(r_cerr_pct_qcrop,
 lines(shp_cerr_states, lwd = 0.8, lty = 3, col = "darkgray")
 
 ### Post-Sim Cropland Area ###
-terra::plot(r_cerr_new_qland/1000,
-            # type = "continuous",
-            # col = mycolors2,
-            
-            # type = "interval",
-            # breaks = c(0, 0.1, 1, 5, 10, 20, 25, 30, 35, 50), # BR cropland legend
-            # col = brewer.pal(9, "YlGn"),
-            
+terra::plot(r_cerr %>% subset("new_QLAND")/1000,
             type = "interval",
             breaks = c(0, 1, 5, 10, 20, 25, 30, 35, 45, 50),
             col = brewer.pal(9, "YlGn"),
-            
-            #col = brewer.pal(9, "YlOrRd"),
             main = paste("Cerrado Post-Simulation Crop Area", pct_title), 
-            #plg = list(x="topleft")
             )
 lines(shp_cerr_states, lwd = 0.8, lty = 3, col = "darkgray")
 
 ### Post-Sim Crop Index ###
-terra::plot(r_cerr_new_qcrop/1000,
-            # Same as BR color scheme
-            # type = "interval",
-            # breaks = c(0, 0.1, 1, 5, 10, 20, 25, 30, 35, 50),
-            
+terra::plot(r_cerr %>% subset("new_QCROP")/1000,
             # changed for Cerr; removed 0.1
             type = "interval",
             breaks = c(0, 1, 5, 10, 20, 25, 30, 35, 45, 50),
-            
-            # old breaks 
-            # breaks = c(0, 1, 5, 10, 25, 50, 100, 250, 350, 450),
-            
-            #col = brewer.pal(9, "YlOrRd"),
             col = brewer.pal(9, "YlGn"),
             main = paste("Cerrado Post-Simulation Crop Index", pct_title), 
-            #plg = list(x="topleft")
             )
 lines(shp_cerr_states, lwd = 0.8, lty = 3, col = "darkgray")
 
 
 ### Actual (Raw) Change in Cropland Area ###
-test <- max(abs(minmax(r_br_rawch_qcrop/1000)))
+test <- max(abs(minmax(r_cerr %>% subset("rawch_QCROP")/1000)))
 #test_breaks <- seq(0, test, length.out = 100)
 
 # max is 1.48, set to 2 for simplicity
 test_breaks <- seq(0, 2, length.out = 100)
 
-
-test <- max(abs(minmax(r_cerr_rawch_qcrop/1000)))
-terra::plot(r_cerr_rawch_qland/1000,
+terra::plot(r_cerr %>% subset("rawch_QLAND")/1000,
             type = "continuous",
-            #breaks = seq(((-test)-(test/5)), test+(test/5), length.out = 100),
-            #breaks = seq(-test, test, length.out = 100),
             breaks = test_breaks/4,
             col = mycolors3,
             main = paste("Cerrado Raw Change in Cropland Area", pct_title),
             plg = list(x="bottomright"))
 lines(shp_cerr_states, lwd = 0.8, lty = 3, col = "darkgray")
-#north(cbind(-121, 29))
-
 
 ### Actual (Raw) Change in Crop Production Index ###
-test <- max(abs(minmax(r_cerr_rawch_qcrop/1000)))
-terra::plot(r_cerr_rawch_qcrop/1000,
+test <- max(abs(minmax(r_cerr %>% subset("rawch_QCROP")/1000)))
+terra::plot(r_cerr %>% subset("rawch_QCROP")/1000,
             type = "continuous",
-            #breaks = seq(((-test)-(test/5)), test+(test/5), length.out = 100),
-            #breaks = seq(-test, test, length.out = 100),
             breaks = test_breaks,
             col = mycolors3,
             main = paste("Cerrado Raw Change in Crop Production Index", pct_title),
             plg = list(x="bottomright"))
 lines(shp_cerr_states, lwd = 0.8, lty = 3, col = "darkgray")
-#north(cbind(-121, 29))
+
 dev.off()
 
 
@@ -1248,7 +1081,7 @@ F_EDA_cerr_pct_map(r_cerr_pct_qland, "% Change in Cropland Area")
 F_EDA_cerr_pct_map(r_cerr_pct_qcrop, "% Change in Crop Index")
 
 F_EDA_cerr_new_map(r_cerr_new_qland, "Post-Sim Values of Cropland Area")
-F_EDA_cerr_new_map(r_cerr_new_qcrop, "Post-Sim Values of Crop Index")])
+F_EDA_cerr_new_map(r_cerr_new_qcrop, "Post-Sim Values of Crop Index")
 
 # 6: Useful Snippets ----------
 #r_us_pct_qland@ptr[["names"]][[1]]
