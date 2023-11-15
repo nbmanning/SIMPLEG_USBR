@@ -40,6 +40,7 @@ library(tigris) # use to load US and US-MW shapefiles
 library(rasterVis) # use for easy violin plot 
 library(reshape2) # use for melting data to then use ggplot
 
+# INITIAL PREP & SAVE -----------------------------------------------------------
 # 1: Prep SIMPLE-G Results --------------------
 
 ## 1.1: import and modify the output from the SIMPLE-G model ----------
@@ -56,7 +57,6 @@ pct_title <- "" # for plotting, either " - High" or " - Low"
 # NOTE: will need to change to local location
 folder <- "../Results/SIMPLEG-2023-10-29/"
 folder_plot <- "../Figures/102923/"
-folder_der <- "../Data_Derived/"
 datafile   <- paste0(folder, "sg1x3x10_v2310", pct, "-out.txt")
 
 # read results and substitute the old row-notation of using "!" on each row
@@ -127,12 +127,6 @@ r <- subset(r, c("pct_QLAND", "new_QLAND", "pct_QCROP", "new_QCROP"))
 
 saveRDS(r, file = paste0("../Data_Derived/r", pct, ".rds"))
 
-# 3: Make basic plots using 'raster' -----------
-
-# plot using base R & 'raster'
-#prct_ras <- subset(prct_ras, c("pct_QLAND", "new_QLAND", "pct_QCROP", "new_QCROP"))
-#raster::plot(prct_ras)
-
 
 # 4: Get Shapefiles: US-MW, BR, & Cerrado ------------
 
@@ -140,23 +134,17 @@ saveRDS(r, file = paste0("../Data_Derived/r", pct, ".rds"))
 shp_us <- states(cb = TRUE, resolution = "20m") %>%
   filter(!STUSPS %in% c("AK", "HI", "PR"))
 
-#plot(shp_us)
-
 #### Load US-MW Shapefile ###
 shp_us_mw <- shp_us %>%
   filter(STUSPS %in% c("IA", "IL", "IN", "KS", "MI", "MN",
                        "MO", "ND", "NE", "OH", "SD", "WI"))
-#plot(shp_us_mw)
-
 
 #### Load Cerrado Shapefile ###
 shp_cerr <- read_biomes(
   year = 2019,
   simplified = T,
-  showProgress = T
-) %>% dplyr::filter(name_biome == "Cerrado")
-
-#plot(shp_cerr)
+  showProgress = T) %>%
+  dplyr::filter(name_biome == "Cerrado")
 
 
 #### Load BR Shapefile ###
@@ -164,15 +152,12 @@ shp_br <- read_country(
   year = 2019, 
   simplified = T, 
   showProgress = T)
-  
-#plot(shp_br)
 
+## Load Cerrado Outline ##  
 # get Brazil States outline
 shp_cerr_states <- read_state(
   year = 2019,
-  simplified = T,
-  #showProgress = T
-) 
+  simplified = T) 
 
 # filter to Cerrado States
 shp_cerr_states <- shp_cerr_states %>% 
@@ -184,12 +169,9 @@ save(shp_br, shp_cerr, shp_cerr_states,
      shp_us, shp_us_mw,
      file = "../Data_Derived/shp_usbr.RData")
 
-# PICK UP HERE --------------
-pct <- pct
-pct_title <- pct_title
-folder_plot <- "../Figures/102923/"
-load("../Data_Derived/shp_usbr.RData")
+# PROCESS RESULTS -----------------------------------------------------------
 
+load("../Data_Derived/shp_usbr.RData")
 r <- readRDS(file = paste0("../Data_Derived/r", pct, ".rds"))
 
 # 5: Edit Stack & Check Values -------------------
@@ -213,20 +195,17 @@ r
 
 # set names 
 names(r)
-names(r) <- c("pct_QLAND", "new_QLAND", "pct_QCROP", "new_QCROP", "rawch_QCROP", "rawch_QLAND")
+names(r) <- c("pct_QLAND", 
+              "new_QLAND", 
+              "pct_QCROP", 
+              "new_QCROP", 
+              "rawch_QCROP", 
+              "rawch_QLAND")
 
 
 ## 5.2: Modify New Land Values ----- 
-# get and replace values that were over 50,000 ha per grid cell (impossible)
+# get and replace values that were over 50,000 ha per grid cell (>50,000 ha per grid cell is impossible)
 # link: https://gis.stackexchange.com/questions/421821/how-to-subset-a-spatraster-by-value-in-r
-
-# set values over 50,000 to 50,000
-#x <- clamp(r_new_qland, upper=50000)
-# set values over 50,000 to NA
-#x2 <- clamp(r_new_qland, upper=50000, values = F)
-
-# set up a Master Raster (MR); i.e. a raster with valid cells as 1 and invalid as NA for multiplying with other rasters 
-masterraster <- ifel(r_new_qland > 50000, NA, 1)
 
 # count cells over 50,000 -- Can't just count NA from MR because others 
 y <- ifel(r_new_qland > 50000, 999999, r_new_qland)
@@ -236,41 +215,15 @@ ncell(y[y==999999])
 ## 5.3: WORLD RESULTS ---------
 
 # Plot World Results
-r2 <- r*masterraster
 terra::plot(r, axes = F)
-terra::plot(r2, axes = F)
 
-# re-subset to each band - uncomment to do simple Exploratory Data Analysis
+# re-subset to each band
 r_pct_qland <- subset(r, "pct_QLAND")
-# minmax(r_pct_qland)
-# hist(r_pct_qland)
-# boxplot(r_pct_qland)
-
 r_new_qland <- subset(r, "new_QLAND")
-# minmax(r_new_qland)
-# hist(r_new_qland)
-# boxplot(r_new_qland)
-
 r_pct_qcrop <- subset(r, "pct_QCROP")
-# minmax(r_pct_qcrop)
-# hist(r_pct_qcrop)
-# boxplot(r_pct_qcrop)
-
 r_new_qcrop <- subset(r, "new_QCROP")
-# minmax(r_new_qcrop)
-# hist(r_new_qcrop)
-# boxplot(r_new_qcrop)
-
 r_rawch_qcrop <- subset(r, "rawch_QCROP")
-# minmax(r_rawch_qcrop)
-# hist(r_rawch_qcrop)
-# boxplot(r_rawch_qcrop)
-
 r_rawch_qland <- subset(r, "rawch_QLAND")
-# minmax(r_rawch_qland)
-# hist(r_rawch_qland)
-# boxplot(r_rawch_qland)
-
 
 # 6: US RESULTS ----------------------------
 
