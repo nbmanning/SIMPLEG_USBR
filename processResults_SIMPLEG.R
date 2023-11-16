@@ -48,16 +48,16 @@ library(stringr) # use to manipulate result .txt file
 # NOTE: change this when you change the result file to one of three TXT files
 ## hi: enter "_hi";
 ## lo: enter "_lo";
-## out: enter "";
+## out / default; enter ""
 pct <- "" # change when you change 'datafile'
-pct_title <- "" # for plotting, either " - High" or " - Low"
+pct_title <- "" # for plotting, either " - High" or " - Low" or ""
 
 
 # NOTE: will need to change to local location
 folder <- "../Results/SIMPLEG-2023-10-29/"
 folder_plot <- "../Figures/102923/"
 datafile   <- paste0(folder, "sg1x3x10_v2310", pct, "-out.txt")
-
+datafile <- "../Results/SIMPLEG-2023-10-29/sg1x3x10_v2310-out.txt"
 
 
 # INITIAL PREP & SAVE -----------------------------------------------------------
@@ -76,7 +76,7 @@ new.lines <-
 # write temporary file 
 # NOTE: Will need to change to local location
 newfile = paste0(folder, "temp.txt")
-writeLines(new.lines, newfile, sep=" ")
+writeLines(new.lines, newfile, sep="\n")
 
 # read in new data table -- takes a bit
 dat <- read.table(newfile, sep=",", header=T)
@@ -137,44 +137,44 @@ saveRDS(r, file = paste0("../Data_Derived/r", pct, ".rds"))
 
 # 3: Get Shapefiles: US-MW, BR, & Cerrado ------------
 
-### Load US Shapefile ###
-shp_us <- states(cb = TRUE, resolution = "20m") %>%
-  filter(!STUSPS %in% c("AK", "HI", "PR"))
-
-#### Load US-MW Shapefile ###
-shp_us_mw <- shp_us %>%
-  filter(STUSPS %in% c("IA", "IL", "IN", "KS", "MI", "MN",
-                       "MO", "ND", "NE", "OH", "SD", "WI"))
-
-#### Load Cerrado Shapefile ###
-shp_cerr <- read_biomes(
-  year = 2019,
-  simplified = T,
-  showProgress = T) %>%
-  dplyr::filter(name_biome == "Cerrado")
-
-
-#### Load BR Shapefile ###
-shp_br <- read_country(
-  year = 2019, 
-  simplified = T, 
-  showProgress = T)
-
-## Load Cerrado Outline ##  
-# get Brazil States outline
-shp_cerr_states <- read_state(
-  year = 2019,
-  simplified = T) 
-
-# filter to Cerrado States
-shp_cerr_states <- shp_cerr_states %>% 
-  dplyr::filter(abbrev_state %in% c("TO","MA","PI","BA","MG",
-                                    "SP","MS","MT","GO","DF"))
-
-## Save Shapefiles ------ 
-save(shp_br, shp_cerr, shp_cerr_states, 
-     shp_us, shp_us_mw,
-     file = "../Data_Derived/shp_usbr.RData")
+# ### Load US Shapefile ###
+# shp_us <- states(cb = TRUE, resolution = "20m") %>%
+#   filter(!STUSPS %in% c("AK", "HI", "PR"))
+# 
+# #### Load US-MW Shapefile ###
+# shp_us_mw <- shp_us %>%
+#   filter(STUSPS %in% c("IA", "IL", "IN", "KS", "MI", "MN",
+#                        "MO", "ND", "NE", "OH", "SD", "WI"))
+# 
+# #### Load Cerrado Shapefile ###
+# shp_cerr <- read_biomes(
+#   year = 2019,
+#   simplified = T,
+#   showProgress = T) %>%
+#   dplyr::filter(name_biome == "Cerrado")
+# 
+# 
+# #### Load BR Shapefile ###
+# shp_br <- read_country(
+#   year = 2019, 
+#   simplified = T, 
+#   showProgress = T)
+# 
+# ## Load Cerrado Outline ##  
+# # get Brazil States outline
+# shp_cerr_states <- read_state(
+#   year = 2019,
+#   simplified = T) 
+# 
+# # filter to Cerrado States
+# shp_cerr_states <- shp_cerr_states %>% 
+#   dplyr::filter(abbrev_state %in% c("TO","MA","PI","BA","MG",
+#                                     "SP","MS","MT","GO","DF"))
+# 
+# ## Save Shapefiles ------ 
+# save(shp_br, shp_cerr, shp_cerr_states, 
+#      shp_us, shp_us_mw,
+#      file = "../Data_Derived/shp_usbr.RData")
 
 # CREATE FUNCTIONS --------------
 
@@ -189,11 +189,11 @@ save(shp_br, shp_cerr, shp_cerr_states,
 F_p_violin <- function(df, area){
   
   # histograms
-  png(filename = paste0(folder_plot, str_to_lower(area), "_hist", pct, ".png"))
+  png(filename = paste0(folder_plot, str_to_lower(area), pct, "_hist", ".png"))
   terra::hist(df)
   dev.off()
   
-  png(filename = paste0(folder_plot, str_to_lower(area), "_hist_log", pct, ".png"))
+  png(filename = paste0(folder_plot, str_to_lower(area), pct, "_hist_log", ".png"))
   terra::hist(log(df))
   dev.off()
   
@@ -213,15 +213,15 @@ F_p_violin <- function(df, area){
                main = paste(area, "Post-Sim Values", pct_title),
                ylab = "Area (ha) or 1000-ton CE")
   
-  png(filename = paste0(folder_plot, str_to_lower(area), "_bw", "_pctchange", pct, ".png"))
+  png(filename = paste0(folder_plot, str_to_lower(area), pct, "_bw", "_pctchange", ".png"))
   plot(p1)
   dev.off()
   
-  png(filename = paste0(folder_plot, str_to_lower(area), "_bw", "_rawchange", pct, ".png"))
+  png(filename = paste0(folder_plot, str_to_lower(area), pct, "_bw", "_rawchange", ".png"))
   plot(p2)
   dev.off()
   
-  png(filename = paste0(folder_plot, str_to_lower(area), "_bw", "_newvalues", pct, ".png"))
+  png(filename = paste0(folder_plot, str_to_lower(area), pct, "_bw", "_newvalues", ".png"))
   plot(p3)
   dev.off()
   
@@ -295,7 +295,7 @@ F_EDA <- function(r_aoi, area_name){
   # Get and save a summary table
   table_area <- summary(r_aoi, size = 1000000) # set size to not use a sample
   print(table_area)
-  write.csv(table_area, file = paste0(folder, "fxn_table_", area_name, "_102923", pct, ".csv"))
+  write.csv(table_area, file = paste0(folder, "fxn_table_", area_name, pct, "_102923", ".csv"))
   
   # Call EDA fxn to get and save violin plots 
   F_p_violin(r_aoi, str_to_title(area_name))
@@ -421,7 +421,7 @@ terra::plot(r, axes = F)
 r_us <- F_aoi_prep(shp = shp_us, area_name = "US")
 
 # call fxn to create EDA plots of the clipped data 
-F_EDA(r_aoi = r_us, area_name = "USa")
+F_EDA(r_aoi = r_us, area_name = "US")
 
 
 ## 5.2 Plot Best US Map ---------
@@ -431,7 +431,7 @@ F_EDA(r_aoi = r_us, area_name = "USa")
 mycolors3 <- colorRampPalette(brewer.pal(9, "RdPu"))(100)
 
 # Open Save Function
-png(filename = paste0(folder_plot, "us_", "maps", pct, ".png"),
+png(filename = paste0(folder_plot, "us", pct, "_maps", ".png"),
     width = 1100, height = 700)
 #par(mfrow=c(3,2), oma = c(0,0,0,0))
 par(mfrow=c(1,6), oma = c(0,0,0,0))
@@ -517,16 +517,16 @@ dev.off()
 ## 6.1 Prep BR Data -----------
 
 # Call fxn to clip, count, and clamp data 
-r_br <- F_aoi_prep(shp = shp_br, area_name = "Brazil2")
+r_br <- F_aoi_prep(shp = shp_br, area_name = "Brazil")
 
 # call fxn to create EDA plots of the clipped data 
-F_EDA(r_aoi = r_br, area_name = "Brazil2")
+F_EDA(r_aoi = r_br, area_name = "Brazil")
 
 
 ## 6.2 Plot Best BR Map ---------
 
 # Open Save Function
-png(filename = paste0(folder_plot, "brazil_", "maps", pct, ".png"),
+png(filename = paste0(folder_plot, "brazil", pct, "_maps", ".png"),
     width = 1000, height = 950)
 #par(mfrow=c(3,2), oma = c(0,0,0,0))
 par(mfrow=c(1,6), oma = c(0,0,0,0))
@@ -617,7 +617,7 @@ F_EDA(r_aoi = r_cerr, area_name = "Cerrado")
 ## 7.2 Plot Best Cerrado Map ---------
 
 # Open Save Function
-png(filename = paste0(folder_plot, "cerrado_", "maps", pct, ".png"),
+png(filename = paste0(folder_plot, "cerrado", pct, "_maps", ".png"),
     width = 1000, height = 950)
 #par(mfrow=c(3,2), oma = c(0,0,0,0))
 par(mfrow=c(1,6), oma = c(0,0,0,0))
