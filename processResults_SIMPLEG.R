@@ -702,64 +702,23 @@ dev.off()
 # FUTURE WORK ----------------------------------------------------------------
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
 
-## Get 'F_p_violin' to plot in the plotting window as well as saving ----
+## Change maps to ggplots using 'tidyterra' (High Priority) -----
+### this will probbaly look SO much better than the base R maps and we don't have to
+### mess with the margin, the resolution, or the dpi. This will probably lead to
+### better code legibility as well. 
 
-## Look into removing outliers ----
+### link: https://github.com/dieghernan/tidyterra
+
+## Get 'F_p_violin' to plot in the plotting window as well as saving (Low Priority) ----
+
+## Look into removing outliers (Medium Priority) ----
 ### link: https://plantarum.ca/2023/02/13/terra-maps/
 
-## Look into rasterVis for Boxplots ---- 
+## Look into rasterVis for Boxplots (Medium Priority) ---- 
 ### link: https://oscarperpinan.github.io/rastervis/
 
-## Select within plot to keep clean rather than reclassify ---------------
 
-# plot with breaks defined, not reclassifying the data
-terra::plot(r_cerr, "pct_QCROP",
-            type="interval", 
-            #breakby = "jenks",
-            breaks = c(-2, -1, -0.5, -0.1, -0.01, 0.01, 0.1, 0.5, 1, 2), # experimental breaks
-            #breaks = c(-2, -1, -0.5, -.1, 0, 0.1, 0.5, 1, 2), # the breaks used in the reclassified
-            col = rev(brewer.pal(9, "PiYG")), 
-            main = "% Change in Crop Production Index", 
-            plg = list(x="topleft"))
-
-# compare with reclassified plot
-terra::plot(r_cerr_pct_qcrop_rc, type="classes", col = rev(brewer.pal(9, "PiYG")), 
-            main = "% Change in Crop Production Index", plg = list(x="topleft"))
-
-# why does it look so different?? 
-## we're reclassifying and using "classes" in the latter, whereas in the former we are including the breaks with the actual data  
-
-
-## Reclassify with Min/Max --------------------------
-# Reclassify with MIN MAX; [1] == MIN, [2] == MAX
-# essentially, "Round the min or max value here to 1 decimal point"
-
-r_cerr_pct_qland_rc <- classify(r_cerr_pct_qland, c(round((minmax(r_cerr_pct_qland)[1]), 1),
-                                                    -2, -1, -0.5, 0, 0.5, 1, 2, 4, 
-                                                    round((minmax(r_cerr_pct_qland)[2]), 1)))
-
-cerr_new_qland_rc <- classify(r_cerr_new_qland, c(0, 0.5, 1, 2, 3, 4, 
-                                                    round((minmax(r_cerr_new_qland)[2]), 1)))
-
-# r_cerr_pct_qcrop_rc <- classify(r_cerr_pct_qcrop,c(round((minmax(r_cerr_pct_qcrop)[1])),
-#                                                    -1, -0.5, -.1, 0, 0.1, 0.5, 1,
-#                                                    round((minmax(r_cerr_pct_qcrop)[2]))))
-r_cerr_pct_qcrop_rc <- classify(r_cerr_pct_qcrop,c(round((minmax(r_cerr_pct_qcrop)[1]), digits = 1),
-                                                   0.1, 0.5, 1, 2, 2.5, 3,
-                                                   round((minmax(r_cerr_pct_qcrop)[2]),digits = 1)))
-
-terra::plot(r_cerr_pct_qcrop_rc, type="classes", col = brewer.pal(9, "Oranges"), 
-            main = "% Change in Crop Production Index", plg = list(x="topleft"))
-
-r_
-r_cerr_new_qcrop_rc <- classify(r_cerr_new_qcrop, c(0, 10, 25, 50, 75, 100, 
-                                                    round((minmax(r_cerr_new_qcrop)[2]))))
-
-
-
-
-
-## Prettier Box Plots --------------
+## Prettier Box Plots (Medium Priority) --------------
 
 # NEED TO MELT ALL THE DIFF PCT's INTO ONE COLUMN
 # Only use 2012 to keep it from getting too crazy
