@@ -39,6 +39,7 @@ library(geobr) # use to load BR & Cerrado extent shapefiles
 library(tigris) # use to load US and US-MW shapefiles
 library(rasterVis) # use for easy violin plot 
 library(reshape2) # use for melting data to then use ggplot
+library(sf)
 
 library(stringr) # use to manipulate result .txt file
 
@@ -137,6 +138,9 @@ saveRDS(r, file = paste0("../Data_Derived/r", pct, ".rds"))
 
 # 3: Get Shapefiles: US-MW, BR, & Cerrado ------------
 
+# ### Load World Shapefile ###
+# shp_world <- st_read(system.file("shapes/world.gpkg", package="spData"))
+#
 # ### Load US Shapefile ###
 # shp_us <- states(cb = TRUE, resolution = "20m") %>%
 #   filter(!STUSPS %in% c("AK", "HI", "PR"))
@@ -190,17 +194,26 @@ F_p_violin <- function(df, area){
   
   # histograms
   png(filename = paste0(folder_plot, str_to_lower(area), pct, "_hist", ".png"))
-  terra::hist(df)
+  terra::hist(df, maxcell=100000000000)
   dev.off()
   
   png(filename = paste0(folder_plot, str_to_lower(area), pct, "_hist_log", ".png"))
-  terra::hist(log(df))
+  terra::hist(log(df), maxcell=10000000000)
   dev.off()
   
-  # subset
-  df_pct <- df %>% subset(c("pct_QLAND", "pct_QCROP"))
-  df_rawch <- df %>% subset(c("rawch_QLAND", "rawch_QCROP"))
-  df_new <- df %>% subset(c("new_QLAND", "new_QCROP"))
+  # subset and change names
+  df_pct <- df %>% 
+    subset(c("pct_QLAND", "pct_QCROP")) 
+  names(df_pct) <- c("Cropland Area % Change", "CPI % Change")
+  
+  df_rawch <- df %>% 
+    subset(c("rawch_QLAND", "rawch_QCROP"))
+  names(df_rawch) <- c("Cropland Area Raw Change", "CPI Raw Change")
+  
+  
+  df_new <- df %>% 
+    subset(c("new_QLAND", "new_QCROP"))
+  names(df_new) <- c("Cropland Area New Values", "CPI New Values")
   
   # plot
   p1 <- bwplot(df_pct, 
@@ -295,10 +308,10 @@ F_EDA <- function(r_aoi, area_name){
   # Get and save a summary table
   table_area <- summary(r_aoi, size = 1000000) # set size to not use a sample
   print(table_area)
-  write.csv(table_area, file = paste0(folder, "fxn_table_", area_name, pct, "_102923", ".csv"))
+  write.csv(table_area, file = paste0(folder, "/summary_tables/", "table_", area_name, pct, "_102923", ".csv"))
   
   # Call EDA fxn to get and save violin plots 
-  F_p_violin(r_aoi, str_to_title(area_name))
+  F_p_violin(r_aoi, area_name)
   
   # Plot basic initial maps
   terra::plot(r_aoi, axes = F, type = "interval")
@@ -353,8 +366,15 @@ ncell(y[y==999999])
 
 ## 4.3: World Results ---------
 
-# Plot World Results
+# Quick plot of World results
 terra::plot(r, axes = F)
+terra::plot(log(r), axes = F)
+
+# Call fxn to clip, count, and clamp data 
+r_row <- F_aoi_prep(shp = shp_world, area_name = "World")
+
+# call fxn to create EDA plots of the clipped data 
+F_EDA(r_aoi = r_row, area_name = "World")
 
 
 
