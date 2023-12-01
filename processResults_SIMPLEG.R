@@ -253,7 +253,7 @@ F_count_invalid <- function(df, layer_name){
   y <- ifel(df_new > 50000, 999999, df_new)
   y_land <- ncell(y[y==999999])
   
-  print(paste(layer_name, "Cropland Area cells over 50,000:", y_land))
+  print(paste(layer_name, "grid cells over 50,000:", y_land))
 }
 
 
@@ -306,10 +306,12 @@ F_aoi_prep <- function(shp, area_name){
 # fxn to get summary of data, call the violin fxn, and plot a basic map
 F_EDA <- function(r_aoi, area_name){  
   # Get and save a summary table
-  table_area <- summary(r_aoi, size = 1000000) # set size to not use a sample
+  table_area <- summary(r_aoi, size = 1000000000) # set size to not use a sample
   print(table_area)
-  write.csv(table_area, file = paste0(folder, "/summary_tables/", "table_", area_name, pct, "_102923", ".csv"))
   
+  write.csv(table_area, file = paste0(folder, "/summary_tables/", "table_", area_name, pct, "_102923", ".csv"))
+  print(global(r_aoi$rawch_QLAND, fun = "sum", na.rm = T))
+  print(global(r_aoi$rawch_QCROP, fun = "sum", na.rm = T))
   # Call EDA fxn to get and save violin plots 
   F_p_violin(r_aoi, area_name)
   
@@ -464,17 +466,21 @@ par(mfrow=c(1,6), oma = c(0,0,0,0))
 terra::plot(r_us %>% subset("pct_QLAND"),
             type = "continuous",
             breaks = c(-25, 5),
-            col = rev(mycolors3), 
+            #col = rev(mycolors3), 
+            col = brewer.pal(n = 11, name = "RdBu"), 
             main = paste("US % Change in\nCropland Area", pct_title),
             plg = list(x="bottomright"))
 lines(shp_us_mw, lwd = 0.8, lty = 3, col = "darkgray")
 north(cbind(-121, 29))
 
+
+
 ### % Change in Crop Index ###
 terra::plot(r_us %>% subset("pct_QCROP"),
             type = "continuous",
             breaks = c(-25, 5),
-            col = rev(mycolors3),
+            #col = rev(mycolors3),
+            col = brewer.pal(n = 11, name = "RdBu"), 
             main = paste("US % Change in\nCrop Production Index", pct_title),
             plg = list(x="bottomright"))
 lines(shp_us_mw, lwd = 0.8, lty = 3, col = "darkgray")
@@ -483,6 +489,7 @@ lines(shp_us_mw, lwd = 0.8, lty = 3, col = "darkgray")
 terra::plot(r_us %>% subset("new_QLAND")/1000,
             type = "interval",
             breaks = c(0, 1, 5, 10, 20, 25, 30, 35, 45, 50),
+            
             col = brewer.pal(9, "YlGn"),
             main = paste("US Post-Simulation\nCrop Area", pct_title), 
             )
@@ -511,7 +518,8 @@ test_breaks <- seq(-test, 1, length.out = 100)
 terra::plot(r_us %>% subset("rawch_QCROP")/1000,
             type = "continuous",
             breaks = test_breaks,
-            col = rev(mycolors3),
+            #col = rev(mycolors3),
+            col = brewer.pal(n = 11, name = "RdBu"), 
             main = paste("US Raw Change in\nCropland Area", pct_title),
             )
 lines(shp_us_mw, lwd = 0.8, lty = 3, col = "darkgray")
@@ -541,7 +549,6 @@ r_br <- F_aoi_prep(shp = shp_br, area_name = "Brazil")
 
 # call fxn to create EDA plots of the clipped data 
 F_EDA(r_aoi = r_br, area_name = "Brazil")
-
 
 ## 6.2 Plot Best BR Map ---------
 
