@@ -385,6 +385,240 @@ r_row <- F_aoi_prep(shp = shp_world, area_name = "World")
 # call fxn to create EDA plots of the clipped data 
 F_EDA(r_aoi = r_row, area_name = "World")
 
+### 4.3.1 World Base R -------
+
+# Set colors 
+mycolors3 <- colorRampPalette(brewer.pal(9, "RdPu"))(100)
+
+# open saving function
+png(filename = paste0(folder_plot, "world", pct, "_maps", ".png"),
+    width = 1800, height = 1200)
+pdf(file = paste0(folder_plot, "world", pct, "_maps", ".pdf"),
+    width = 18, height = 18
+    )
+#par(mfrow=c(3,2), oma = c(0,0,0,0))
+par(mfrow=c(2,2), mar = c(0, 0.1, 0, 0.1))
+
+### Post-Sim Cropland Area ###
+terra::plot(r_row %>% subset("new_QLAND")/1000,
+            type = "interval",
+            breaks = c(0, 1, 5, 10, 20, 25, 30, 35, 45, 50),
+            
+            col = brewer.pal(9, "YlGn"),
+            main = paste("Post-Simulation Crop Area", pct_title),
+            plg=list( # parameters for drawing legend
+              title = "Area (1000 ha) / Grid Cell",
+              #title.cex = 2, # Legend title size
+              #cex = 2 # Legend text size
+              x = "bottomleft"
+            )
+)
+#lines(shp_us_mw, lwd = 0.8, lty = 3, col = "darkgray")
+
+### Post-Sim Crop Index ###
+terra::plot(r_row %>% subset("new_QCROP")/1000,
+            type = "interval",
+            breaks = c(0, 1, 5, 10, 20, 25, 30, 35, 45, 50),
+            col = brewer.pal(9, "YlGn"),
+            main = paste("Post-Simulation Crop Index", pct_title), 
+            plg=list( # parameters for drawing legend
+              title = "Tons CE / Grid Cell",
+              x = "bottomleft"
+            )
+)
+#lines(shp_us_mw, lwd = 0.8, lty = 3, col = "darkgray")
+
+
+### Actual (Raw) Change in Cropland Area ###
+terra::plot(r_row %>% subset("rawch_QLAND")/1000,
+            type = "interval",
+            #breaks = c(-50000, -25000, -10000, -1000, -100, 0, 1, 10, 100, 500, 1000),
+            breaks = c(-50, -25, -10, -1, -0.1, 0, 0.01, 0.1, 0.25, 0.5, 1),
+            #breaks = c(-50, -25, -10, -1, -0.1, 0, 0.01, 0.25, 0.5, 1, 2, 5),
+            #col = rev(mycolors3),
+            col = brewer.pal(n = 11, name = "RdBu"),
+            
+            main = paste("Raw Change in Cropland Area", pct_title),
+            plg=list( # parameters for drawing legend
+              title = "Area (1000 ha) / Grid Cell",
+              #title.cex = 2, # Legend title size
+              #cex = 2 # Legend text size
+              x = "bottomleft"
+              )
+)
+
+#lines(vect(ext(shp_us_mw)), lwd = 0.8, lty = 1, col = "black")
+#lines(vect(ext(shp_cerr)), lwd = 0.8, lty = 1, col = "black")
+
+
+### Actual (Raw) Change in Crop Production Index ###
+terra::plot(r_row %>% subset("rawch_QCROP")/1000,
+            type = "interval",
+            breaks = c(-50, -25, -10, -1, -0.1, 0, 0.01, 0.25, 0.5, 1, 2, 5),
+            #col = rev(mycolors3),
+            col = brewer.pal(n = 11, name = "RdBu"), 
+            main = paste("Raw Change in Crop Production Index", pct_title),
+            plg=list( # parameters for drawing legend
+              title = "Tons CE / Grid Cell",
+              #title.cex = 2, # Legend title size
+              #cex = 2 # Legend text size
+              x = "bottomleft"
+            )
+)
+#lines(vect(ext(shp_us_mw)), lwd = 0.8, lty = 1, col = "black")
+#lines(vect(ext(shp_cerr)), lwd = 0.8, lty = 1, col = "black")
+
+dev.off()
+
+### 4.3.1 World Results with tidyterra ----------
+
+#"atlas", "high_relief", "arid", "soft", "muted", "purple", "viridi", "gn_yl", "pi_y_g", "bl_yl_rd", "deep"
+F_ggplot_world <- function(df, brks, pal, legend_title, p_title){
+  
+  p <- ggplot()+
+    geom_spatraster(data = df, maxcell = Inf)+
+    scale_fill_whitebox_b(
+      #palette = "viridi", direction = 1,
+      palette = pal, direction = 1,
+      breaks = brks
+    )+
+    labs(
+      fill = legend_title,
+      title = p_title
+    )+
+    theme_minimal() +
+    theme(
+      # set plot size and center it 
+      plot.title = element_text(size = 16, hjust = 0.5),
+      # put legend in the bottom right 
+      legend.position = c(0.15, 0.2),
+      legend.title = element_text(size = 14),
+      legend.text = element_text(size = 10))
+  return(p)
+}
+
+
+
+
+### Post-Sim Cropland Area ###
+# takes a while
+F_ggplot_world(df = r_row %>% subset("new_QLAND")/1000,
+            brks = waiver(),
+            pal = "gn_yl", 
+            legend_title = "Area (1000 ha)",
+            p_title = paste("Post-Sim Cropland Area", pct_title))
+
+### Post-Sim Crop Index ###
+F_ggplot_world(df = r_row %>% subset("new_QCROP")/1000,
+               brks = waiver(),
+               pal = "gn_yl", 
+               legend_title = "Tons CE",
+               p_title = paste("Post-Sim Crop Production Index", pct_title))
+
+### Actual (Raw) Change in Cropland Area ###
+F_ggplot_world(df = r_row %>% subset("rawch_QLAND")/1000,
+               brks = c(-50, -25, -10, -1, -0.1, 0, 0.01, 0.25, 0.5, 1, 2, 5),
+               pal = "viridi", 
+               legend_title = "Area (1000 ha)",
+               p_title = paste("Raw Change in Cropland Area", pct_title))
+
+
+ggplot()+
+  geom_spatraster(data = df, maxcell = Inf)+
+  scale_fill_whitebox_b(
+    #palette = "viridi", direction = 1,
+    palette = pal, direction = 1,
+    breaks = brks
+  )+
+  labs(
+    fill = legend_title,
+    title = p_title
+  )+
+  theme_minimal() +
+  theme(
+    # set plot size and center it 
+    plot.title = element_text(size = 16, hjust = 0.5),
+    # put legend in the bottom right 
+    legend.position = c(0.15, 0.2),
+    legend.title = element_text(size = 14),
+    legend.text = element_text(size = 10))
+
+
+### Actual (Raw) Change in Crop Production Index ###
+F_ggplot_world(df = r_row %>% subset("rawch_QCROP")/1000,
+               brks = c(-50, -25, -10, -1, -0.1, 0, 0.01, 0.25, 0.5, 1, 2, 5),
+               pal = "gn_yl", 
+               legend_title = "Tons CE",
+               p_title = paste("Raw Change in Crop Production Index", pct_title))
+
+# NEXT: make it so the values are actually binned 
+ggplot()+
+  geom_spatraster(data = r_row %>% subset("rawch_QCROP")/1000, maxcell = Inf)+
+  scale_fill_whitebox_b(
+    #palette = "viridi", direction = 1,
+    palette = "gn_yl", direction = 1,
+    breaks = c(-50, -25, -10, -1, -0.1, 0, 0.01, 0.25, 0.5, 1, 2, 5)
+  )+
+  labs(
+    fill = legend_title,
+    title = p_title
+  )+
+  theme_minimal() +
+  theme(
+    # set plot size and center it 
+    plot.title = element_text(size = 16, hjust = 0.5),
+    # put legend in the bottom right 
+    legend.position = c(0.15, 0.2),
+    legend.title = element_text(size = 14),
+    legend.text = element_text(size = 10))
+
+
+
+# add N arrow and scale bar to this one only
+p_BR +    
+  annotation_north_arrow(
+    which_north = TRUE,
+    location ="bl",
+    pad_y = unit(0.07, "npc"),
+    style = north_arrow_fancy_orienteering()
+  )+
+  annotation_scale(pad_y = unit(0.01, "npc"))  
+
+### % Change in Crop Index ###
+F_ggplot_BR(df = r_br %>% subset("pct_QCROP"),
+            brks = c(seq(0, 4, by = 0.5)),
+            pal = "deep",
+            legend_title = "% Change",
+            p_title = paste("Brazil % Change in Crop Index", pct_title))
+
+
+### Post-Sim Cropland Area ###
+F_ggplot_BR(df = r_br %>% subset("new_QLAND")/1000,
+            brks = waiver(),
+            pal = "gn_yl", 
+            legend_title = "Area (1000 ha)",
+            p_title = paste("Brazil Post-Sim Cropland Area", pct_title))
+
+### Post-Sim Crop Index ###
+F_ggplot_BR(df = r_br %>% subset("new_QCROP")/1000,
+            brks = waiver(),
+            pal = "gn_yl", 
+            legend_title = "Production (tons CE)",
+            p_title = paste("Brazil Post-Sim Crop Production Index", pct_title))
+
+### Actual (Raw) Change in Cropland Area ###
+F_ggplot_BR(df = r_br %>% subset("rawch_QLAND")/1000,
+            brks = round(seq(0, 2, length.out = 11),2),
+            pal = "gn_yl", 
+            legend_title = "Area (1000 ha)",
+            p_title = paste("Brazil Raw Change in\nCropland Area", pct_title))
+
+### Actual (Raw) Change in Crop Production Index ###
+F_ggplot_BR(df = r_br %>% subset("rawch_QCROP")/1000,
+            brks = round(seq(0, 2, length.out = 11),2),
+            pal = "gn_yl", 
+            legend_title = "Change in CPI (1000 ha)",
+            p_title = paste("Brazil Raw Change in\nCrop Production Index", pct_title))
 
 
 # 5: US Results  ----------------------------
@@ -659,13 +893,6 @@ F_ggplot_BR <- function(df, brks, pal, legend_title, p_title){
      title = p_title
    )+
    theme_minimal() +
-   annotation_north_arrow(
-     which_north = TRUE,
-     location ="bl",
-     pad_y = unit(0.07, "npc"),
-     style = north_arrow_fancy_orienteering()
-   ) +
-   annotation_scale(pad_y = unit(0.01, "npc"))+
    theme(
      # set plot size and center it 
      plot.title = element_text(size = 16, hjust = 0.5),
@@ -676,165 +903,59 @@ F_ggplot_BR <- function(df, brks, pal, legend_title, p_title){
  return(p)
 }
 
-F_ggplot_BR(df = r_br %>% subset("pct_QLAND"),
-            brks = c(seq(0, 4, by = 0.5)),
-            pal = "deep",
-            legend_title = "% Change",
-            p_title = "Brazil % Change in Cropland Area")
+
 
 ### % Change in Cropland Area ###
-ggplot()+
-  geom_spatraster(data = r_br %>% subset("pct_QLAND"))+
-  scale_fill_whitebox_c(
-    #palette = "viridi", direction = 1,
-    palette = "deep", direction = 1,
-    breaks = c(seq(0, 4, by = 0.5))
-  )+
-  geom_spatvector(data = shp_cerr_states, 
-                  col = "darkgray",
-                  fill = NA, lwd = 0.8, lty = 3)+
-  geom_spatvector(data = shp_br_border, 
-                  col = "darkgray",
-                  fill = NA, lwd = 0.3, lty = 1)+
-  labs(
-    fill = "% Change",
-    title = "Brazil % Change in Cropland Area"
-    )+
-  theme_minimal() +
+p_BR <- F_ggplot_BR(df = r_br %>% subset("pct_QLAND"),
+                    brks = c(seq(0, 4, by = 0.5)),
+                    pal = "deep",
+                    legend_title = "% Change",
+                    p_title = paste("Brazil % Change in Cropland Area", pct_title))
+# add N arrow and scale bar to this one only
+p_BR +    
   annotation_north_arrow(
     which_north = TRUE,
     location ="bl",
     pad_y = unit(0.07, "npc"),
     style = north_arrow_fancy_orienteering()
-  ) +
-  annotation_scale(pad_y = unit(0.01, "npc"))+
-  theme(
-    # set plot size and center it 
-    plot.title = element_text(size = 16, hjust = 0.5),
-    # put legend in the bottom right 
-    legend.position = c(0.8, 0.2),
-    legend.title = element_text(size = 14),
-    legend.text = element_text(size = 10))
-  
+  )+
+  annotation_scale(pad_y = unit(0.01, "npc"))  
+
 ### % Change in Crop Index ###
-ggplot()+
-  geom_spatraster(data = r_br %>% subset("pct_QCROP"))+
-  scale_fill_whitebox_c(
-    palette = "deep", direction = 1,
-    breaks = c(seq(0, 4, by = 0.5))
-  )+
-  geom_spatvector(data = shp_cerr_states, 
-                  col = "darkgray",
-                  fill = NA, lwd = 0.8, lty = 3)+
-  geom_spatvector(data = shp_br_border, 
-                  col = "darkgray",
-                  fill = NA, lwd = 0.3, lty = 1)+
-  labs(
-    fill = "% Change",
-    title = paste("Brazil % Change in Crop Index", pct_title)
-  )+
-  theme_minimal()+
-  theme(
-    # set plot size and center it 
-    plot.title = element_text(size = 16, hjust = 0.5),
-    # put legend in the bottom right 
-    legend.position = c(0.8, 0.2),
-    legend.title = element_text(size = 14),
-    legend.text = element_text(size = 10))
+F_ggplot_BR(df = r_br %>% subset("pct_QCROP"),
+            brks = c(seq(0, 4, by = 0.5)),
+            pal = "deep",
+            legend_title = "% Change",
+            p_title = paste("Brazil % Change in Crop Index", pct_title))
+
 
 ### Post-Sim Cropland Area ###
-ggplot()+
-  geom_spatraster(data = r_br %>% subset("new_QLAND")/1000)+
-  scale_fill_whitebox_c(
-    palette = "gn_yl", direction = 1,
-    #breaks = c(0, 1, 5, 10, 20, 30, 40, 50)
-  )+
-  geom_spatvector(data = shp_cerr_states, 
-                  col = "darkgray",
-                  fill = NA, lwd = 0.8, lty = 3)+
-  geom_spatvector(data = shp_br_border, 
-                  col = "darkgray",
-                  fill = NA, lwd = 0.3, lty = 1)+
-  labs(
-    fill = "Area (1000 ha)",
-    title = paste("Brazil Post-Sim Area", pct_title)
-  )+
-  theme_minimal()+
-  theme(
-    # set plot size and center it 
-    plot.title = element_text(size = 16, hjust = 0.5),
-    # put legend in the bottom right 
-    legend.position = c(0.8, 0.2),
-    legend.title = element_text(size = 14),
-    legend.text = element_text(size = 10))
-
+F_ggplot_BR(df = r_br %>% subset("new_QLAND")/1000,
+            brks = waiver(),
+            pal = "gn_yl", 
+            legend_title = "Area (1000 ha)",
+            p_title = paste("Brazil Post-Sim Cropland Area", pct_title))
 
 ### Post-Sim Crop Index ###
-ggplot()+
-  geom_spatraster(data = r_br %>% subset("new_QCROP")/1000)+
-  scale_fill_whitebox_c(
-    palette = "gn_yl", direction = 1,
-    #breaks = c(0, 1, 5, 10, 20, 30, 40, 50)
-  )+
-  geom_spatvector(data = shp_cerr_states, 
-                  col = "darkgray",
-                  fill = NA, lwd = 0.8, lty = 3)+
-  geom_spatvector(data = shp_br_border, 
-                  col = "darkgray",
-                  fill = NA, lwd = 0.3, lty = 1)+
-  labs(
-    fill = "Production (tons CE)",
-    title = paste("Brazil Post-Sim Crop Production Index", pct_title)
-  )+
-  theme_minimal()+
-  theme(
-    # set plot size and center it 
-    plot.title = element_text(size = 16, hjust = 0.5),
-    # put legend in the bottom right 
-    legend.position = c(0.8, 0.2),
-    legend.title = element_text(size = 14),
-    legend.text = element_text(size = 10))
+F_ggplot_BR(df = r_br %>% subset("new_QCROP")/1000,
+            brks = waiver(),
+            pal = "gn_yl", 
+            legend_title = "Production (tons CE)",
+            p_title = paste("Brazil Post-Sim Crop Production Index", pct_title))
 
 ### Actual (Raw) Change in Cropland Area ###
-test_breaks <- seq(0, 2, length.out = 100)
-
-#test <- max(abs(minmax(r_br_rawch_qland/1000)))
-terra::plot(r_br %>% subset("rawch_QLAND")/1000,
-            type = "continuous",
-            breaks = test_breaks/4,
-            col = mycolors3,
-            main = paste("Brazil Raw Change in\nCropland Area", pct_title),
-            plg = list(x="bottomright"))
-ggplot()+
-  geom_spatraster(data = r_br %>% subset("rawch_QLAND")/1000)+
-  scale_fill_whitebox_c(
-    palette = "gn_yl", direction = 1,
-    #breaks = c(0, 1, 5, 10, 20, 30, 40, 50)
-  )+
-  geom_spatvector(data = shp_cerr_states, 
-                  col = "darkgray",
-                  fill = NA, lwd = 0.8, lty = 3)+
-  geom_spatvector(data = ext_area <- vect(ext(shp)), 
-                  col = "darkgray",
-                  fill = NA, lwd = 0.3, lty = 1)+
-  labs(
-    fill = "Production \n(tons CE)",
-    title = paste("Brazil Raw Change in\nCropland Area", pct_title)
-  )+
-  theme_minimal()+
-  theme(
-    # set plot size and center it 
-    plot.title = element_text(size = 16, hjust = 0.5),
-    # put legend in the bottom right 
-    legend.position = c(0.8, 0.2),
-    legend.title = element_text(size = 14),
-    legend.text = element_text(size = 10))
-
-ext_area <- vect(ext(shp_br))
-ext_area
+F_ggplot_BR(df = r_br %>% subset("rawch_QLAND")/1000,
+            brks = round(seq(0, 2, length.out = 11),2),
+            pal = "gn_yl", 
+            legend_title = "Area (1000 ha)",
+            p_title = paste("Brazil Raw Change in\nCropland Area", pct_title))
 
 ### Actual (Raw) Change in Crop Production Index ###
-
+F_ggplot_BR(df = r_br %>% subset("rawch_QCROP")/1000,
+            brks = round(seq(0, 2, length.out = 11),2),
+            pal = "gn_yl", 
+            legend_title = "Change in CPI (1000 ha)",
+            p_title = paste("Brazil Raw Change in\nCrop Production Index", pct_title))
 
 
 
