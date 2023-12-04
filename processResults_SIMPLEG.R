@@ -233,15 +233,15 @@ F_p_violin <- function(df, area){
                main = paste(area, "Post-Sim Values", pct_title),
                ylab = "Area (ha) or 1000-ton CE")
   
-  png(filename = paste0(folder_plot, str_to_lower(area), pct, "_bw", "_pctchange", ".png"))
+  pdf(file = paste0(folder_plot, str_to_lower(area), pct, "_bw", "_pctchange", ".pdf"))
   plot(p1)
   dev.off()
   
-  png(filename = paste0(folder_plot, str_to_lower(area), pct, "_bw", "_rawchange", ".png"))
+  pdf(file = paste0(folder_plot, str_to_lower(area), pct, "_bw", "_rawchange", ".pdf"))
   plot(p2)
   dev.off()
   
-  png(filename = paste0(folder_plot, str_to_lower(area), pct, "_bw", "_newvalues", ".png"))
+  pdf(file = paste0(folder_plot, str_to_lower(area), pct, "_bw", "_newvalues", ".pdf"))
   plot(p3)
   dev.off()
   
@@ -391,8 +391,8 @@ F_EDA(r_aoi = r_row, area_name = "World")
 mycolors3 <- colorRampPalette(brewer.pal(9, "RdPu"))(100)
 
 # open saving function
-png(filename = paste0(folder_plot, "world", pct, "_maps", ".png"),
-    width = 1800, height = 1200)
+# png(filename = paste0(folder_plot, "world", pct, "_maps", ".png"),
+#     width = 1800, height = 1200)
 pdf(file = paste0(folder_plot, "world", pct, "_maps", ".pdf"),
     width = 18, height = 18
     )
@@ -415,18 +415,6 @@ terra::plot(r_row %>% subset("new_QLAND")/1000,
 )
 #lines(shp_us_mw, lwd = 0.8, lty = 3, col = "darkgray")
 
-### Post-Sim Crop Index ###
-terra::plot(r_row %>% subset("new_QCROP")/1000,
-            type = "interval",
-            breaks = c(0, 1, 5, 10, 20, 25, 30, 35, 45, 50),
-            col = brewer.pal(9, "YlGn"),
-            main = paste("Post-Simulation Crop Index", pct_title), 
-            plg=list( # parameters for drawing legend
-              title = "Tons CE / Grid Cell",
-              x = "bottomleft"
-            )
-)
-#lines(shp_us_mw, lwd = 0.8, lty = 3, col = "darkgray")
 
 
 ### Actual (Raw) Change in Cropland Area ###
@@ -450,6 +438,18 @@ terra::plot(r_row %>% subset("rawch_QLAND")/1000,
 #lines(vect(ext(shp_us_mw)), lwd = 0.8, lty = 1, col = "black")
 #lines(vect(ext(shp_cerr)), lwd = 0.8, lty = 1, col = "black")
 
+### Post-Sim Crop Index ###
+terra::plot(r_row %>% subset("new_QCROP")/1000,
+            type = "interval",
+            breaks = c(0, 1, 5, 10, 20, 25, 30, 35, 45, 50),
+            col = brewer.pal(9, "YlGn"),
+            main = paste("Post-Simulation Crop Index", pct_title), 
+            plg=list( # parameters for drawing legend
+              title = "Tons CE / Grid Cell",
+              x = "bottomleft"
+            )
+)
+#lines(shp_us_mw, lwd = 0.8, lty = 3, col = "darkgray")
 
 ### Actual (Raw) Change in Crop Production Index ###
 terra::plot(r_row %>% subset("rawch_QCROP")/1000,
