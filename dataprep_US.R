@@ -280,6 +280,13 @@ p_colnames <- p_colnames[! p_colnames %in% c('year', 'state', 'name', 'geometry'
 # run fxn over all columns
 lapply(p_colnames, F_plot_gg_diffpct, data = df_diff, yr = yr_one)
 
+### 1.4.2 Get Stats on Shock -----------
+
+# get mean yield shock to corn and soybean
+mean(df_diff_2012$cornDiffPctYield)
+mean(df_diff_2012$soyDiffPctYield)
+mean(df_diff_2012$cornSoyDiffPctYield)
+
 
 # # # # # # # # # # # # # ## # # # # 
 
