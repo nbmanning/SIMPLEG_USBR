@@ -381,7 +381,7 @@ terra::plot(log(r), axes = F)
 
 # Call fxn to clip, count, and clamp data 
 r_row <- F_aoi_prep(shp = shp_world, area_name = "World")
-
+r_row
 # call fxn to create EDA plots of the clipped data 
 F_EDA(r_aoi = r_row, area_name = "World")
 
@@ -449,6 +449,7 @@ terra::plot(r_row %>% subset("new_QCROP")/1000,
               x = "bottomleft"
             )
 )
+lines(shp_world, col = "gray80")
 #lines(shp_us_mw, lwd = 0.8, lty = 3, col = "darkgray")
 
 ### Actual (Raw) Change in Crop Production Index ###
@@ -477,9 +478,9 @@ F_ggplot_world <- function(df, brks, pal, legend_title, p_title){
   
   p <- ggplot()+
     geom_spatraster(data = df, maxcell = Inf)+
-    scale_fill_whitebox_b(
+    scale_fill_whitebox_c(
       #palette = "viridi", direction = 1,
-      palette = pal, direction = 1,
+      palette = pal,
       breaks = brks
     )+
     labs(
@@ -573,53 +574,92 @@ ggplot()+
     legend.text = element_text(size = 10))
 
 
+### 4.3.3: Get World Values of Positive Change ---------
 
-# add N arrow and scale bar to this one only
-p_BR +    
-  annotation_north_arrow(
-    which_north = TRUE,
-    location ="bl",
-    pad_y = unit(0.07, "npc"),
-    style = north_arrow_fancy_orienteering()
-  )+
-  annotation_scale(pad_y = unit(0.01, "npc"))  
+# NOTE: rc == raw change
 
-### % Change in Crop Index ###
-F_ggplot_BR(df = r_br %>% subset("pct_QCROP"),
-            brks = c(seq(0, 4, by = 0.5)),
-            pal = "deep",
-            legend_title = "% Change",
-            p_title = paste("Brazil % Change in Crop Index", pct_title))
+r_row_rc_QCROP <- r_row %>% 
+  subset("rawch_QCROP") #%>% 
+  #clamp(lower = 0)
+
+r_row_rc_QLAND <- r_row %>% 
+  subset("rawch_QLAND")#/1000 %>% 
+  #clamp(lower = 0)
+
+r_row_rc_QLAND2 <- raster(r_row_rc_QLAND)
+r_row_rc_QCROP2 <- raster(r_row_rc_QCROP)
+
+writeRaster(r_row_rc_QCROP2, paste0(folder, "row_QCROP.tif"),
+            overwrite = T)
+writeRaster(r_row_rc_QLAND2, paste0(folder, "row_QLAND.tif"),
+            overwrite = T)
+
+# get # of cells over a certain value 
+r <- r_row_rc_QLAND
+test_df <- as.data.frame(r)
+sum(r > 3000, na.rm = T)
+summary(r, size = 1000000000)
 
 
-### Post-Sim Cropland Area ###
-F_ggplot_BR(df = r_br %>% subset("new_QLAND")/1000,
-            brks = waiver(),
-            pal = "gn_yl", 
-            legend_title = "Area (1000 ha)",
-            p_title = paste("Brazil Post-Sim Cropland Area", pct_title))
+# get highest value of raster
+# from: https://stackoverflow.com/questions/25369921/r-how-to-find-the-location-of-the-max-value-in-a-raster
+top_row <- which.max(r$rawch_QCROP)
+pos_row <- xyFromCell(r,top_row_rc_QLAND)
 
-### Post-Sim Crop Index ###
-F_ggplot_BR(df = r_br %>% subset("new_QCROP")/1000,
-            brks = waiver(),
-            pal = "gn_yl", 
-            legend_title = "Production (tons CE)",
-            p_title = paste("Brazil Post-Sim Crop Production Index", pct_title))
+# get value of top 1% of change 
+# from: https://stackoverflow.com/questions/72406230/how-to-select-top-30-of-cells-in-a-raster-by-cell-value-in-r
+min_value <- as.data.frame(r, na.rm = TRUE) %>%
+  slice_max(order_by = rawch_QLAND, prop = 0.01) %>%
+  min()
 
-### Actual (Raw) Change in Cropland Area ###
-F_ggplot_BR(df = r_br %>% subset("rawch_QLAND")/1000,
-            brks = round(seq(0, 2, length.out = 11),2),
-            pal = "gn_yl", 
-            legend_title = "Area (1000 ha)",
-            p_title = paste("Brazil Raw Change in\nCropland Area", pct_title))
+# Here it goes!!
+top30perc <- r %>% filter(rawch_QLAND > min_value)
 
-### Actual (Raw) Change in Crop Production Index ###
-F_ggplot_BR(df = r_br %>% subset("rawch_QCROP")/1000,
-            brks = round(seq(0, 2, length.out = 11),2),
-            pal = "gn_yl", 
-            legend_title = "Change in CPI (1000 ha)",
-            p_title = paste("Brazil Raw Change in\nCrop Production Index", pct_title))
+# Check
+area_30perc <- expanse(top30perc, unit = "km")
 
+prettyNum(area_30perc, big.mark = ",")
+#> [1] "761.0991"
+
+# Check
+area_30perc / totarea_km
+#> [1] 0.2968857
+
+# Seems ok
+
+
+plot(top30perc)
+
+
+
+# get location of top 0.9 quantile
+r <- r_row_rc_QLAND
+q <- global(r, \(i) quantile(i, 0.9, na.rm=T))
+x <- ifel(r <= q[[1]], NA, r)
+plot(x, type = "interval")
+
+# plot 
+terra::plot(
+  #r_row %>% subset("rawch_QCROP")/1000,
+  r_row_rc_QCROP/1000,
+  type = "interval",
+  breaks = c(0, 0.01, 0.1, 0.25, 0.5, 0.75, 1, 1.5, 2, 4),
+  #col = rev(mycolors3),
+  col = brewer.pal(n = 9, name = "YlOrRd"), 
+  main = paste("Raw Change in Crop Production Index", pct_title),
+  plg=list( # parameters for drawing legend
+    title = "Tons CE / Grid Cell",
+    #title.cex = 2, # Legend title size
+    #cex = 2 # Legend text size
+    x = "bottomleft"
+  )
+)
+
+
+
+
+
+hist(r_row_rc_QCROP)
 
 # 5: US Results  ----------------------------
 
