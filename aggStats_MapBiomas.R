@@ -28,6 +28,7 @@ library(stringi) # removing accents
 library(datazoom.amazonia) # loading municipality col. 6 data
 library(geobr) # load BR shapefiles 
 library(sf) # st_intersection and crs
+library(RColorBrewer) # maps 
 
 ## Constants 
 
@@ -165,34 +166,16 @@ df_cerr_fromveg_agg <- df_cerr %>%
   aggregate(ha ~ year, sum) %>% 
   mutate(year = as.Date(paste(year, 1, 1), '%Y %m %d'))
 
-# to-do: new aggregate: using codes from 'shp_code_muni' -----
-# same as shp_test2
-df_cerr_filt <- left_join(shp_code_muni, df_cerr,
-                      join_by(code_muni == geocode))
 
-df_cerrmuni_filt_agg <- df_cerr_filt %>% 
-  st_drop_geometry() %>% 
-  aggregate(ha ~ year + code_muni, sum) %>% 
-  mutate(year = as.Date(paste(year, 1, 1), '%Y %m %d'))
+# make shape -- all agg
+shp_cerrmuni <- shp_code_muni %>% 
+  left_join(df_cerrmuni_agg,
+            join_by(code_muni == geocode)) %>% 
+  mutate(year = year(year)) %>% 
+  filter(year >= 2012 & year <= 2017)
 
-df_cerr_filt_agg <- df_cerr_filt %>%
-  st_drop_geometry() %>% 
-  aggregate(ha ~ year, sum) %>% 
-  mutate(year = as.Date(paste(year, 1, 1), '%Y %m %d'))
-
-# ??? same as when using MapBiomas 8 ??? #
-
-# plot to test extent -----
-shp_muni2 <- shp_muni %>% select(code_muni)
-
-shp_test <- left_join(shp_muni2, df_cerrmuni_agg,
-                                join_by(code_muni == geocode))
-
-#shp_test <- shp_test %>% filter(year(year) == 2013)
-shp_test <- shp_test %>% filter(year(year) >= 2012 & year(year) <= 2017)
-
-# test
-ggplot(shp_test)+
+# plot
+ggplot(shp_cerrmuni)+
   geom_sf(mapping = aes(fill = ha), color= NA)+
   scale_fill_distiller(palette = "YlOrRd", direction = 1)+
   facet_wrap("year")+
@@ -201,31 +184,32 @@ ggplot(shp_test)+
   labs(title = "Using Collection 8 from MapBiomas")+
   theme(plot.title = element_text(hjust = 0.5))
 
-# could do a different left-join with code_muni from cerrado only
-shp_test2 <- left_join(shp_code_muni, df_cerrmuni_agg,
-                      join_by(code_muni == geocode))
-
-# mutate year to just year 
-shp_test2 <- shp_test2 %>% 
-  mutate(year = year(year)) %>% 
-  filter(year >= 2012 & year <= 2017)
-  
-
-shp_test3 <- shp_code_muni %>% 
-  left_join(df_cerrmuni_filt_agg,
-            join_by(code_muni == code_muni)) %>% 
+# make shape -- from veg 
+shp_cerrmuni_fromveg <- shp_code_muni %>% 
+  left_join(df_cerrmuni_fromveg_agg,
+            join_by(code_muni == geocode)) %>% 
   mutate(year = year(year)) %>% 
   filter(year >= 2012 & year <= 2017)
 
-# new 
-ggplot(shp_test3)+
+# plot
+ggplot(shp_cerrmuni_fromveg)+
   geom_sf(mapping = aes(fill = ha), color= NA)+
   scale_fill_distiller(palette = "YlOrRd", direction = 1)+
   facet_wrap("year")+
   coord_sf()+
   theme_minimal()+
-  labs(title = "Using Collection 8 from MapBiomas")+
+  labs(title = "Using Collection 8 from MapBiomas",
+       subtitle = "Land Transition from Relevant Classes")+
   theme(plot.title = element_text(hjust = 0.5))
+
+# quick line plots 
+ggplot(df_cerr_agg, aes(x = year, y = ha))+
+  geom_line()+
+  geom_point()
+
+ggplot(df_cerr_fromveg_agg, aes(x = year, y = ha))+
+  geom_line()+
+  geom_point()
 
 # STATS: land trans from br and cerr
 
@@ -418,8 +402,7 @@ yr2 <- 2017
 
 shp1 <- shp_trans_cerrmuni %>% filter(yr == 2013)
 shp1_2 <- shp_trans_cerrmuni %>% filter(yr >= yr1 & yr <= yr2)
-library(RColorBrewer)
-display.brewer.all(colorblindFriendly = T)
+
 ggplot(shp1_2)+
   geom_sf(mapping = aes(fill = trans), color= NA)+
   scale_fill_distiller(palette = "YlOrRd", direction = 1)+
