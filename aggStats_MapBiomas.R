@@ -214,11 +214,18 @@ ggplot(df_cerr_fromveg_agg, aes(x = year, y = ha))+
 # STATS: land trans from br and cerr
 
 
-# 4: Cerrado Col. 6 Municipality -------
+
+
+
+# END ####################################################################################
+
+# GRAVEYARD -----------------------------------
+
+## 1: Cerrado Col. 6 Municipality -------
 # load Col. 6 municipality level data filtered to Cerrado extent from 1_data_import_clean.R and x_temp_transBRmuni.R
 # load(file = "../Data_Derived/MapBiomas/trans_to_soy_BRCerr_frommuni_year.R")
 
-## from 1_data_import_clean.R -------
+### from 1_data_import_clean.R -------
 # load Col. 6 Lvl 4 data from package
 # source_mapb_trans_municip <- load_mapbiomas( # takes a long time
 #   dataset = "mapbiomas_transition",
@@ -305,24 +312,24 @@ agg_trans_BR_fromveg <- trans_br %>%
   aggregate(value ~ end_year, sum)
 
 
-# from 'x_temp_transBRmuni.R' ----
-# 2: load municipality shapefile and Cerrado shapefile and intersect -----
 
-## 2.1: Load municipality shapefile
+## 2: from 'x_temp_transBRmuni.R': load municipality shapefile and Cerrado shapefile and intersect -----
+
+### 2.1: Load municipality shapefile -----
 
 # Read all municipalities in the country at a given year
 # to-do: change to shp_br_muni
 shp_muni <- read_municipality(code_muni="all", year=2018)
 #plot(shp_muni)
 
-## 2.2: Load Cerrado shapefile
+### 2.2: Load Cerrado shapefile ---------
 shp_br_cerr <- read_biomes(
   year = 2019,
   simplified = T,
   showProgress = T
 ) %>% dplyr::filter(name_biome == "Cerrado")
 
-## 2.3: Intersect Cerrado & Muni
+### 2.3: Intersect Cerrado & Muni -----
 # str(shp_muni)
 # st_crs(shp_muni)
 # 
@@ -335,15 +342,15 @@ shp_muni_in_cerr <- st_intersection(shp_muni, shp_br_cerr)
 
 shp_code_muni <- shp_muni_in_cerr %>% select(code_muni)
 
-# 3: get territory codes for municipalities in intersection -----
+## 3: get territory codes for municipalities in intersection -----
 muni_codes_cerr <- shp_muni_in_cerr$code_muni
 
-# 4: filter all aggregated municipalities to only those within Cerrado -----
+## 4: filter all aggregated municipalities to only those within Cerrado -----
 # change trans_tosoy to "trans_BRmunicip_agg"
 trans_cerrmuni <- trans_BRmunicip_agg %>% 
   filter(municipality_code %in% muni_codes_cerr)
 
-# 5: Aggregate to one value per year  -----
+## 5: Aggregate to one value per year  -----
 
 # optional: filter to just probable "from" classifications
 trans_cerrmuni_fromveg <- trans_cerrmuni %>% 
@@ -373,7 +380,7 @@ agg_trans_cerrmuni_fromveg <- trans_cerrmuni_fromveg %>%
 # R_trans_to_soy_BRCerr_muni <- trans_tosoy_cerrmuni
 # save(R_trans_to_soy_BRCerr_muni, file = "../Data_Source/r_data_check/trans_to_soy_BRCerr_frommuni_year.R")
 
-#6: quick line plot ----
+##6: quick line plot ----
 ggplot(agg_trans_cerr, aes(x = yr, y = trans))+
   geom_line()+
   geom_point()+
@@ -387,7 +394,7 @@ ggplot(agg_trans_cerr_fromveg, aes(x = yr, y = trans))+
   scale_y_continuous(name = "land transition", 
                                    limits = c(20000, 800000))
 
-# 7: quick transition map -------
+## 7: quick transition map -------
 # join to keep 'geom'
 agg_trans_cerrmuni <- agg_trans_cerrmuni %>% 
   mutate(municipality_code = as.double(municipality_code))
