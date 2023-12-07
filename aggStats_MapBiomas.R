@@ -25,33 +25,32 @@ rm(list = ls())
 library(tidyverse)
 
 library(stringi) # removing accents
-library(datazoom.amazonia) # loading municipality col. 6 data
+#library(datazoom.amazonia) # loading municipality col. 6 data
 library(geobr) # load BR shapefiles 
 library(sf) # st_intersection and crs
 library(RColorBrewer) # maps 
 
 ## Constants 
+folder_plot <- "../Figures/trans_mapbiomas/"
 
 ## Shapefiles 
 
 # 1: Load in MapBiomas Transition ------
 # Load collection 8 data in tabular form 
-#csv_br_trans_st <- read.csv("../Data_Source/MapBiomas/SOURCE_TRANSONLY_COL8_MAPBIOMAS_BIOMASxESTADOS.csv", encoding = "UTF-8")
 csv_br_trans_m <- read.csv("../Data_Source/MapBiomas/SOURCE_transonly_col8_mapbiomas_municip.csv", encoding = "UTF-8")
-
-# load Col. 6 municipality level data filtered to Cerrado extent from 1_data_import_clean.R and x_temp_transBRmuni.R
-#load(file = "../Data_Source/r_data_check/trans_to_soy_BRCerr_frommuni_year.R")
 
 ## 1.1: Tidy -----
 
 df <- csv_br_trans_m
 
 # get rid of all accents
-unique(df$biome)
+
+#unique(df$biome)
 df$state <- stri_trans_general(str = df$state,  id = "Latin-ASCII")
 df$biome <- stri_trans_general(str = df$biome,  id = "Latin-ASCII")
 names(df)
-# df <- filter(csv_br_trans_st, biome == "Cerrado")
+
+# select levels and years to reduce df size 
 df <- dplyr::select(df, c("state","municipality", "geocode", "biome", 
                           "from_level_3", "to_level_3",
                           "from_level_4", "to_level_4",
@@ -66,12 +65,13 @@ df <- dplyr::select(df, c("state","municipality", "geocode", "biome",
 names(df) <- str_sub(names(df), - 4, - 1)
 names(df)
 
-# rename columns - UGLY AND MANUAL
+# rename columns - BEWARE HERE, this is manual for now, if you change the 'select' above then you need to change this as well 
 colnames(df)[colnames(df) %in% c("tate", "lity", "code", "iome", "el_3", "el_3",  "el_4", "el_4")] <- c("state", "municipality", "geocode", "biome", 
                                                                        "from_level_3", "to_level_3",
                                                                        "from_level_4", "to_level_4")
 names(df)
 
+# save as a clean df to come back to 
 df_clean <- df
 
 ## 1.2: Filter ---------
@@ -81,34 +81,56 @@ df <- df %>%
   filter(to_level_3 == c("Temporary Crops")) %>%
   filter(to_level_3 != from_level_3)
 
-# OPTIONAL: filter from only probable land cover types (excluding Temporary Crops here)
-# unique(df$from_level_3)
-# 
-# list_from_lv3 <- c("Forest Formation", "Savanna Formation", "Wetland",
-#                    "Grassland", "Pasture", "Forest Plantation", 
-#                    "Mosaic of Agriculture and Pasture",
-#                    "Magrove", "Flooded Forest",
-#                    "Shrub Restinga", "Other Non Forest Natural Formation", "Wooded Restinga",
-#                    "Perennial Crops")
-# 
-# df2 <- df %>% 
-#   filter(from_level_3 %in% list_from_lv3)
-
 ## 1.3: Make 'long' -----
-# make long & add "fromto" column
+# gather to make into a long dataset; change the number if you changed 'select' above
 ncol(df)
 df <- gather(df,"year","ha",9:ncol(df))     
 
-df <- df %>% 
-  mutate(fromto = paste0(from_level_3, " to ", to_level_3)) 
 
 
 
-# 2: Brazil ------
-df_br <- df
+##########
+# 2: Get Muni Codes within Cerrado ---------
+# code from 'x_temp_transBRmuni.R': load municipality shapefile and Cerrado shapefile and intersect
 
-## 2.1: Aggregate ---------
+## 2.1: Load Shapefiles -------
 
+# Load municipality shapefile 
+# Read all municipalities in the country at a given year
+shp_muni <- read_municipality(code_muni="all", year=2018)
+
+# Load Cerrado shapefile
+shp_br_cerr <- read_biomes(
+  year = 2019,
+  simplified = F,
+  showProgress = T
+) %>% dplyr::filter(name_biome == "Cerrado")
+
+## 2.2: Get Codes by Intersecting Cerrado & Muni -----
+
+# check CRS for each
+# str(shp_muni)
+# st_crs(shp_muni)
+# 
+# str(shp_br_cerr)
+# st_crs(shp_br_cerr)
+
+
+# get municipalities that are at all within the Cerrado
+shp_muni_in_cerr <- st_intersection(shp_muni, shp_br_cerr)
+#plot(shp_muni_in_cerr)
+
+# get just the codes column
+shp_code_muni_in_cerr <- shp_muni_in_cerr %>% select(code_muni)
+shp_code_muni_br <- shp_muni %>% select(code_muni)
+
+# get territory codes for municipalities in intersection as numeric
+muni_codes_cerr <- shp_muni_in_cerr$code_muni
+muni_codes_br <- shp_muni$code_muni
+
+# filter all aggregated municipalities to only those within Cerrado 
+
+# Set "FROM" list - lvl3 ------------
 list_from_lv3 <- c("Forest Formation", "Savanna Formation", "Wetland",
                    "Grassland", "Pasture", "Forest Plantation",
                    "Mosaic of Agriculture and Pasture",
@@ -116,35 +138,119 @@ list_from_lv3 <- c("Forest Formation", "Savanna Formation", "Wetland",
                    "Shrub Restinga", "Other Non Forest Natural Formation", "Wooded Restinga",
                    "Perennial Crops")
 
+###############################
+# 2: Brazil ------
+
+df_br <- df
+
+df_br <- df %>% 
+  filter(geocode %in% muni_codes_br)
+
+## 2.1: Aggregate ---------
 
 # keep 'from-to' classes
-df_br_class <- df_br %>% 
-  filter(from_level_3 %in% list_from_lv3) %>% 
-  aggregate(ha ~ year + from_level_3 + to_level_3 + fromto, sum) %>% 
-  mutate(year = as.Date(paste(year, 1, 1), '%Y %m %d'))
+# df_br_class <- df_br %>% 
+#   filter(from_level_3 %in% list_from_lv3) %>% 
+#   aggregate(ha ~ year + from_level_3 + to_level_3 + fromto, sum) %>% 
+#   mutate(year = as.Date(paste(year, 1, 1), '%Y %m %d'))
 
 # just get aggregate sum
+#### TO-DO: Rename agg to the front (e.g. agg_br) -----
 df_br_agg <- df_br %>% 
   aggregate(ha ~ year, sum) %>% 
   mutate(year = as.Date(paste(year, 1, 1), '%Y %m %d'))
 
+df_brmuni_agg <- df_br %>% 
+  aggregate(ha ~ year + geocode, sum) %>% 
+  mutate(year = as.Date(paste(year, 1, 1), '%Y %m %d'))
+
+
+# get agg sum of certain 'from' classes
 df_br_fromveg_agg <- df_br %>%
   filter(from_level_3 %in% list_from_lv3) %>% 
   aggregate(ha ~ year, sum) %>% 
   mutate(year = as.Date(paste(year, 1, 1), '%Y %m %d'))
 
-# 3: Cerrado --------
-df_cerr <- filter(df, biome == "Cerrado")
+df_brmuni_fromveg_agg <- df_br %>%
+  filter(from_level_3 %in% list_from_lv3) %>% 
+  aggregate(ha ~ year + geocode, sum) %>% 
+  mutate(year = as.Date(paste(year, 1, 1), '%Y %m %d'))
 
-df_cerr <- df_cerr %>% 
+## 2.2 plot maps -----
+
+# plot
+F_facet<-function(data, aoi, class, file_name){
+  p <- ggplot(data)+
+    geom_sf(mapping = aes(fill = ha), color= NA)+
+    scale_fill_distiller(palette = "YlOrRd", direction = 1)+
+    facet_wrap("year")+
+    coord_sf()+
+    theme_minimal()+
+    labs(
+      title = paste("Land Transition Across", aoi),
+      subtitle = paste(class),
+      fill = "Transition (ha)")+
+    theme(
+      plot.title = element_text(hjust = 0.5),
+      plot.subtitle = element_text(hjust = 0.5)
+    )
+  
+  ggsave(filename = paste0(folder_plot, file_name), 
+         plot = p,
+         width = 8, height = 8,
+         dpi = 300)
+  
+  return(p)
+  
+}
+
+### all agg ----------
+# make shape -- all agg
+shp_brmuni <- shp_code_muni_br %>% 
+  left_join(df_brmuni_agg,
+            join_by(code_muni == geocode)) %>% 
+  mutate(year = year(year)) %>% 
+  filter(year >= 2012 & year <= 2017)
+
+F_facet(shp_brmuni, aoi = "Brazil", class = "From All Classes", file_name = "br_allagg.png")
+
+
+### from veg ---------
+# make shape -- from veg 
+shp_brmuni_fromveg <- shp_code_muni_br %>% 
+  left_join(df_brmuni_fromveg_agg,
+            join_by(code_muni == geocode)) %>% 
+  mutate(year = year(year)) %>% 
+  filter(year >= 2012 & year <= 2017)
+
+# plot
+F_facet(shp_brmuni_fromveg, aoi = "Brazil", class = "From Relevant Vegetation Classes", file_name = "br_fromveg.png")
+
+## 2.3 line plots --------
+### all agg ------
+# quick line plots 
+ggplot(df_br_agg, aes(x = year, y = ha))+
+  geom_line()+
+  geom_point()+
+  labs(
+    
+  )
+
+### from veg -----
+ggplot(df_cerr_fromveg_agg, aes(x = year, y = ha))+
+  geom_line()+
+  geom_point()
+
+## 2.4: BR Land trans stats -----
+
+
+# 3: Cerrado --------
+#df_cerr <- filter(df, biome == "Cerrado")
+
+df_cerr <- df %>% 
   filter(geocode %in% muni_codes_cerr)
 
 ## 3.1: Aggregate ----------
-
-# keep 'from-to' classes
-df_cerr_class <- df_cerr %>% 
-  aggregate(ha ~ year + geocode + from_level_3 + to_level_3 + fromto, sum) %>% 
-  mutate(year = as.Date(paste(year, 1, 1), '%Y %m %d'))
 
 # just get aggregate sum
 df_cerrmuni_agg <- df_cerr %>% 
@@ -166,47 +272,37 @@ df_cerr_fromveg_agg <- df_cerr %>%
   aggregate(ha ~ year, sum) %>% 
   mutate(year = as.Date(paste(year, 1, 1), '%Y %m %d'))
 
+## 3.2 plot maps -----
 
+### all agg ----------
 # make shape -- all agg
-shp_cerrmuni <- shp_code_muni %>% 
+shp_cerrmuni <- shp_code_muni_in_cerr %>% 
   left_join(df_cerrmuni_agg,
             join_by(code_muni == geocode)) %>% 
   mutate(year = year(year)) %>% 
   filter(year >= 2012 & year <= 2017)
 
-# plot
-ggplot(shp_cerrmuni)+
-  geom_sf(mapping = aes(fill = ha), color= NA)+
-  scale_fill_distiller(palette = "YlOrRd", direction = 1)+
-  facet_wrap("year")+
-  coord_sf()+
-  theme_minimal()+
-  labs(title = "Using Collection 8 from MapBiomas")+
-  theme(plot.title = element_text(hjust = 0.5))
+F_facet(shp_cerrmuni, aoi = "Cerrado", class = "From All Classes", file_name = "cerr_allagg.png")
 
+### from veg ---------
 # make shape -- from veg 
-shp_cerrmuni_fromveg <- shp_code_muni %>% 
+shp_cerrmuni_fromveg <- shp_code_muni_in_cerr %>% 
   left_join(df_cerrmuni_fromveg_agg,
             join_by(code_muni == geocode)) %>% 
   mutate(year = year(year)) %>% 
   filter(year >= 2012 & year <= 2017)
 
 # plot
-ggplot(shp_cerrmuni_fromveg)+
-  geom_sf(mapping = aes(fill = ha), color= NA)+
-  scale_fill_distiller(palette = "YlOrRd", direction = 1)+
-  facet_wrap("year")+
-  coord_sf()+
-  theme_minimal()+
-  labs(title = "Using Collection 8 from MapBiomas",
-       subtitle = "Land Transition from Relevant Classes")+
-  theme(plot.title = element_text(hjust = 0.5))
+F_facet(shp_cerrmuni_fromveg, aoi = "Cerrado", class = "From Relevant Vegetation Classes", file_name = "cerr_fromveg.png")
 
+## 3.3 line plots --------
+### all agg ------
 # quick line plots 
 ggplot(df_cerr_agg, aes(x = year, y = ha))+
   geom_line()+
   geom_point()
 
+### from veg -----
 ggplot(df_cerr_fromveg_agg, aes(x = year, y = ha))+
   geom_line()+
   geom_point()
@@ -218,6 +314,8 @@ ggplot(df_cerr_fromveg_agg, aes(x = year, y = ha))+
 
 
 # END ####################################################################################
+# TO-DO -----------------
+## add Cerrado outline to maps --------
 
 # GRAVEYARD -----------------------------------
 
@@ -313,42 +411,7 @@ agg_trans_BR_fromveg <- trans_br %>%
 
 
 
-## 2: from 'x_temp_transBRmuni.R': load municipality shapefile and Cerrado shapefile and intersect -----
-
-### 2.1: Load municipality shapefile -----
-
-# Read all municipalities in the country at a given year
-# to-do: change to shp_br_muni
-shp_muni <- read_municipality(code_muni="all", year=2018)
-#plot(shp_muni)
-
-### 2.2: Load Cerrado shapefile ---------
-shp_br_cerr <- read_biomes(
-  year = 2019,
-  simplified = T,
-  showProgress = T
-) %>% dplyr::filter(name_biome == "Cerrado")
-
-### 2.3: Intersect Cerrado & Muni -----
-# str(shp_muni)
-# st_crs(shp_muni)
-# 
-# str(shp_br_cerr)
-# st_crs(shp_br_cerr)
-
-# get municipalities that are at all within the Cerrado
-shp_muni_in_cerr <- st_intersection(shp_muni, shp_br_cerr)
-#plot(shp_muni_in_cerr)
-
-shp_code_muni <- shp_muni_in_cerr %>% select(code_muni)
-
-## 3: get territory codes for municipalities in intersection -----
-muni_codes_cerr <- shp_muni_in_cerr$code_muni
-
-## 4: filter all aggregated municipalities to only those within Cerrado -----
-# change trans_tosoy to "trans_BRmunicip_agg"
-trans_cerrmuni <- trans_BRmunicip_agg %>% 
-  filter(municipality_code %in% muni_codes_cerr)
+#
 
 ## 5: Aggregate to one value per year  -----
 
@@ -399,7 +462,7 @@ ggplot(agg_trans_cerr_fromveg, aes(x = yr, y = trans))+
 agg_trans_cerrmuni <- agg_trans_cerrmuni %>% 
   mutate(municipality_code = as.double(municipality_code))
 
-shp_trans_cerrmuni <- left_join(shp_code_muni, agg_trans_cerrmuni,
+shp_trans_cerrmuni <- left_join(shp_code_muni_in_cerr, agg_trans_cerrmuni,
                                 join_by(code_muni == municipality_code))
 str(shp_trans_cerrmuni)
 
