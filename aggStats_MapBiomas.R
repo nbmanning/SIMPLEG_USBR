@@ -25,7 +25,6 @@ rm(list = ls())
 library(tidyverse)
 
 library(stringi) # removing accents
-#library(datazoom.amazonia) # loading municipality col. 6 data
 library(geobr) # load BR shapefiles 
 library(sf) # st_intersection and crs
 library(RColorBrewer) # maps 
