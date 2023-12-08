@@ -1,39 +1,23 @@
-# title: trans_BRcerr_lineplots.R
+# title: lineplot_trans_MapB_Cerr_lvl3.R
 # author: Nick Manning
-# date created: 9/4/23
+# date created: 12/8/23
 
-# last updated: September 2023
+# last updated: Dec 2023
 
 # Goals: 
-# 2000-2019 Time Series of Conversions in Cerrado with 2012 (July) indicated
-## Natural Forest → Soybean / Crops
-## Pasture → Soybean / Crops 
-## Grassland → Soybean / Crops 
-
-# links: 
-# download the HUGE MapBiomas CSV that this was based on from: https://mapbiomas.org/en/statistics 
-## link was "LAND COVER AND TRANSITIONS BY BIOMES & STATES (COLLECTION 8)"
-## sheet was 'TRANSICOES_COL8'
+## Plot top transitions to Level 3 "Temporary Crops"
 
 # NOTES: 
-# copied plotting code from "Thesis2\@_ThesisCode\code_old_ignore\fall22_spring23_geo866_CEP_attempt\0_3_to_soy_trans_BRprice.R"
+## bring in cleaned df from 'aggStats_MapBiomas.R'
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 # load libraries 
 rm(list = ls())
 
-library(dplyr) # data manipulation 
-library(stringr) # changing colnames
-library(tidyr) # gathering data
-library(lubridate) # creating 'year' types 
+library(tidyverse)
 library(ggplot2) # plotting
 library(stringi) # removing accents
-
-# plotting map
-library(maps)
-library(ggthemes)
-
 
 # set constants 
 yr <- 2011
@@ -41,7 +25,7 @@ yr_range <- 2000:2019
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-# UPDATE 12/7: Use Cerrado Municipality level data instead of state level data
+# Use Cerrado Municipality level data instead of state level data
 # import from aggStats_MapBiomas.R
 
 # load clean, long, df 
@@ -52,6 +36,7 @@ load(file = "../Data_Derived/muni_codes_cerr.Rdata")
 
 # df_g is only Cerrado - level 3 now 
 df_g <- df
+
 df_g <- df_g %>% 
   filter(geocode %in% muni_codes_cerr) %>% 
   filter(to_level_3 == "Temporary Crops") %>%
@@ -59,10 +44,6 @@ df_g <- df_g %>%
   select(!c(from_level_4, to_level_4)) %>% 
   mutate(fromto = paste0(from_level_3, " to ", to_level_3)) %>% 
   filter(biome == "Cerrado")
-
-# get csv of all the unique columns
-names_df_g <- df_g %>% dplyr::select(from_level_3, to_level_3, fromto) %>% distinct()
-write.csv(names_df_g, "../Data_Source/MapBiomas/names_fromto_lvl3.csv", row.names = F)
 
 # Scale up to CERRADO scale ------------------------
 df_g_cerr <- df_g %>% 
@@ -85,12 +66,7 @@ ggplot(df_g_cerr, aes(x=year, y=ha, color = from_level_3)) +
 # remove insignificant classes; first, see all the classes
 unique(df_g_cerr$from_level_3)
 
-# get a few top classes instead of all of them
-# as.factor(df_g_to_soy_cerr$from_level_3)
-# classes_few <- c("Other Temporary Crops", "Mosaic of Agriculture and Pasture", "Cotton",
-#                  "Pasture", "Savanna Formation", "Grassland", "Sugar Cane", "Other Non Vegetated Area", 
-#                  "Rice", "Forest Formation", "Wetland")
-
+# choose classes by commenting unwanted ones
 classes_few <- c(
   "Forest Formation",
   "Forest Plantation",                
