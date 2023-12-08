@@ -4,18 +4,6 @@
 # Creation Date: 12/4/23
 # Last edited: Dec 2023
 
-# NOTE: uses a bunch of code from:
-# "@_ThesisCode/code_old_ignore/fall22_spring23_geo866_CEP_attempt/0_3_1_to_soy_trans_statelevel_BRprice.R"
-# "@_ThesisCode/code_current/x_temp_transBRmuni.R"
-# "@_ThesisCode/code_current/1_data_import_clean.R"
-
-# NOTE: need to make a decision here, we can use collection 6 data from 'datazoom_amazonia' package
-# at the municipality level or we can load in the CSV at the "biome / state" level, 
-# which I think just means state level. Former makes the most sense for now, since 
-# we are also interested in change across all Brazil 
-
-# NOTE: Downloading from 'datazoom.amazonia' needs a authentication code
-
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #  
 rm(list = ls())
 
@@ -73,24 +61,27 @@ names(df)
 # save as a clean df to come back to 
 df_clean <- df
 
-## 1.2: Filter ---------
 
-# filter to only "Temporary Crops" & From-To's that do not stay the same
-df <- df %>% 
-  filter(to_level_3 == c("Temporary Crops")) %>%
-  filter(to_level_3 != from_level_3)
-
-## 1.3: Make 'long' -----
+## 1.2: Make 'long' -----
 # gather to make into a long dataset; change the number if you changed 'select' above
 ncol(df)
 df <- gather(df,"year","ha",9:ncol(df))     
 
 
 
+## 1.3: Save -----
+save(df_clean, file = "../Data_Derived/mapb_col8_clean.Rdata")
+save(df, file = "../Data_Derived/mapb_col8_clean_long.Rdata")
 
-##########
+# NOTE: THIS INCLUDES ALL 
+
+## 1.4: Filter ---------
+# filter to only "Temporary Crops" & From-To's that do not stay the same
+df <- df %>% 
+  filter(to_level_3 == "Temporary Crops") %>%
+  filter(to_level_3 != from_level_3)
+
 # 2: Get Muni Codes within Cerrado ---------
-# code from 'x_temp_transBRmuni.R': load municipality shapefile and Cerrado shapefile and intersect
 
 ## 2.1: Load Shapefiles -------
 
@@ -127,9 +118,12 @@ shp_code_muni_br <- shp_muni %>% select(code_muni)
 muni_codes_cerr <- shp_muni_in_cerr$code_muni
 muni_codes_br <- shp_muni$code_muni
 
-# filter all aggregated municipalities to only those within Cerrado 
+## 2.3 Save ----
+save(muni_codes_cerr, file = "../Data_Derived/muni_codes_cerr.Rdata")
+save(muni_codes_br, file = "../Data_Derived/muni_codes_br.Rdata")
 
-# Set "FROM" list - lvl3 ------------
+
+##### Set "FROM" list - lvl3 ------------
 list_from_lv3 <- c("Forest Formation", "Savanna Formation", "Wetland",
                    "Grassland", "Pasture", "Forest Plantation",
                    "Mosaic of Agriculture and Pasture",
@@ -137,14 +131,14 @@ list_from_lv3 <- c("Forest Formation", "Savanna Formation", "Wetland",
                    "Shrub Restinga", "Other Non Forest Natural Formation", "Wooded Restinga",
                    "Perennial Crops")
 
-# 2: Brazil ------
+# 3: Brazil ------
 
 df_br <- df
 
 df_br <- df %>% 
   filter(geocode %in% muni_codes_br)
 
-## 2.1: Aggregate ---------
+## 3.1: Aggregate ---------
 
 # keep 'from-to' classes
 # df_br_class <- df_br %>% 
@@ -153,7 +147,6 @@ df_br <- df %>%
 #   mutate(year = as.Date(paste(year, 1, 1), '%Y %m %d'))
 
 # just get aggregate sum
-#### TO-DO: Rename agg to the front (e.g. agg_br) -----
 agg_br <- df_br %>% 
   aggregate(ha ~ year, sum) %>% 
   mutate(year = as.Date(paste(year, 1, 1), '%Y %m %d'))
@@ -174,7 +167,7 @@ agg_brmuni_fromveg <- df_br %>%
   aggregate(ha ~ year + geocode, sum) %>% 
   mutate(year = as.Date(paste(year, 1, 1), '%Y %m %d'))
 
-## 2.2 plot maps -----
+## 3.2 plot maps -----
 
 # plot
 F_facet<-function(data, aoi, class, file_name){
@@ -224,7 +217,7 @@ shp_brmuni_fromveg <- shp_code_muni_br %>%
 # plot
 F_facet(shp_brmuni_fromveg, aoi = "Brazil", class = "From Relevant Vegetation Classes to Temporary Crops", file_name = "br_fromveg.png")
 
-## 2.3 line plots --------
+## 3.3 line plots --------
 
 F_line<-function(data, aoi, class, file_name){
   p <- ggplot(data, aes(x = year, y = ha/1000000))+
@@ -256,19 +249,19 @@ F_line(data = agg_br, aoi = "Brazil", class = "From All Classes to Temporary Cro
 F_line(data = ag_br_fromveg, aoi = "Brazil", class = "From Relevant Vegetation Classes to Temporary Crops", 
        file_name = "line_br_fromveg.png")
 
-## 2.4: BR Land trans stats -----
+## 3.4: BR Land trans stats -----
 print(ag_br_fromveg %>% filter(year(year) >= 2013 & year(year) <= 2015))
 print(agg_br %>% filter(year(year) >= 2013 & year(year) <= 2015))
 
 
 
-# 3: Cerrado --------
+# 4: Cerrado --------
 #df_cerr <- filter(df, biome == "Cerrado")
 
 df_cerr <- df %>% 
   filter(geocode %in% muni_codes_cerr)
 
-## 3.1: Aggregate ----------
+## 4.1: Aggregate ----------
 
 # just get aggregate sum
 agg_cerrmuni <- df_cerr %>% 
@@ -290,7 +283,7 @@ agg_cerr_fromveg <- df_cerr %>%
   aggregate(ha ~ year, sum) %>% 
   mutate(year = as.Date(paste(year, 1, 1), '%Y %m %d'))
 
-## 3.2 plot maps -----
+## 4.2 plot maps -----
 
 ### all agg ----------
 # make shape -- all agg
@@ -313,7 +306,7 @@ shp_cerrmuni_fromveg <- shp_code_muni_in_cerr %>%
 # plot
 F_facet(shp_cerrmuni_fromveg, aoi = "Cerrado", class = "From Relevant Vegetation Classes to Temporary Crops", file_name = "cerr_fromveg.png")
 
-## 3.3 line plots --------
+## 4.3 line plots --------
 ### all agg ------
 # quick line plots 
 F_line(data = agg_cerr, aoi = "Cerrado", class = "From All Classes to Temporary Crops", 
@@ -324,7 +317,7 @@ F_line(data = agg_cerr_fromveg, aoi = "Brazil", class = "From Relevant Vegetatio
        file_name = "line_cerr_fromveg.png")
 
 
-## 3.4: Cerr Land trans stats -----
+## 4.4: Cerr Land trans stats -----
 print(agg_cerr %>% filter(year(year) >= 2013 & year(year) <= 2015))
 print(agg_cerr_fromveg %>% filter(year(year) >= 2013 & year(year) <= 2015))
 
