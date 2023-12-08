@@ -19,12 +19,16 @@ library(RColorBrewer) # maps
 
 ## Constants 
 folder_plot <- "../Figures/trans_mapbiomas/"
+folder_source <- "../Data_Source/MapBiomas/"
+folder_derived <- "../Data_Derived/"
 
 ## Shapefiles 
 
+# NOTE: Can skip to "1.3: Save/Load" after running once
+
 # 1: Load in MapBiomas Transition ------
 # Load collection 8 data in tabular form 
-csv_br_trans_m <- read.csv("../Data_Source/MapBiomas/SOURCE_transonly_col8_mapbiomas_municip.csv", encoding = "UTF-8")
+csv_br_trans_m <- read.csv(paste0(folder_source, "SOURCE_transonly_col8_mapbiomas_municip.csv", encoding = "UTF-8"))
 
 ## 1.1: Tidy -----
 
@@ -69,11 +73,15 @@ df <- gather(df,"year","ha",9:ncol(df))
 
 
 
-## 1.3: Save -----
-save(df_clean, file = "../Data_Derived/mapb_col8_clean.Rdata")
-save(df, file = "../Data_Derived/mapb_col8_clean_long.Rdata")
+## 1.3: Save / Load -----
+save(df_clean, file = paste0(folder_derived, "mapb_col8_clean.Rdata"))
+save(df, file = paste0(folder_derived, "mapb_col8_clean_long.Rdata"))
 
 # NOTE: THIS INCLUDES ALL 
+
+# Load 
+load(file = paste0(folder_derived, "mapb_col8_clean.Rdata"))
+load(file = paste0(folder_derived, "mapb_col8_clean_long.Rdata"))
 
 ## 1.4: Filter ---------
 # filter to only "Temporary Crops" & From-To's that do not stay the same
@@ -83,7 +91,7 @@ df <- df %>%
 
 # 2: Get Muni Codes within Cerrado ---------
 
-## 2.1: Load Shapefiles -------
+## 2.1: Load / Save Shapefiles -------
 
 # Load municipality shapefile 
 # Read all municipalities in the country at a given year
@@ -95,6 +103,15 @@ shp_br_cerr <- read_biomes(
   simplified = F,
   showProgress = T
 ) %>% dplyr::filter(name_biome == "Cerrado")
+
+# Save 
+save(shp_muni, file = paste0(folder_source, "shp_muni.Rdata"))
+save(shp_br_cerr, file = paste0(folder_source, "shp_br_cerr.Rdata"))
+
+# Load
+load(file = paste0(folder_source, "shp_muni.Rdata"))
+load(file = paste0(folder_source, "shp_br_cerr.Rdata"))
+
 
 ## 2.2: Get Codes by Intersecting Cerrado & Muni -----
 
@@ -119,8 +136,8 @@ muni_codes_cerr <- shp_muni_in_cerr$code_muni
 muni_codes_br <- shp_muni$code_muni
 
 ## 2.3 Save ----
-save(muni_codes_cerr, file = "../Data_Derived/muni_codes_cerr.Rdata")
-save(muni_codes_br, file = "../Data_Derived/muni_codes_br.Rdata")
+save(muni_codes_cerr, file = paste0(folder_derived, "munci_codes_cerr.Rdata"))
+save(muni_codes_br, file = paste0(folder_derived, "munci_codes_br.Rdata"))
 
 
 ##### Set "FROM" list - lvl3 ------------
@@ -259,7 +276,9 @@ print(agg_br %>% filter(year(year) >= 2013 & year(year) <= 2015))
 #df_cerr <- filter(df, biome == "Cerrado")
 
 df_cerr <- df %>% 
-  filter(geocode %in% muni_codes_cerr)
+  filter(geocode %in% muni_codes_cerr) %>% 
+  filter(biome == "Cerrado")
+  
 
 ## 4.1: Aggregate ----------
 
