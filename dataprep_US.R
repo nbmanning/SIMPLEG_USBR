@@ -151,6 +151,38 @@ ggplot(df)+
 # save 
 ggsave("../Figures/counties_usmw.png")
 
+### plot basic map from 'lineplot_trans_MapB_Cerr.R'
+
+# # get state data
+# us_states <- map_data("state")
+# 
+# # set subregion value
+# us_states$subregion <- ifelse(
+#   us_states$region %in% c(
+#     "north dakota", "south dakota", "nebraska", "kansas",
+#     "missouri", "iowa", "minnesota", "wisconsin", "illinois", 
+#     "indiana", "ohio", "michigan"),
+#   "mw", NA)
+# 
+# # plot and save
+# (p <- ggplot(data = us_states,
+#              # fill with the subregion of mw states
+#              mapping = aes(x = long, y = lat,
+#                            group = group, 
+#                            fill = subregion))+ 
+#     # add color to the map
+#     geom_polygon(color = "gray90", linewidth = 0.1) +
+#     # change projection
+#     coord_map(projection = "albers", lat0 = 39, lat1 = 45) +
+#     # remove legend
+#     guides(fill = "none")+
+#     # get rid of lat/long box
+#     ggthemes::theme_map()
+# )
+# 
+# ggsave("../Figures/trans_mapbiomas/usmw_map.png", plot = p)
+
+
 
 ## 1.3 Mapping Yield, Prod, Area ---------
 
