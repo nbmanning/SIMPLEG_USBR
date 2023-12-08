@@ -50,143 +50,94 @@ load(file = "../Data_Derived/mapb_col8_clean_long.Rdata")
 # load municipality codes for Cerrado 
 load(file = "../Data_Derived/muni_codes_cerr.Rdata")
 
-# eventually..df_g is only Cerrado
+# df_g is only Cerrado - level 3 now 
 df_g <- df
 df_g <- df_g %>% 
   filter(geocode %in% muni_codes_cerr) %>% 
-  # filter(to_level_3 == "Temporary Crops") %>%
-  filter(to_level_4 != from_level_4) %>% 
-  mutate(fromto = paste0(from_level_4, " to ", to_level_4)) %>% 
+  filter(to_level_3 == "Temporary Crops") %>%
+  filter(to_level_3 != from_level_3) %>% 
+  select(!c(from_level_4, to_level_4)) %>% 
+  mutate(fromto = paste0(from_level_3, " to ", to_level_3)) %>% 
   filter(biome == "Cerrado")
 
-### TO-DO: PICK UP FROM HERE AND TEST NEW FUNCTIONS ###
-
-
 # get csv of all the unique columns
-names_df_g <- df_g %>% dplyr::select(from_level_4, to_level_4, fromto) %>% distinct()
-write.csv(names_df_g, "../Data_Source/MapBiomas/names_fromto.csv", row.names = F)
-
-# Filter to pasture and soybean
-#unique(df_g$to_level_4)
-df_g_to_pastsoy <- filter(df_g, to_level_4 %in% c("Soy Beans", "Pasture"))
-df_g_to_soy <- filter(df_g, to_level_4 == "Soy Beans")
-
-# filter to temporary crops (level 3)
-df_g_lvl3_temp <- df_g %>% 
-  filter(to_level_3 == "Temporary Crops") %>% 
-  filter(to_level_3 != from_level_3)
-  
+names_df_g <- df_g %>% dplyr::select(from_level_3, to_level_3, fromto) %>% distinct()
+write.csv(names_df_g, "../Data_Source/MapBiomas/names_fromto_lvl3.csv", row.names = F)
 
 # Scale up to CERRADO scale ------------------------
-df_g_to_soy_cerr <- df_g_to_soy %>% 
-  aggregate(ha ~ year + biome + to_level_4 + from_level_4 + fromto, sum) %>% 
+df_g_cerr <- df_g %>% 
+  aggregate(ha ~ year + biome + to_level_3 + from_level_3 + fromto, sum) %>% 
   mutate(year = as.Date(paste(year, 1, 1), '%Y %m %d'))
-
-df_g_to_pastsoy_cerr <- df_g_to_pastsoy %>% 
-  aggregate(ha ~ year + biome + to_level_4 + from_level_4 + fromto, sum) %>% 
-  mutate(year = as.Date(paste(year, 1, 1), '%Y %m %d')) 
-
-df_g_to_all <- df_g %>% 
-  group_by(year, to_level_4) %>%
-  na.omit() %>% 
-  summarize(total_trans = sum(ha)) %>% 
-  filter(to_level_4 %in% 
-           c("Pasture", "Soy Beans", "Other Temporary Crops",
-             "Forest Plantation", "Mosaic of Agriculture and Pasture",
-             "Sugar Cane", "Rice", "Cotton","Other Perennial Crops",
-             "Coffe", "Citrus")) %>% 
-  filter(year %in% yr_range) %>% 
-  mutate(year = as.Date(paste(year, 1, 1), '%Y %m %d'))
-
-
-# remove "from soybeans -> soybeans"
-#df_g_to_soy_cerr <- df_g_to_soy_cerr[!grepl("Soy Beans", df_g_to_soy_cerr$from_level_4),]
-#df_g_to_pastsoy_cerr <- df_g_to_pastsoy_cerr[!grepl("Soy Beans", df_g_to_pastsoy_cerr$from_level_4),]
-
-# add ggrepel label - DIDN'T WORK - I got lost in what lines are biggest dfition
-#df_g_to_soy_cerr$label[which(df_g_to_soy_cerr$from_level_4 == max(df_g_to_soy_cerr$from_level_4))] <- df_g_to_soy_cerr$group[which(df_g_to_soy_cerr$from_level_4 == max(df_g_to_soy_cerr$from_level_4))]
-
-
 
 # PLOTTING -------------
 
-# plot basic map ----------
-# get state data
-us_states <- map_data("state")
-
-# set subregion value
-us_states$subregion <- ifelse(
-  us_states$region %in% c(
-    "north dakota", "south dakota", "nebraska", "kansas",
-    "missouri", "iowa", "minnesota", "wisconsin", "illinois", 
-    "indiana", "ohio", "michigan"),
-  "mw", NA)
-
-# plot and save
-(p <- ggplot(data = us_states,
-             # fill with the subregion of mw states
-             mapping = aes(x = long, y = lat,
-                           group = group, 
-                           fill = subregion))+ 
-    # add color to the map
-    geom_polygon(color = "gray90", linewidth = 0.1) +
-    # change projection
-    coord_map(projection = "albers", lat0 = 39, lat1 = 45) +
-    # remove legend
-    guides(fill = "none")+
-    # get rid of lat/long box
-    ggthemes::theme_map()
-  )
-
-ggsave("../Figures/trans_mapbiomas/usmw_map.png", plot = p)
-
-
-# original; from X to Soybean ---------
-ggplot(df_g_to_soy_cerr, aes(x=year, y=ha, color = from_level_4)) +
+# original ---------
+ggplot(df_g_cerr, aes(x=year, y=ha, color = from_level_3)) +
   geom_line() + 
   #geom_point() +
   xlab("")+
   scale_x_date(date_labels = "%m-%Y")+
-  labs(title = "From X to Soybean",
+  labs(title = "From X to Temporary Crop",
        ylab = "Hectares Transitioned from Previous Year")+
   geom_vline(xintercept = as.Date("2012-01-01"), color = "red",
              linetype="dotted", linewidth=0.5)
 
 # remove insignificant classes; first, see all the classes
-unique(df_g_to_soy_cerr$from_level_4)
+unique(df_g_cerr$from_level_3)
 
 # get a few top classes instead of all of them
-# as.factor(df_g_to_soy_cerr$from_level_4)
+# as.factor(df_g_to_soy_cerr$from_level_3)
+# classes_few <- c("Other Temporary Crops", "Mosaic of Agriculture and Pasture", "Cotton",
+#                  "Pasture", "Savanna Formation", "Grassland", "Sugar Cane", "Other Non Vegetated Area", 
+#                  "Rice", "Forest Formation", "Wetland")
 
-classes_few <- c("Other Temporary Crops", "Mosaic of Agriculture and Pasture", "Cotton",
-                 "Pasture", "Savanna Formation", "Grassland", "Sugar Cane", "Other Non Vegetated Area", 
-                 "Rice", "Forest Formation", "Wetland")
+classes_few <- c(
+  "Forest Formation",
+  "Forest Plantation",                
+  "Grassland", 
+  "Mosaic of Agriculture and Pasture",
+  #"Non Observed",
+  #"Other Non Vegetated Area",         
+  "Pasture",
+  "Perennial Crops",
+  #"River, Lake and Ocean",
+  "Savanna Formation",                
+  "Urban Infrastructure",
+  "Wetland"
+)  
 
-df_g_to_soy_cerr <- filter(df_g_to_soy_cerr, from_level_4 %in% classes_few)
+df_g_few <- df_g_cerr %>% filter(from_level_3 %in% classes_few)
 
 # plot with a few classes remove
-ggplot(df_g_to_soy_cerr, aes(x=year, y=ha/1000000, color = from_level_4)) +
+ggplot(df_g_few, aes(x=year, y=ha/1000000, color = from_level_3)) +
   geom_line() + 
   #geom_point() +
-  xlab("")+
-  scale_x_date(date_labels = "%m-%Y")+
+  #scale_x_date(date_labels = "%m-%Y")+
   labs(title = "From X to Soybean",
-       ylab = "Hectares Transitioned from Previous Year")+
-  geom_vline(xintercept = as.Date("2012-01-01"), color = "red",
+       ylab = "Hectares Transitioned from Previous Year",
+       x = "")+
+  geom_vline(xintercept = 2012, color = "red",
              linetype="dotted", linewidth=0.5)
 
 ### fewer 
-classes_fewer <- c("Other Temporary Crops", "Mosaic of Agriculture and Pasture", "Cotton",
-                   "Pasture", "Savanna Formation", "Grassland")
-df_g_to_soy_cerr <- filter(df_g_to_soy_cerr, from_level_4 %in% classes_fewer)
+classes_fewer <- c(
+  "Forest Formation",
+  "Mosaic of Agriculture and Pasture",
+  "Pasture",
+  "Savanna Formation", 
+  "Grassland",
+  "Perennial Crops"
+  )
 
-ggplot(df_g_to_soy_cerr, aes(x=year, y=ha/1000000, color = fromto)) +
+df_g_fewer <- filter(df_g_cerr, from_level_3 %in% classes_fewer)
+
+ggplot(df_g_fewer, aes(x=year, y=ha/1000000, color = fromto)) +
   geom_line(lwd = 0.8) + 
   geom_point(fill = "white", size = 1.2) +
   xlab("")+
   scale_x_date(date_labels = "%Y")+
   labs(
-    title = "Transitions to Soybean",
+    title = "Transitions to Temporary Crops",
     y = "Land Change from Previous Year (Mha)")+
   geom_vline(xintercept = as.Date("2012-01-01"), color = "red",
              linetype="dotted", linewidth=1)+
@@ -198,11 +149,19 @@ ggplot(df_g_to_soy_cerr, aes(x=year, y=ha/1000000, color = fromto)) +
         #plot.title = element_text(hjust = 0.5)
         )
 
+# save 
+ggsave(paste("../Figures/trans_mapbiomas/cerr_to_lvl3_tempcrops.png"), 
+       width = 16, height = 8)
 
+
+
+
+#############################################################################################################
+# FUTURE: Didn't do because this plot was most useful from lvl3 -----------
 
 # Plot Specific "From" to Only Pasture Soybean -------------
 df_g_to_pastsoy_cerr <- df_g_to_pastsoy %>% 
-  aggregate(ha ~ year + biome + to_level_4 + from_level_4 + fromto, sum) %>% 
+  aggregate(ha ~ year + biome + to_level_3 + from_level_3 + fromto, sum) %>% 
   mutate(year = as.Date(paste(year, 1, 1), '%Y %m %d')) %>% 
   filter(year(year) %in% yr_range) %>% 
   filter(biome == "Cerrado")
@@ -214,13 +173,13 @@ classes_mult_few <- c("Other Temporary Crops", "Mosaic of Agriculture and Pastur
 
 # filter to select classes
 df_g_to_pastsoy_cerr <- df_g_to_pastsoy_cerr %>% 
-  filter(from_level_4 %in% classes_mult_few)# %>% 
+  filter(from_level_3 %in% classes_mult_few)# %>% 
   #filter(fromto != "Pasture to Pasture") # %>%   mutate(rank = rank(-ha))
 
 # get top 10 categories
 ls_top <- df_g_to_pastsoy_cerr %>%
   # filter to only the interesting "from" classes
-  #filter(from_level_4 %in% classes_few) %>% 
+  #filter(from_level_3 %in% classes_few) %>% 
   #filter(fromto != "Pasture to Pasture") %>% 
   # get the top converted "n" classes in 2013 as a list
   filter(year(year) == 2013) %>% 
@@ -252,9 +211,9 @@ ggplot(df_g_to_pastsoy_cerr_topn, aes(x=year, y=ha, color = fromto)) +
 
 # Top "TO" categories -------------
 df_g_to_all <- df_g %>% 
-  group_by(year, to_level_4) %>%
+  group_by(year, to_level_3) %>%
   na.omit() %>% 
-  filter(to_level_4 != from_level_4) %>% 
+  filter(to_level_3 != from_level_3) %>% 
   summarize(total_trans = sum(ha)) %>% 
   filter(year %in% yr_range) %>% 
   mutate(year = as.Date(paste(year, 1, 1), '%Y %m %d'))
@@ -262,20 +221,20 @@ df_g_to_all <- df_g %>%
 # get top 10 categories
 ls_top <- df_g_to_all %>%
   # filter to only the interesting "from" classes
-  #filter(from_level_4 %in% classes_few) %>% 
+  #filter(from_level_3 %in% classes_few) %>% 
   #filter(fromto != "Pasture to Pasture") %>% 
   # get the top converted "n" classes in 2013 as a list
   filter(year(year) == 2013) %>% 
   arrange(desc(total_trans)) %>% 
   slice_head(n = 4) %>% 
-  pull(to_level_4) %>% 
+  pull(to_level_3) %>% 
   as.list
 
 df_g_to_all_topn <- df_g_to_all %>% 
-  filter(to_level_4 %in% ls_top)
+  filter(to_level_3 %in% ls_top)
 
 # plot
-ggplot(df_g_to_all_topn, aes(x=year, y=total_trans/1000000, color = to_level_4)) +
+ggplot(df_g_to_all_topn, aes(x=year, y=total_trans/1000000, color = to_level_3)) +
   geom_line() +
   geom_point(fill = "white", size = 0.8) +
   xlab("")+
@@ -366,8 +325,8 @@ names_to <- c("Mosaic of Agriculture and Pasture", "Pasture",
 
 # filter by this section
 df_g_from_and_to <- df_g %>% 
-  filter(to_level_4 %in% names_to) %>% 
-  filter(from_level_4 %in% names_from) %>% 
+  filter(to_level_3 %in% names_to) %>% 
+  filter(from_level_3 %in% names_from) %>% 
   filter(fromto != "Pasture to Mosaic of Agriculture and Pasture") %>% 
   group_by(year, fromto) %>% 
   na.omit() %>% 
