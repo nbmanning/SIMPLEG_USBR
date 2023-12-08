@@ -41,60 +41,23 @@ yr_range <- 2000:2019
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-# import cover and transition CSV's
-getwd()
-#csv_br_cover <- read.csv("current/mapb_summed_cover.csv")
-
-#csv_br_trans <- read.csv("current/mapb_trans.csv", encoding = "UTF-8")
-csv_br_trans <- read.csv("../Data_Source/MapBiomas/SOURCE_TRANSONLY_COL8_MAPBIOMAS_BIOMASxESTADOS.csv", encoding = "UTF-8")
-
-# get rid of all accents
-unique(csv_br_trans$biome)
-csv_br_trans$state <- stri_trans_general(str = csv_br_trans$state,  id = "Latin-ASCII")
-csv_br_trans$biome <- stri_trans_general(str = csv_br_trans$biome,  id = "Latin-ASCII")
-
-#cover <- csv_br_cover
-df <- filter(csv_br_trans, biome == "Cerrado")
-
-df <- dplyr::select(df, c("state","biome", "to_level_4", "from_level_4", "X1985.1986", "X1986.1987", "X1987.1988", "X1988.1989", "X1989.1990", 
-                                #"X1990.1991", "X1991.1992", "X1992.1993", "X1993.1994", "X1994.1995", "X1995.1996", "X1996.1997", "X1997.1998", "X1998.1999",    
-                                "X1999.2000", "X2000.2001", "X2001.2002", "X2002.2003", "X2003.2004",    "X2004.2005",    "X2005.2006",   
-                                "X2006.2007",    "X2007.2008",    "X2008.2009",    "X2009.2010",   "X2010.2011", "X2011.2012",    "X2012.2013",   
-                                "X2013.2014",    "X2014.2015",    "X2015.2016",  "X2016.2017",    "X2017.2018",   
-                                "X2018.2019",    "X2019.2020",    "X2020.2021"))
-
-# remove all but the last four digits of all the columns 
-names(df) <- str_sub(names(df), - 4, - 1)
-names(df)
-
-# rename columns 
-colnames(df)[colnames(df) %in% c("tate", "iome", "el_4", "el_4")] <- c("state", "biome","to_level_4","from_level_4")
-names(df)
-
-# gather data
-ncol(df)
-# make long & add "fromto" column
-df_g <- gather(df,"year","ha",5:40)     
-df_g <- df_g %>% 
-  mutate(fromto = paste0(from_level_4, " to ", to_level_4)) %>% 
-  # Important! Removes all classes that stay the same
-  filter(to_level_4 != from_level_4) 
-  
 # UPDATE 12/7: Use Cerrado Municipality level data instead of state level data
 # import from aggStats_MapBiomas.R
 
-# load clean 
-load(df, file = "../Data_Derived/mapb_col8_clean_long.Rdata")
+# load clean, long, df 
+load(file = "../Data_Derived/mapb_col8_clean_long.Rdata")
 
-# load municipality codes 
-load(muni_codes_cerr, file = "../Data_Derived/muni_codes_cerr.Rdata")
+# load municipality codes for Cerrado 
+load(file = "../Data_Derived/muni_codes_cerr.Rdata")
 
 # eventually..df_g is only Cerrado
+df_g <- df
 df_g <- df_g %>% 
   filter(geocode %in% muni_codes_cerr) %>% 
   # filter(to_level_3 == "Temporary Crops") %>%
   filter(to_level_4 != from_level_4) %>% 
-  mutate(fromto = paste0(from_level_4, " to ", to_level_4))
+  mutate(fromto = paste0(from_level_4, " to ", to_level_4)) %>% 
+  filter(biome == "Cerrado")
 
 ### TO-DO: PICK UP FROM HERE AND TEST NEW FUNCTIONS ###
 
@@ -108,6 +71,11 @@ write.csv(names_df_g, "../Data_Source/MapBiomas/names_fromto.csv", row.names = F
 df_g_to_pastsoy <- filter(df_g, to_level_4 %in% c("Soy Beans", "Pasture"))
 df_g_to_soy <- filter(df_g, to_level_4 == "Soy Beans")
 
+# filter to temporary crops (level 3)
+df_g_lvl3_temp <- df_g %>% 
+  filter(to_level_3 == "Temporary Crops") %>% 
+  filter(to_level_3 != from_level_3)
+  
 
 # Scale up to CERRADO scale ------------------------
 df_g_to_soy_cerr <- df_g_to_soy %>% 
@@ -116,7 +84,7 @@ df_g_to_soy_cerr <- df_g_to_soy %>%
 
 df_g_to_pastsoy_cerr <- df_g_to_pastsoy %>% 
   aggregate(ha ~ year + biome + to_level_4 + from_level_4 + fromto, sum) %>% 
-  mutate(year = as.Date(paste(year, 1, 1), '%Y %m %d'))
+  mutate(year = as.Date(paste(year, 1, 1), '%Y %m %d')) 
 
 df_g_to_all <- df_g %>% 
   group_by(year, to_level_4) %>%
@@ -129,6 +97,7 @@ df_g_to_all <- df_g %>%
              "Coffe", "Citrus")) %>% 
   filter(year %in% yr_range) %>% 
   mutate(year = as.Date(paste(year, 1, 1), '%Y %m %d'))
+
 
 # remove "from soybeans -> soybeans"
 #df_g_to_soy_cerr <- df_g_to_soy_cerr[!grepl("Soy Beans", df_g_to_soy_cerr$from_level_4),]
@@ -231,11 +200,12 @@ ggplot(df_g_to_soy_cerr, aes(x=year, y=ha/1000000, color = fromto)) +
 
 
 
-# NEW: Plot Specific "From" to Only Pasture Soybean -------------
+# Plot Specific "From" to Only Pasture Soybean -------------
 df_g_to_pastsoy_cerr <- df_g_to_pastsoy %>% 
   aggregate(ha ~ year + biome + to_level_4 + from_level_4 + fromto, sum) %>% 
   mutate(year = as.Date(paste(year, 1, 1), '%Y %m %d')) %>% 
-  filter(year(year) %in% yr_range)
+  filter(year(year) %in% yr_range) %>% 
+  filter(biome == "Cerrado")
 
 # get only a few classes
 classes_mult_few <- c("Other Temporary Crops", "Mosaic of Agriculture and Pasture", "Cotton",
