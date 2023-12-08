@@ -80,7 +80,24 @@ df_g <- df_g %>%
   # Important! Removes all classes that stay the same
   filter(to_level_4 != from_level_4) 
   
-  
+# UPDATE 12/7: Use Cerrado Municipality level data instead of state level data
+# import from aggStats_MapBiomas.R
+
+# load clean 
+load(df, file = "../Data_Derived/mapb_col8_clean_long.Rdata")
+
+# load municipality codes 
+load(muni_codes_cerr, file = "../Data_Derived/muni_codes_cerr.Rdata")
+
+# eventually..df_g is only Cerrado
+df_g <- df_g %>% 
+  filter(geocode %in% muni_codes_cerr) %>% 
+  # filter(to_level_3 == "Temporary Crops") %>%
+  filter(to_level_4 != from_level_4) %>% 
+  mutate(fromto = paste0(from_level_4, " to ", to_level_4))
+
+### TO-DO: PICK UP FROM HERE AND TEST NEW FUNCTIONS ###
+
 
 # get csv of all the unique columns
 names_df_g <- df_g %>% dplyr::select(from_level_4, to_level_4, fromto) %>% distinct()
