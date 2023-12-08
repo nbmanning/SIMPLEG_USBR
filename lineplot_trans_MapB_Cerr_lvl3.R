@@ -71,7 +71,7 @@ df_g_cerr <- df_g %>%
 
 # PLOTTING -------------
 
-# original ---------
+# plot all categories to temp crops
 ggplot(df_g_cerr, aes(x=year, y=ha, color = from_level_3)) +
   geom_line() + 
   #geom_point() +
@@ -119,7 +119,8 @@ ggplot(df_g_few, aes(x=year, y=ha/1000000, color = from_level_3)) +
   geom_vline(xintercept = 2012, color = "red",
              linetype="dotted", linewidth=0.5)
 
-### fewer 
+# select certain classes for plotting 
+# fewer 
 classes_fewer <- c(
   "Forest Formation",
   "Mosaic of Agriculture and Pasture",
@@ -153,348 +154,285 @@ ggplot(df_g_fewer, aes(x=year, y=ha/1000000, color = fromto)) +
 ggsave(paste("../Figures/trans_mapbiomas/cerr_to_lvl3_tempcrops.png"), 
        width = 16, height = 8)
 
+# END #########################################################################
 
+# GRAVEYARD --------------------------------
 
-
-#############################################################################################################
-# FUTURE: Didn't do because this plot was most useful from lvl3 -----------
-
-# Plot Specific "From" to Only Pasture Soybean -------------
-df_g_to_pastsoy_cerr <- df_g_to_pastsoy %>% 
-  aggregate(ha ~ year + biome + to_level_3 + from_level_3 + fromto, sum) %>% 
-  mutate(year = as.Date(paste(year, 1, 1), '%Y %m %d')) %>% 
-  filter(year(year) %in% yr_range) %>% 
-  filter(biome == "Cerrado")
-
-# get only a few classes
-classes_mult_few <- c("Other Temporary Crops", "Mosaic of Agriculture and Pasture", "Cotton",
-                 "Pasture", "Savanna Formation", "Grassland", "Sugar Cane", "Other Non Vegetated Area", 
-                 "Rice", "Forest Formation", "Wetland")
-
-# filter to select classes
-df_g_to_pastsoy_cerr <- df_g_to_pastsoy_cerr %>% 
-  filter(from_level_3 %in% classes_mult_few)# %>% 
-  #filter(fromto != "Pasture to Pasture") # %>%   mutate(rank = rank(-ha))
-
-# get top 10 categories
-ls_top <- df_g_to_pastsoy_cerr %>%
-  # filter to only the interesting "from" classes
-  #filter(from_level_3 %in% classes_few) %>% 
-  #filter(fromto != "Pasture to Pasture") %>% 
-  # get the top converted "n" classes in 2013 as a list
-  filter(year(year) == 2013) %>% 
-  arrange(desc(ha)) %>% 
-  slice_head(n = 6) %>% 
-  pull(fromto) %>% 
-  as.list
-
-df_g_to_pastsoy_cerr_topn <- df_g_to_pastsoy_cerr %>% 
-  filter(fromto %in% ls_top)
-
-# plot
-ggplot(df_g_to_pastsoy_cerr_topn, aes(x=year, y=ha, color = fromto)) +
-  geom_line() + 
-  geom_point(fill = "white", size = 0.8) +
-  xlab("")+
-  scale_x_date(date_labels = "%Y")+
-  labs(title = paste("Top", length(ls_top), "Transition Classes"),
-       ylab = "Hectares Transitioned from Previous Year",
-       color = "From-To Transitions")+
-  geom_vline(xintercept = as.Date("2012-01-01"), color = "red",
-             linetype="dotted", linewidth=0.5)+
-  theme_bw()+
-  theme(legend.title = element_blank(),
-        legend.text = element_text(size = 12),
-        legend.position = "top")+
-  guides(color = guide_legend(nrow = 2))
-
-
-# Top "TO" categories -------------
-df_g_to_all <- df_g %>% 
-  group_by(year, to_level_3) %>%
-  na.omit() %>% 
-  filter(to_level_3 != from_level_3) %>% 
-  summarize(total_trans = sum(ha)) %>% 
-  filter(year %in% yr_range) %>% 
-  mutate(year = as.Date(paste(year, 1, 1), '%Y %m %d'))
-
-# get top 10 categories
-ls_top <- df_g_to_all %>%
-  # filter to only the interesting "from" classes
-  #filter(from_level_3 %in% classes_few) %>% 
-  #filter(fromto != "Pasture to Pasture") %>% 
-  # get the top converted "n" classes in 2013 as a list
-  filter(year(year) == 2013) %>% 
-  arrange(desc(total_trans)) %>% 
-  slice_head(n = 4) %>% 
-  pull(to_level_3) %>% 
-  as.list
-
-df_g_to_all_topn <- df_g_to_all %>% 
-  filter(to_level_3 %in% ls_top)
-
-# plot
-ggplot(df_g_to_all_topn, aes(x=year, y=total_trans/1000000, color = to_level_3)) +
-  geom_line() +
-  geom_point(fill = "white", size = 0.8) +
-  xlab("")+
-  scale_x_date(date_labels = "%Y")+
-  labs(
-    title = paste("Top", length(ls_top), "Transition Classes"),
-    #subtitle = "From All Classes to X",
-    y = "Land Change from Previous Year (Mha)",
-    color = "From-To Transitions"
-    )+
-  geom_vline(xintercept = as.Date("2012-01-01"), color = "red",
-             linetype="dotted", linewidth=0.5)+
-  theme_bw()+
-  theme(
-    legend.title = element_blank(),
-    legend.text = element_text(size = 16),
-    legend.position = "top",
-    axis.title.y = element_text(size = 10),
-    plot.title = element_text(size = 14, hjust = 0.5),
-    #plot.subtitle = element_text(size = 12, hjust = 0.5)
-    )
-
-# save 
-ggsave(paste("../Figures/trans_mapbiomas/top_",length(ls_top), "_fromAlltoX.png"), 
-       width = 16, height = 8)
-
-
-# Top "from-to" categories ------------
-df_g_fromto <- df_g %>% 
-  group_by(year, fromto) %>%
-  na.omit() %>% 
-  summarize(total_trans = sum(ha)) %>% 
-  filter(year %in% yr_range) %>% 
-  mutate(year = as.Date(paste(year, 1, 1), '%Y %m %d'))
-
-# get top 10 categories
-ls_top <- df_g_fromto %>%
- # get the top converted "n" classes in 2013 as a list
-  filter(year(year) == 2013) %>% 
-  arrange(desc(total_trans)) %>% 
-  slice_head(n = 10) %>% 
-  pull(fromto) %>% 
-  as.list
-
-df_g_fromto_topn <- df_g_fromto %>% 
-  filter(fromto %in% ls_top)
-
-# plot
-ggplot(df_g_fromto_topn, aes(x=year, y=total_trans/1000000, color = fromto)) +
-  geom_line() +
-  geom_point(fill = "white", size = 0.8) +
-  xlab("")+
-  scale_x_date(date_labels = "%Y")+
-  labs(title = paste("Top", length(ls_top), "Transition Classes"),
-       subtitle = "Only FromTo Classes",
-       y = "Land Change from Previous Year (Mha)",
-       color = "From-To Transitions")+
-  geom_vline(xintercept = as.Date("2012-01-01"), color = "red",
-             linetype="dotted", linewidth=0.5)+
-  theme_bw()+
-  theme(
-    #legend.title = element_blank(),
-    #legend.text = element_text(size = 12),
-    #legend.position = "top"
-        )
-
-# save 
-ggsave(paste("../Figures/trans_mapbiomas/top_",length(ls_top), "_fromto.png"), 
-       width = 16, height = 8)
-
-
-# Specific "from" and "to" categories -------------
-
-## Set Specific Categories
-
-# names_from <- c("Forest Formation", "Grassland", "Mosaic of Agriculture and Pasture",
-#                 "Pasture", "Other Temporary Crops", "Other Perennial Crops",
-#                 "Savanna Formation", "Soy Beans", "Sugar Cane", "Wetland")
-
-names_from <- c("Forest Formation", "Grassland", "Pasture", "Savanna", "Wetland")
-
-#names_from <- c("Forest Formation", "Grassland", "Savanna", "Wetland")
-
-
-names_to <- c("Mosaic of Agriculture and Pasture", "Pasture",
-             "Other Temporary Crops", "Other Perennial Crops",
-             "Soy Beans", "Sugar Cane")
-
-# filter by this section
-df_g_from_and_to <- df_g %>% 
-  filter(to_level_3 %in% names_to) %>% 
-  filter(from_level_3 %in% names_from) %>% 
-  filter(fromto != "Pasture to Mosaic of Agriculture and Pasture") %>% 
-  group_by(year, fromto) %>% 
-  na.omit() %>% 
-  summarise(total_trans = sum(ha)) %>% 
-  filter(year %in% yr_range) %>% 
-  mutate(year = as.Date(paste(year, 1, 1), '%Y %m %d'))
-
-# get list of top "n"
-ls_top <- df_g_from_and_to %>%
-  # get the top converted "n" classes in 2013 as a list
-  filter(year(year) == 2013) %>% 
-  arrange(desc(total_trans)) %>% 
-  slice_head(n = 8) %>% 
-  pull(fromto) %>% 
-  as.list
-
-# filter from list
-df_g_from_and_to_topn <- df_g_from_and_to %>% 
-  filter(fromto %in% ls_top) 
-
-# plot
-ggplot(df_g_from_and_to_topn, aes(x=year, y=total_trans/1000000, color = fromto)) +
-  geom_line() +
-  geom_point(fill = "white", size = 0.8) +
-  xlab("")+
-  scale_x_date(date_labels = "%Y")+
-  labs(title = paste("Top", length(ls_top), "Transition Classes"),
-       subtitle = "Selected From and To Classes",
-       y = "Land Change from Previous Year (Mha)",
-       color = "From-To Transitions")+
-  geom_vline(xintercept = as.Date("2012-01-01"), color = "red",
-             linetype="dotted", linewidth=0.5)+
-  theme_bw()+
-  theme(
-    legend.title = element_blank(),
-    legend.text = element_text(size = 10),
-    legend.position = "top"
-        )
-
-# save 
-ggsave("../Figures/trans_mapbiomas/selected_from_and_to.png", 
-       width = 16, height = 8)
-
-
-# PLOT: Specific "from-to" categories ---------
-names_fromto <-c(
-  "Forest Formation to Mosaic of Agriculture and Pasture",
-  "Forest Formation to Pasture",
-  "Forest Formation to Soy Beans",
-  "Forest Formation to Other Temporary Crops",
-  "Pasture to Mosaic of Agriculture and Pasture",
-  "Pasture to Other Temporary Crops",
-  "Pasture to Soy Beans",
-  "Pasture to Sugar Cane",
-  "Savanna Formation to Mosaic of Agriculture and Pasture",
-  "Savanna Formation to Other Temporary Crops",
-  "Savanna Formation to Pasture",
-  "Savanna Formation to Soy Beans"
-  )
-
-
-df_g_specific_fromto <- df_g %>% 
-  filter(fromto %in% names_fromto) %>% 
-  group_by(year, fromto) %>% 
-  na.omit() %>% 
-  summarise(total_trans = sum(ha)) %>% 
-  filter(year %in% yr_range) %>% 
-  mutate(year = as.Date(paste(year, 1, 1), '%Y %m %d'))
-
-# get list of top "n"
-ls_top <- df_g_specific_fromto %>%
-  # get the top converted "n" classes in 2013 as a list
-  filter(year(year) == 2013) %>% 
-  arrange(desc(total_trans)) %>% 
-  slice_head(n = 8) %>% 
-  pull(fromto) %>% 
-  as.list
-
-# filter from list
-df_g_specific_fromto_topn <- df_g_specific_fromto %>% 
-  filter(fromto %in% ls_top) 
-
-# plot
-ggplot(df_g_specific_fromto, aes(x=year, y=total_trans/1000000, color = fromto)) +
-  geom_line() +
-  geom_point(fill = "white", size = 0.8) +
-  xlab("")+
-  scale_x_date(date_labels = "%Y")+
-  labs(title = paste("Top", length(ls_top), "Transition Classes"),
-       subtitle = "Selected From and To Classes",
-       y = "Land Change from Previous Year (Mha)",
-       color = "From-To Transitions")+
-  geom_vline(xintercept = as.Date("2012-01-01"), color = "red",
-             linetype="dotted", linewidth=0.5)+
-  theme_bw()+
-  theme(
-    legend.title = element_blank(),
-    legend.text = element_text(size = 10),
-    legend.position = "top",
-    plot.title = element_text(size = 14, hjust = 0.5),
-    plot.subtitle = element_text(size = 12, hjust = 0.5)
-  )
-
-# save 
-ggsave("../Figures/trans_mapbiomas/selected_fromto.png", 
-       width = 16, height = 8)
-
-
-# Brazil Production Stats - What % of crops are corn & soy? --------------
-
-# downloaded from https://www.fao.org/faostat/en/#data/QCL
-## Countries == Brazil, United States of America
-## Elements == Area HArvested, Yield, Production Quantity
-## Items = Crops, primary > (List)
-## Years = 2010, 2011, 2012, 2013
-
-raw_prod <- read.csv("../Data_Source/FAOSTAT/FAOSTAT_BRUS_AllCrop_20102013.csv")
-
-names(raw_prod)
-
-prod <- raw_prod %>%
-  dplyr::select(Area, Element, Item, Year, Unit, Value)
-
-# Set Year of Interest
-yr <- 2011
-
-# get the total area harvested and production for the whole year
-prod_total <- prod %>% 
-  filter(Element != "Yield") %>% 
-  group_by(Area, Element, Year) %>% 
-  #filter(Year == yr) %>% 
-  summarize(TotalProd = sum(Value))
-
-
-# get just the soybeans (soya beans) and corn ()
-prod_cornsoy <- prod %>% 
-  ## Get to just corn soy
-  filter(Element != "Yield") %>% 
-  filter(Item %in% c("Soya beans", 
-                     #"Sugar cane",
-                     "Maize (corn)"
-                     )) %>% 
-  
-  ## add corn soy by year
-  #filter(Year == yr) %>% 
-  group_by(Area, Element, Year) %>% 
-  summarize(TotalCornSoy = sum(Value)) %>% 
-  
-  ## create percentages 
-  left_join(prod_total) %>% 
-  mutate(PctCornSoy = round((TotalCornSoy / TotalProd) * 100, 2)) %>% 
-  arrange(Area, Element, desc(Year))
-
-
-
-# See which items have the largest Pct
-prod_pct <- prod %>% 
-  filter(Element != "Yield") %>% 
-  left_join(prod_total) %>% 
-  mutate(Pct = round((Value / TotalProd) * 100, 1)) %>% 
-  filter(Year == yr) %>% 
-  arrange(Area, Element, desc(Pct))
-
-
-## Production Stats ----------
-
-# BR 2011 Sugarcane = 74% of Production by tons but only 14% of Area Harvested?? 
-# BR 2011 CornSoy = 54.3% of Area Harvested and 13.2% of Production
-
-# US 2011 
-
+#1: Code  From LEVEL 4 SCRIPT -------
+# # Plot Specific "From" to Only Pasture Soybean -------------
+# df_g_to_pastsoy_cerr <- df_g_to_pastsoy %>% 
+#   aggregate(ha ~ year + biome + to_level_3 + from_level_3 + fromto, sum) %>% 
+#   mutate(year = as.Date(paste(year, 1, 1), '%Y %m %d')) %>% 
+#   filter(year(year) %in% yr_range) %>% 
+#   filter(biome == "Cerrado")
+# 
+# # get only a few classes
+# classes_mult_few <- c("Other Temporary Crops", "Mosaic of Agriculture and Pasture", "Cotton",
+#                  "Pasture", "Savanna Formation", "Grassland", "Sugar Cane", "Other Non Vegetated Area", 
+#                  "Rice", "Forest Formation", "Wetland")
+# 
+# # filter to select classes
+# df_g_to_pastsoy_cerr <- df_g_to_pastsoy_cerr %>% 
+#   filter(from_level_3 %in% classes_mult_few)# %>% 
+#   #filter(fromto != "Pasture to Pasture") # %>%   mutate(rank = rank(-ha))
+# 
+# # get top 10 categories
+# ls_top <- df_g_to_pastsoy_cerr %>%
+#   # filter to only the interesting "from" classes
+#   #filter(from_level_3 %in% classes_few) %>% 
+#   #filter(fromto != "Pasture to Pasture") %>% 
+#   # get the top converted "n" classes in 2013 as a list
+#   filter(year(year) == 2013) %>% 
+#   arrange(desc(ha)) %>% 
+#   slice_head(n = 6) %>% 
+#   pull(fromto) %>% 
+#   as.list
+# 
+# df_g_to_pastsoy_cerr_topn <- df_g_to_pastsoy_cerr %>% 
+#   filter(fromto %in% ls_top)
+# 
+# # plot
+# ggplot(df_g_to_pastsoy_cerr_topn, aes(x=year, y=ha, color = fromto)) +
+#   geom_line() + 
+#   geom_point(fill = "white", size = 0.8) +
+#   xlab("")+
+#   scale_x_date(date_labels = "%Y")+
+#   labs(title = paste("Top", length(ls_top), "Transition Classes"),
+#        ylab = "Hectares Transitioned from Previous Year",
+#        color = "From-To Transitions")+
+#   geom_vline(xintercept = as.Date("2012-01-01"), color = "red",
+#              linetype="dotted", linewidth=0.5)+
+#   theme_bw()+
+#   theme(legend.title = element_blank(),
+#         legend.text = element_text(size = 12),
+#         legend.position = "top")+
+#   guides(color = guide_legend(nrow = 2))
+# 
+# 
+# # Top "TO" categories -------------
+# df_g_to_all <- df_g %>% 
+#   group_by(year, to_level_3) %>%
+#   na.omit() %>% 
+#   filter(to_level_3 != from_level_3) %>% 
+#   summarize(total_trans = sum(ha)) %>% 
+#   filter(year %in% yr_range) %>% 
+#   mutate(year = as.Date(paste(year, 1, 1), '%Y %m %d'))
+# 
+# # get top 10 categories
+# ls_top <- df_g_to_all %>%
+#   # filter to only the interesting "from" classes
+#   #filter(from_level_3 %in% classes_few) %>% 
+#   #filter(fromto != "Pasture to Pasture") %>% 
+#   # get the top converted "n" classes in 2013 as a list
+#   filter(year(year) == 2013) %>% 
+#   arrange(desc(total_trans)) %>% 
+#   slice_head(n = 4) %>% 
+#   pull(to_level_3) %>% 
+#   as.list
+# 
+# df_g_to_all_topn <- df_g_to_all %>% 
+#   filter(to_level_3 %in% ls_top)
+# 
+# # plot
+# ggplot(df_g_to_all_topn, aes(x=year, y=total_trans/1000000, color = to_level_3)) +
+#   geom_line() +
+#   geom_point(fill = "white", size = 0.8) +
+#   xlab("")+
+#   scale_x_date(date_labels = "%Y")+
+#   labs(
+#     title = paste("Top", length(ls_top), "Transition Classes"),
+#     #subtitle = "From All Classes to X",
+#     y = "Land Change from Previous Year (Mha)",
+#     color = "From-To Transitions"
+#     )+
+#   geom_vline(xintercept = as.Date("2012-01-01"), color = "red",
+#              linetype="dotted", linewidth=0.5)+
+#   theme_bw()+
+#   theme(
+#     legend.title = element_blank(),
+#     legend.text = element_text(size = 16),
+#     legend.position = "top",
+#     axis.title.y = element_text(size = 10),
+#     plot.title = element_text(size = 14, hjust = 0.5),
+#     #plot.subtitle = element_text(size = 12, hjust = 0.5)
+#     )
+# 
+# # save 
+# ggsave(paste("../Figures/trans_mapbiomas/top_",length(ls_top), "_fromAlltoX.png"), 
+#        width = 16, height = 8)
+# 
+# 
+# # Top "from-to" categories ------------
+# df_g_fromto <- df_g %>% 
+#   group_by(year, fromto) %>%
+#   na.omit() %>% 
+#   summarize(total_trans = sum(ha)) %>% 
+#   filter(year %in% yr_range) %>% 
+#   mutate(year = as.Date(paste(year, 1, 1), '%Y %m %d'))
+# 
+# # get top 10 categories
+# ls_top <- df_g_fromto %>%
+#  # get the top converted "n" classes in 2013 as a list
+#   filter(year(year) == 2013) %>% 
+#   arrange(desc(total_trans)) %>% 
+#   slice_head(n = 10) %>% 
+#   pull(fromto) %>% 
+#   as.list
+# 
+# df_g_fromto_topn <- df_g_fromto %>% 
+#   filter(fromto %in% ls_top)
+# 
+# # plot
+# ggplot(df_g_fromto_topn, aes(x=year, y=total_trans/1000000, color = fromto)) +
+#   geom_line() +
+#   geom_point(fill = "white", size = 0.8) +
+#   xlab("")+
+#   scale_x_date(date_labels = "%Y")+
+#   labs(title = paste("Top", length(ls_top), "Transition Classes"),
+#        subtitle = "Only FromTo Classes",
+#        y = "Land Change from Previous Year (Mha)",
+#        color = "From-To Transitions")+
+#   geom_vline(xintercept = as.Date("2012-01-01"), color = "red",
+#              linetype="dotted", linewidth=0.5)+
+#   theme_bw()+
+#   theme(
+#     #legend.title = element_blank(),
+#     #legend.text = element_text(size = 12),
+#     #legend.position = "top"
+#         )
+# 
+# # save 
+# ggsave(paste("../Figures/trans_mapbiomas/top_",length(ls_top), "_fromto.png"), 
+#        width = 16, height = 8)
+# 
+# 
+# # Specific "from" and "to" categories -------------
+# 
+# ## Set Specific Categories
+# 
+# # names_from <- c("Forest Formation", "Grassland", "Mosaic of Agriculture and Pasture",
+# #                 "Pasture", "Other Temporary Crops", "Other Perennial Crops",
+# #                 "Savanna Formation", "Soy Beans", "Sugar Cane", "Wetland")
+# 
+# names_from <- c("Forest Formation", "Grassland", "Pasture", "Savanna", "Wetland")
+# 
+# #names_from <- c("Forest Formation", "Grassland", "Savanna", "Wetland")
+# 
+# 
+# names_to <- c("Mosaic of Agriculture and Pasture", "Pasture",
+#              "Other Temporary Crops", "Other Perennial Crops",
+#              "Soy Beans", "Sugar Cane")
+# 
+# # filter by this section
+# df_g_from_and_to <- df_g %>% 
+#   filter(to_level_3 %in% names_to) %>% 
+#   filter(from_level_3 %in% names_from) %>% 
+#   filter(fromto != "Pasture to Mosaic of Agriculture and Pasture") %>% 
+#   group_by(year, fromto) %>% 
+#   na.omit() %>% 
+#   summarise(total_trans = sum(ha)) %>% 
+#   filter(year %in% yr_range) %>% 
+#   mutate(year = as.Date(paste(year, 1, 1), '%Y %m %d'))
+# 
+# # get list of top "n"
+# ls_top <- df_g_from_and_to %>%
+#   # get the top converted "n" classes in 2013 as a list
+#   filter(year(year) == 2013) %>% 
+#   arrange(desc(total_trans)) %>% 
+#   slice_head(n = 8) %>% 
+#   pull(fromto) %>% 
+#   as.list
+# 
+# # filter from list
+# df_g_from_and_to_topn <- df_g_from_and_to %>% 
+#   filter(fromto %in% ls_top) 
+# 
+# # plot
+# ggplot(df_g_from_and_to_topn, aes(x=year, y=total_trans/1000000, color = fromto)) +
+#   geom_line() +
+#   geom_point(fill = "white", size = 0.8) +
+#   xlab("")+
+#   scale_x_date(date_labels = "%Y")+
+#   labs(title = paste("Top", length(ls_top), "Transition Classes"),
+#        subtitle = "Selected From and To Classes",
+#        y = "Land Change from Previous Year (Mha)",
+#        color = "From-To Transitions")+
+#   geom_vline(xintercept = as.Date("2012-01-01"), color = "red",
+#              linetype="dotted", linewidth=0.5)+
+#   theme_bw()+
+#   theme(
+#     legend.title = element_blank(),
+#     legend.text = element_text(size = 10),
+#     legend.position = "top"
+#         )
+# 
+# # save 
+# ggsave("../Figures/trans_mapbiomas/selected_from_and_to.png", 
+#        width = 16, height = 8)
+# 
+# 
+# # PLOT: Specific "from-to" categories ---------
+# names_fromto <-c(
+#   "Forest Formation to Mosaic of Agriculture and Pasture",
+#   "Forest Formation to Pasture",
+#   "Forest Formation to Soy Beans",
+#   "Forest Formation to Other Temporary Crops",
+#   "Pasture to Mosaic of Agriculture and Pasture",
+#   "Pasture to Other Temporary Crops",
+#   "Pasture to Soy Beans",
+#   "Pasture to Sugar Cane",
+#   "Savanna Formation to Mosaic of Agriculture and Pasture",
+#   "Savanna Formation to Other Temporary Crops",
+#   "Savanna Formation to Pasture",
+#   "Savanna Formation to Soy Beans"
+#   )
+# 
+# 
+# df_g_specific_fromto <- df_g %>% 
+#   filter(fromto %in% names_fromto) %>% 
+#   group_by(year, fromto) %>% 
+#   na.omit() %>% 
+#   summarise(total_trans = sum(ha)) %>% 
+#   filter(year %in% yr_range) %>% 
+#   mutate(year = as.Date(paste(year, 1, 1), '%Y %m %d'))
+# 
+# # get list of top "n"
+# ls_top <- df_g_specific_fromto %>%
+#   # get the top converted "n" classes in 2013 as a list
+#   filter(year(year) == 2013) %>% 
+#   arrange(desc(total_trans)) %>% 
+#   slice_head(n = 8) %>% 
+#   pull(fromto) %>% 
+#   as.list
+# 
+# # filter from list
+# df_g_specific_fromto_topn <- df_g_specific_fromto %>% 
+#   filter(fromto %in% ls_top) 
+# 
+# # plot
+# ggplot(df_g_specific_fromto, aes(x=year, y=total_trans/1000000, color = fromto)) +
+#   geom_line() +
+#   geom_point(fill = "white", size = 0.8) +
+#   xlab("")+
+#   scale_x_date(date_labels = "%Y")+
+#   labs(title = paste("Top", length(ls_top), "Transition Classes"),
+#        subtitle = "Selected From and To Classes",
+#        y = "Land Change from Previous Year (Mha)",
+#        color = "From-To Transitions")+
+#   geom_vline(xintercept = as.Date("2012-01-01"), color = "red",
+#              linetype="dotted", linewidth=0.5)+
+#   theme_bw()+
+#   theme(
+#     legend.title = element_blank(),
+#     legend.text = element_text(size = 10),
+#     legend.position = "top",
+#     plot.title = element_text(size = 14, hjust = 0.5),
+#     plot.subtitle = element_text(size = 12, hjust = 0.5)
+#   )
+# 
+# # save 
+# ggsave("../Figures/trans_mapbiomas/selected_fromto.png", 
+#        width = 16, height = 8)
+# 
+# 
+# 
