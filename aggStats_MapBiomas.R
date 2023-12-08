@@ -138,7 +138,6 @@ list_from_lv3 <- c("Forest Formation", "Savanna Formation", "Wetland",
                    "Shrub Restinga", "Other Non Forest Natural Formation", "Wooded Restinga",
                    "Perennial Crops")
 
-###############################
 # 2: Brazil ------
 
 df_br <- df
@@ -156,22 +155,22 @@ df_br <- df %>%
 
 # just get aggregate sum
 #### TO-DO: Rename agg to the front (e.g. agg_br) -----
-df_br_agg <- df_br %>% 
+agg_br <- df_br %>% 
   aggregate(ha ~ year, sum) %>% 
   mutate(year = as.Date(paste(year, 1, 1), '%Y %m %d'))
 
-df_brmuni_agg <- df_br %>% 
+agg_brmuni <- df_br %>% 
   aggregate(ha ~ year + geocode, sum) %>% 
   mutate(year = as.Date(paste(year, 1, 1), '%Y %m %d'))
 
 
 # get agg sum of certain 'from' classes
-df_br_fromveg_agg <- df_br %>%
+ag_br_fromveg <- df_br %>%
   filter(from_level_3 %in% list_from_lv3) %>% 
   aggregate(ha ~ year, sum) %>% 
   mutate(year = as.Date(paste(year, 1, 1), '%Y %m %d'))
 
-df_brmuni_fromveg_agg <- df_br %>%
+agg_brmuni_fromveg <- df_br %>%
   filter(from_level_3 %in% list_from_lv3) %>% 
   aggregate(ha ~ year + geocode, sum) %>% 
   mutate(year = as.Date(paste(year, 1, 1), '%Y %m %d'))
@@ -207,41 +206,61 @@ F_facet<-function(data, aoi, class, file_name){
 ### all agg ----------
 # make shape -- all agg
 shp_brmuni <- shp_code_muni_br %>% 
-  left_join(df_brmuni_agg,
+  left_join(agg_brmuni,
             join_by(code_muni == geocode)) %>% 
   mutate(year = year(year)) %>% 
   filter(year >= 2012 & year <= 2017)
 
-F_facet(shp_brmuni, aoi = "Brazil", class = "From All Classes", file_name = "br_allagg.png")
+F_facet(shp_brmuni, aoi = "Brazil", class = "From All Classes to Temporary Crops", file_name = "br_allagg.png")
 
 
 ### from veg ---------
 # make shape -- from veg 
 shp_brmuni_fromveg <- shp_code_muni_br %>% 
-  left_join(df_brmuni_fromveg_agg,
+  left_join(agg_brmuni_fromveg,
             join_by(code_muni == geocode)) %>% 
   mutate(year = year(year)) %>% 
   filter(year >= 2012 & year <= 2017)
 
 # plot
-F_facet(shp_brmuni_fromveg, aoi = "Brazil", class = "From Relevant Vegetation Classes", file_name = "br_fromveg.png")
+F_facet(shp_brmuni_fromveg, aoi = "Brazil", class = "From Relevant Vegetation Classes to Temporary Crops", file_name = "br_fromveg.png")
 
 ## 2.3 line plots --------
+
+F_line<-function(data, aoi, class, file_name){
+  p <- ggplot(data, aes(x = year, y = ha/1000000))+
+    geom_line()+
+    geom_point()+
+    theme_minimal()+
+    labs(
+      title = paste("Annual Land Transition Across", aoi),
+      subtitle = paste(class),
+      y = "Land Transition (Mha)",
+      x = ""
+    )+
+    geom_vline(xintercept = as.Date("2012-01-01"), color = "red",
+               linetype="dotted", linewidth=0.5)
+  
+  ggsave(filename = paste0(folder_plot, file_name), 
+         plot = p,
+         width = 9, height = 6,
+         dpi = 300)
+  
+  return(p)
+}
+
 ### all agg ------
-# quick line plots 
-ggplot(df_br_agg, aes(x = year, y = ha))+
-  geom_line()+
-  geom_point()+
-  labs(
-    
-  )
+F_line(data = agg_br, aoi = "Brazil", class = "From All Classes to Temporary Crops", 
+       file_name = "line_br_allagg.png")
 
 ### from veg -----
-ggplot(df_cerr_fromveg_agg, aes(x = year, y = ha))+
-  geom_line()+
-  geom_point()
+F_line(data = ag_br_fromveg, aoi = "Brazil", class = "From Relevant Vegetation Classes to Temporary Crops", 
+       file_name = "line_br_fromveg.png")
 
 ## 2.4: BR Land trans stats -----
+print(ag_br_fromveg %>% filter(year(year) >= 2013 & year(year) <= 2015))
+print(agg_br %>% filter(year(year) >= 2013 & year(year) <= 2015))
+
 
 
 # 3: Cerrado --------
@@ -253,21 +272,21 @@ df_cerr <- df %>%
 ## 3.1: Aggregate ----------
 
 # just get aggregate sum
-df_cerrmuni_agg <- df_cerr %>% 
+agg_cerrmuni <- df_cerr %>% 
   aggregate(ha ~ year + geocode, sum) %>% 
   mutate(year = as.Date(paste(year, 1, 1), '%Y %m %d'))
 
-df_cerr_agg <- df_cerr %>% 
+agg_cerr <- df_cerr %>% 
   aggregate(ha ~ year, sum) %>% 
   mutate(year = as.Date(paste(year, 1, 1), '%Y %m %d'))
 
 # get agg sum of certain 'from' classes
-df_cerrmuni_fromveg_agg <- df_cerr %>%
+agg_cerrmuni_fromveg <- df_cerr %>%
   filter(from_level_3 %in% list_from_lv3) %>% 
   aggregate(ha ~ year + geocode, sum) %>% 
   mutate(year = as.Date(paste(year, 1, 1), '%Y %m %d'))
 
-df_cerr_fromveg_agg <- df_cerr %>% 
+agg_cerr_fromveg <- df_cerr %>% 
   filter(from_level_3 %in% list_from_lv3) %>% 
   aggregate(ha ~ year, sum) %>% 
   mutate(year = as.Date(paste(year, 1, 1), '%Y %m %d'))
@@ -277,43 +296,45 @@ df_cerr_fromveg_agg <- df_cerr %>%
 ### all agg ----------
 # make shape -- all agg
 shp_cerrmuni <- shp_code_muni_in_cerr %>% 
-  left_join(df_cerrmuni_agg,
+  left_join(agg_cerrmuni,
             join_by(code_muni == geocode)) %>% 
   mutate(year = year(year)) %>% 
   filter(year >= 2012 & year <= 2017)
 
-F_facet(shp_cerrmuni, aoi = "Cerrado", class = "From All Classes", file_name = "cerr_allagg.png")
+F_facet(shp_cerrmuni, aoi = "Cerrado", class = "From All Classes to Temporary Crops", file_name = "cerr_allagg.png")
 
 ### from veg ---------
 # make shape -- from veg 
 shp_cerrmuni_fromveg <- shp_code_muni_in_cerr %>% 
-  left_join(df_cerrmuni_fromveg_agg,
+  left_join(agg_cerrmuni_fromveg,
             join_by(code_muni == geocode)) %>% 
   mutate(year = year(year)) %>% 
   filter(year >= 2012 & year <= 2017)
 
 # plot
-F_facet(shp_cerrmuni_fromveg, aoi = "Cerrado", class = "From Relevant Vegetation Classes", file_name = "cerr_fromveg.png")
+F_facet(shp_cerrmuni_fromveg, aoi = "Cerrado", class = "From Relevant Vegetation Classes to Temporary Crops", file_name = "cerr_fromveg.png")
 
 ## 3.3 line plots --------
 ### all agg ------
 # quick line plots 
-ggplot(df_cerr_agg, aes(x = year, y = ha))+
-  geom_line()+
-  geom_point()
+F_line(data = agg_cerr, aoi = "Cerrado", class = "From All Classes to Temporary Crops", 
+       file_name = "line_cerr_allagg.png")
 
 ### from veg -----
-ggplot(df_cerr_fromveg_agg, aes(x = year, y = ha))+
-  geom_line()+
-  geom_point()
+F_line(data = agg_cerr_fromveg, aoi = "Brazil", class = "From Relevant Vegetation Classes to Temporary Crops", 
+       file_name = "line_cerr_fromveg.png")
 
-# STATS: land trans from br and cerr
+
+## 3.4: Cerr Land trans stats -----
+print(agg_cerr %>% filter(year(year) >= 2013 & year(year) <= 2015))
+print(agg_cerr_fromveg %>% filter(year(year) >= 2013 & year(year) <= 2015))
 
 
 
 
 
 # END ####################################################################################
+
 # TO-DO -----------------
 ## add Cerrado outline to maps --------
 
