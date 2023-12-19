@@ -332,7 +332,7 @@ F_line(data = agg_cerr, aoi = "Cerrado", class = "From All Classes to Temporary 
        file_name = "line_cerr_allagg.png")
 
 ### from veg -----
-F_line(data = agg_cerr_fromveg, aoi = "Brazil", class = "From Relevant Vegetation Classes to Temporary Crops", 
+F_line(data = agg_cerr_fromveg, aoi = "Cerrado", class = "From Relevant Vegetation Classes to Temporary Crops", 
        file_name = "line_cerr_fromveg.png")
 
 
