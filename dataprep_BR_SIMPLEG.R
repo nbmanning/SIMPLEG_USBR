@@ -77,7 +77,7 @@ raw_sidra_br <- get_sidra(x = 1612,
                              geo = "Brazil", # Brazil, State, or Município
                              geo.filter = NULL,
                              classific = "c81",
-                             category = list(c(2713, 2711)), # 2713 = Soja (em grão); 2711 = Milho (corn) (em grão)
+                             category = list(c(0, 2713, 2711)), # 2713 = Soja (em grão); 2711 = Milho (corn) (em grão)
                              header = T,
                              format = 3)
 
@@ -107,6 +107,9 @@ raw_sidra_br <- get_sidra(x = 1612,
 spam_soy_parea <- rast(paste0(path_import, "SPAM2010/spam2010V2r0_global_A_SOYB_A.tif"))
 spam_maize_parea <- rast(paste0(path_import, "SPAM2010/spam2010V2r0_global_A_MAIZ_A.tif"))
 
+# bring in harvested area (ha)
+spam_soy_harvarea <- rast(paste0(path_import, "SPAM2010/spam2010V2r0_global_H_SOYB_A.tif"))
+spam_maize_harvarea <- rast(paste0(path_import, "SPAM2010/spam2010V2r0_global_H_MAIZ_A.tif"))
 
 # bring in production (mt)
 spam_soy_prod <- rast(paste0(path_import, "SPAM2010/spam2010V2r0_global_P_SOYB_A.tif"))
@@ -114,8 +117,9 @@ spam_maize_prod <- rast(paste0(path_import, "SPAM2010/spam2010V2r0_global_P_MAIZ
 
 # join all together to one variable
 spam <- c(spam_soy_parea, spam_maize_parea, spam_soy_prod, spam_maize_prod)
-terra::plot(spam)
+terra::plot(spam2)
 
+spam2 <- c(spam_soy_harvarea, spam_maize_harvarea, spam_soy_prod, spam_maize_prod)
 
 ## 2.1: Clip to Brazil to test ----
 
@@ -127,10 +131,10 @@ shp_br <- read_country(year = 2010,
 ext_br <- vect(ext(shp_br))
 
 # plot basic BR results by cropping and masking to just BR extent
-r_br <- terra::crop(spam, ext_br, mask = T) 
+r_br <- terra::crop(spam2, ext_br, mask = T) 
 r_br <- mask(r_br, shp_br)
 terra::plot(r_br, axes = F, type = "interval")
-r_br                       
+r_br_source <- r_br                       
                        
 
 ## 2.2: Get results --------------
