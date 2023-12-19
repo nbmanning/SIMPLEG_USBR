@@ -6,7 +6,7 @@
 
 # Edited by: Nick Manning 
 # Initial edit date: May 2023
-# Last edited: November 2023
+# Last edited: Dec 2023
 
 # REQUIRES:
 ## SIMPLE-G Result files as '.txt' 
@@ -15,15 +15,8 @@
 ## Create a folder named 'raster' in your local directory before running
 
 # Next Steps:
+## See FUTURE WORK section
 
-## Change Pre-processing into Fxn and remove the EDA plots
-
-## Change % Change to Raw Change Maps -- DONE; could change color schemes
-### US
-### BR 
-### Cerrado
-
-## Save each plotting window after running the 'Best Maps' Section -- DONE
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
 
@@ -386,11 +379,28 @@ r_row <- F_aoi_prep(shp = shp_world, area_name = "World")
 # set crs of ROW
 #crs(r_row)
 #crs(shp_world, describe = T, proj = T)
-crs(r_row) <- "epsg:4326"
+#crs(r_row) <- "epsg:4326"
 #crs(r_row, describe = T, proj = T)
 
 # call fxn to create EDA plots of the clipped data 
 F_EDA(r_aoi = r_row, area_name = "World")
+
+### XX 4.3.0 World Results for Manuscript ----
+
+# total % change in 
+test <- as.numeric(global(r_row$rawch_QLAND, fun = "sum", na.rm = T))
+#(r_row$new_QCROP / ((r_row$pct_QCROP/100)+1))
+
+print(global(r_row$new_QLAND, fun = "sum", na.rm = T))
+print(global(spam2$spam2010V2r0_global_H_SOYB_A, fun = "sum", na.rm = T))
+print(global(spam2$spam2010V2r0_global_H_MAIZ_A, fun = "sum", na.rm = T))
+
+row_newQLAND <- as.numeric(global(r_row$new_QLAND, fun = "sum", na.rm = T))
+row_newQLAND
+row_sourceQLAND <- as.numeric(global(spam2$spam2010V2r0_global_H_SOYB_A, fun = "sum", na.rm = T)) +
+  as.numeric(global(spam2$spam2010V2r0_global_H_MAIZ_A, fun = "sum", na.rm = T))
+
+(row_newQLAND - row_sourceQLAND) / row_sourceQLAND
 
 ### 4.3.1 World Base R -------
 
@@ -508,7 +518,7 @@ F_ggplot_world <- function(df, brks, pal, legend_title, p_title){
 
 
 
-### Post-Sim Cropland Area ###
+### Post-Sim Cropland Area ### - DONE
 # takes a while
 F_ggplot_world(df = r_row %>% subset("new_QLAND")/1000,
             brks = waiver(),
@@ -516,31 +526,49 @@ F_ggplot_world(df = r_row %>% subset("new_QLAND")/1000,
             legend_title = "Area (1000 ha)",
             p_title = paste("Post-Sim Cropland Area", pct_title))
 
-### Post-Sim Crop Index ###
+### Post-Sim Crop Index ### - DONE
 F_ggplot_world(df = r_row %>% subset("new_QCROP")/1000,
                brks = waiver(),
                pal = "gn_yl", 
                legend_title = "Tons CE",
                p_title = paste("Post-Sim Crop Production Index", pct_title))
 
-### Actual (Raw) Change in Cropland Area ###
+### Actual (Raw) Change in Cropland Area ### - NOT DONE!!!!
 F_ggplot_world(df = r_row %>% subset("rawch_QLAND")/1000,
                brks = c(-50, -25, -10, -1, -0.1, 0, 0.01, 0.25, 0.5, 1, 2, 5),
                pal = "viridi", 
                legend_title = "Area (1000 ha)",
                p_title = paste("Raw Change in Cropland Area", pct_title))
 
+test <- r_row %>% 
+  subset("rawch_QLAND")/1000 %>% 
+  raster::clamp(lower = 0, values = T)
+
+test
+
+range(test)
+
+
+tes[pb1 < 0] <- NA
+
 
 ggplot()+
-  geom_spatraster(data = df, maxcell = Inf)+
+  geom_spatraster(data = 
+                    r_row %>% 
+                    subset("rawch_QLAND")/1000 %>% 
+                    clamp(lower = 0, values = F), 
+                  maxcell = Inf)+
   scale_fill_whitebox_b(
     #palette = "viridi", direction = 1,
-    palette = pal, direction = 1,
-    breaks = brks
+    #"atlas", "high_relief", "arid", "soft", "muted", 
+    #"purple", "viridi", "gn_yl", "pi_y_g", "bl_yl_rd", "deep"
+    palette = "bl_yl_rd", #direction = 1,
+    #breaks = c(-25, -10, -1, 0, 0.1, 0.5, 1)
+    #breaks = c(-50, -25, -10, -1, -0.1, 0, 0.01, 0.25, 0.5, 1, 2, 5)
   )+
   labs(
-    fill = legend_title,
-    title = p_title
+    fill = "Area (1000 ha)",
+    title = paste("Raw Change in Cropland Area", pct_title)
   )+
   theme_minimal() +
   theme(
@@ -633,14 +661,17 @@ plot(top_perc)
 
 
 #### FUTURE: Clamp values to 0 to remove US influence on summary stats ----
-# r_row_rc_QCROP <- r_row %>% 
-#   subset("rawch_QCROP") %>% 
-#   clamp(lower = 0)
-# 
-# r_row_rc_QLAND <- r_row %>% 
-#   subset("rawch_QLAND")/1000 %>% 
-#   clamp(lower = 0)
+r_row_noUS <- r_row %>%
+  clamp(lower = 0, values = F)
 
+summary(r_row_noUS, size = 1000000000000000000)
+
+table_noUS <- summary(r_row_noUS, size = 1000000000) # set size to not use a sample
+print(table_noUS)
+
+write.csv(table_noUS, file = paste0(folder, "/summary_tables/table_World_noUS", pct, "_102923", ".csv"))
+print(global(r_row_noUS$rawch_QLAND, fun = "sum", na.rm = T))
+print(global(r_row_noUS$rawch_QCROP, fun = "sum", na.rm = T))
 
 # # plot clamped
 # terra::plot(
@@ -830,6 +861,24 @@ r_br <- F_aoi_prep(shp = shp_br, area_name = "Brazil")
 
 # call fxn to create EDA plots of the clipped data 
 F_EDA(r_aoi = r_br, area_name = "Brazil")
+
+### XX 6.1.1 Test vs source ----- 
+# total % change in 
+test <- as.numeric(global(r_br$rawch_QLAND, fun = "sum", na.rm = T))
+#(r_row$new_QCROP / ((r_row$pct_QCROP/100)+1))
+
+print(global(r_br$new_QLAND, fun = "sum", na.rm = T))
+print(global(r_br_source$spam2010V2r0_global_H_SOYB_A, fun = "sum", na.rm = T))
+print(global(r_br_source$spam2010V2r0_global_H_MAIZ_A, fun = "sum", na.rm = T))
+
+r_br_newQLAND <- as.numeric(global(r_br$new_QLAND, fun = "sum", na.rm = T))
+r_br_newQLAND
+
+r_br_sourceQLAND <- as.numeric(global(r_br_source$spam2010V2r0_global_H_SOYB_A, fun = "sum", na.rm = T)) +
+  as.numeric(global(r_br_source$spam2010V2r0_global_H_MAIZ_A, fun = "sum", na.rm = T))
+r_br_sourceQLAND
+
+(r_br_newQLAND - r_br_sourceQLAND) / r_br_sourceQLAND
 
 ## 6.2 Plot Best BR Map ---------
 
