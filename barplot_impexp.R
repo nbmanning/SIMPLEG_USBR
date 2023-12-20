@@ -1,5 +1,5 @@
 # Title: barplot_impexp.R
-# Purpose: Read impor and export data and re-create barplots in R
+# Purpose: Read import and export data and re-create barplots in R
 
 # Created by: Nick Manning 
 # Created on: Dec 2023
@@ -14,6 +14,7 @@ rm(list = ls())
 ## Libraries ##
 library(tidyverse)
 library(ggplot2)
+library(cowplot)
 
 ## Files ##
 getwd()
@@ -102,17 +103,21 @@ exp$chg_mmt <- exp$chg/1000
 
 
 ## plot --------
+# plot vertical barplot
+#helpful link: https://stackoverflow.com/questions/48463210/how-to-color-code-the-positive-and-negative-bars-in-barplot-using-ggplot
 (p_exp <- ggplot(exp, aes(x = region, y = chg_mmt))+
-  geom_bar(aes(fill = chg_mmt < 0), stat = "identity") + 
-  scale_fill_manual(guide = FALSE, breaks = c(TRUE, FALSE), values=c(col_neg, col_pos))+
-  coord_flip()+
-  theme_bw()+
-  labs(
-    title = "Change in Corn-Soy Exports (million metric ton)",
-    x = "",
-    y = ""
-  )+
-  theme(plot.title = element_text(hjust = 0.5))
+   # Set color code on a True-False basis
+   geom_bar(aes(fill = chg_mmt < 0), stat = "identity") + 
+   # if false, one color, if true, another
+   scale_fill_manual(guide = FALSE, breaks = c(TRUE, FALSE), values=c(col_neg, col_pos))+
+   coord_flip()+
+   theme_bw()+
+   labs(
+     title = "Change in Corn-Soy Exports (million metric ton)",
+     x = "",
+     y = ""
+   )+
+   theme(plot.title = element_text(hjust = 0.5))
 )
 
 # save
@@ -121,10 +126,12 @@ ggsave("../Figures/bar_exp.png",
 
 
 # 3: Facet Plot ------------
+# add facet column
 imp$type <- "Imports"
 exp$type <- "Exports"
 impexp <- rbind(imp, exp)
 
+# plot with facets
 ggplot(impexp, aes(x = region, y = chg_mmt))+
   geom_bar(aes(fill = chg_mmt < 0), stat = "identity") + 
   scale_fill_manual(guide = FALSE, breaks = c(TRUE, FALSE), values=c(col_neg, col_pos))+
@@ -142,8 +149,8 @@ ggsave("../Figures/bar_impexp_f.png",
        width = 12, height = 8)
 
 # 4: Facet Plot 2 ------
-library(cowplot)
-
+# plot with the individual plots next to one another
+# labels give "A" and "B"
 (p <- plot_grid(p_imp, p_exp, labels = "AUTO"))
 ggsave("../Figures/bar_impexp.png", p,
        width = 12, height = 6)
