@@ -329,6 +329,9 @@ F_EDA <- function(r_aoi, area_name){
 load("../Data_Derived/shp_usbr.RData")
 r <- readRDS(file = paste0("../Data_Derived/r", pct, ".rds"))
 
+# print cropland area in ha by getting the sum of each grid-cell value
+print(global(r$new_QLAND, fun = "sum", na.rm = T))
+
 # 4: Edit Stack & Check Values -------------------
 
 ## 4.1: Calc & Add Raw Change from % and New -------
