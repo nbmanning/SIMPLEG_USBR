@@ -8,7 +8,7 @@
 # REQUIRES:
 ## SIMPLE-G Result files as '.CSV' 
 
-# Load Libraries & Set Constants ---- 
+# 0: Load Libraries & Set Constants ---- 
 rm(list = ls())
 
 ## Libraries ##
@@ -52,6 +52,8 @@ imp$chg_mmt <- imp$chg/1000
 
 
 ## plot --------
+
+### set colors here -------
 col_neg <- "red"
 col_pos <- "blue"
 
@@ -74,6 +76,7 @@ ggsave(paste0(folder_fig, "bar_imp.png"),
 
 
 # 2: Exports ------------
+## tidy -----
 # Load in data
 exp_maize <- read.csv(paste0(folder_data, "exp_maize.csv"))
 exp_soy <- read.csv(paste0(folder_data, "exp_soy.csv"))
