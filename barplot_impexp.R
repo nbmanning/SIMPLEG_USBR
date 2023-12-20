@@ -18,14 +18,14 @@ library(cowplot)
 
 ## Files ##
 getwd()
-folder <- "../Results/SIMPLEG-2023-10-29/imports_exports/"
-
+folder_data <- "../Results/SIMPLEG-2023-10-29/imports_exports/"
+folder_fig <- "../Figures/"
 # 1: Imports ------
 
 ## tidy -----
 # Load in data
-imp_maize <- read.csv(paste0(folder, "imp_maize.csv"))
-imp_soy <- read.csv(paste0(folder, "imp_soy.csv"))
+imp_maize <- read.csv(paste0(folder_data, "imp_maize.csv"))
+imp_soy <- read.csv(paste0(folder_data, "imp_soy.csv"))
 
 # Rename
 cols <- c("region_abv", "pct_chg", "pre", "post", "chg", "region")
@@ -69,14 +69,14 @@ col_pos <- "blue"
 )
 
 # save
-ggsave("../Figures/bar_imp.png",
+ggsave(paste0(folder_fig, "bar_imp.png"),
        width = 6, height = 8)
 
 
 # 2: Exports ------------
 # Load in data
-exp_maize <- read.csv(paste0(folder, "exp_maize.csv"))
-exp_soy <- read.csv(paste0(folder, "exp_soy.csv"))
+exp_maize <- read.csv(paste0(folder_data, "exp_maize.csv"))
+exp_soy <- read.csv(paste0(folder_data, "exp_soy.csv"))
 
 # Rename
 cols <- c("region_abv", "pct_chg", "pre", "post", "chg", "region")
@@ -121,7 +121,7 @@ exp$chg_mmt <- exp$chg/1000
 )
 
 # save
-ggsave("../Figures/bar_exp.png",
+ggsave(paste0(folder_fig, "bar_exp.png"),
        width = 6, height = 8)
 
 
@@ -145,12 +145,13 @@ ggplot(impexp, aes(x = region, y = chg_mmt))+
   )+
   theme(plot.title = element_text(hjust = 0.5))
 
-ggsave("../Figures/bar_impexp_f.png",
+ggsave(paste0(folder_fig, "bar_impexp_f.png"),
        width = 12, height = 8)
 
 # 4: Facet Plot 2 ------
 # plot with the individual plots next to one another
 # labels give "A" and "B"
 (p <- plot_grid(p_imp, p_exp, labels = "AUTO"))
-ggsave("../Figures/bar_impexp.png", p,
+ggsave(paste0(folder_fig, "bar_impexp.png"),
+       p,
        width = 12, height = 6)
