@@ -50,6 +50,9 @@ imp <- aggregate(imp$chg, list(imp$region), FUN=sum)
 names(imp) <- c("region", "chg")
 imp$chg_mmt <- imp$chg/1000
 
+# exclude us
+imp_nous <- imp %>% filter(region != "United States")
+
 
 ## plot --------
 
@@ -57,7 +60,7 @@ imp$chg_mmt <- imp$chg/1000
 col_neg <- "red"
 col_pos <- "blue"
 
-(p_imp <- ggplot(imp, aes(x = region, y = chg_mmt))+
+(p_imp <- ggplot(imp_nous, aes(x = region, y = chg_mmt))+
   geom_bar(aes(fill = chg_mmt < 0), stat = "identity") + 
   scale_fill_manual(guide = FALSE, breaks = c(TRUE, FALSE), values=c(col_neg, col_pos))+
   coord_flip()+
@@ -104,11 +107,13 @@ exp <- aggregate(exp$chg, list(exp$region), FUN=sum)
 names(exp) <- c("region", "chg")
 exp$chg_mmt <- exp$chg/1000
 
+# exclude us
+exp_nous <- exp %>% filter(region != "United States")
 
 ## plot --------
 # plot vertical barplot
 #helpful link: https://stackoverflow.com/questions/48463210/how-to-color-code-the-positive-and-negative-bars-in-barplot-using-ggplot
-(p_exp <- ggplot(exp, aes(x = region, y = chg_mmt))+
+(p_exp <- ggplot(exp_nous, aes(x = region, y = chg_mmt))+
    # Set color code on a True-False basis
    geom_bar(aes(fill = chg_mmt < 0), stat = "identity") + 
    # if false, one color, if true, another
@@ -120,7 +125,9 @@ exp$chg_mmt <- exp$chg/1000
      x = "",
      y = ""
    )+
-   theme(plot.title = element_text(hjust = 0.5))
+   theme(plot.title = element_text(hjust = 0.5),
+         axis.text.y = element_blank()
+         )
 )
 
 # save
@@ -134,8 +141,10 @@ imp$type <- "Imports"
 exp$type <- "Exports"
 impexp <- rbind(imp, exp)
 
+impexp_nous <- impexp %>% filter(region != "United States")
+
 # plot with facets
-ggplot(impexp, aes(x = region, y = chg_mmt))+
+ggplot(impexp_nous, aes(x = region, y = chg_mmt))+
   geom_bar(aes(fill = chg_mmt < 0), stat = "identity") + 
   scale_fill_manual(guide = FALSE, breaks = c(TRUE, FALSE), values=c(col_neg, col_pos))+
   coord_flip()+
