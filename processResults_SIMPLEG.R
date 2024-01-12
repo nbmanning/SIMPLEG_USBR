@@ -302,6 +302,10 @@ F_aoi_prep <- function(shp, area_name){
   r_aoi <- c(r_aoi_new_qland, r_aoi_pct_qland, r_aoi_rawch_qland,
              r_aoi_new_qcrop, r_aoi_pct_qcrop, r_aoi_rawch_qcrop)
   
+  # save clipped and clamped raster with new AOI 
+  saveRDS(r_aoi, file = paste0("../Data_Derived/r", pct, "_", area_name, ".rds"))
+  
+  # return as result
   return(r_aoi)
 }
 
@@ -632,11 +636,11 @@ writeRaster(r_row_rc_QLAND2, paste0(folder, "row_QLAND.tif"),
             overwrite = T)
 
 # get # of cells over a certain value 
-r <- r_row_rc_QLAND
-r_r <- raster(r)
-test_df <- as.data.frame(r)
+r2 <- r_row_rc_QLAND
+r_r <- raster(r2)
+test_df <- as.data.frame(r2)
 sum(test_df > 5000, na.rm = T)
-summary(r, size = 1000000000)
+summary(r2, size = 1000000000)
 
 
 # get highest value of raster
@@ -646,16 +650,16 @@ pos_row <- xyFromCell(r_r,top_row)
 
 # get value of top 1% of change 
 # from: https://stackoverflow.com/questions/72406230/how-to-select-top-30-of-cells-in-a-raster-by-cell-value-in-r
-min_value <- as.data.frame(r, na.rm = TRUE) %>%
+min_value <- as.data.frame(r2, na.rm = TRUE) %>%
   slice_max(order_by = rawch_QLAND, prop = 0.01) %>%
   min()
 
 # filter to only above the minimum of the proportion we set
-top_perc <- r %>% filter(rawch_QLAND > min_value)
+top_perc <- r2 %>% filter(rawch_QLAND > min_value)
 
 # Check
 area_perc <- expanse(top_perc, unit = "km")
-totarea_km <- expanse(r, unit = "km")
+totarea_km <- expanse(r2, unit = "km")
 
 # Check - should be roughly the "prop" from above
 area_perc / totarea_km
