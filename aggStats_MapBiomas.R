@@ -28,7 +28,7 @@ folder_derived <- "../Data_Derived/"
 
 # 1: Load in MapBiomas Transition ------
 # Load collection 8 data in tabular form 
-csv_br_trans_m <- read.csv(paste0(folder_source, "SOURCE_transonly_col8_mapbiomas_municip.csv", encoding = "UTF-8"))
+csv_br_trans_m <- read.csv(paste0(folder_source, "SOURCE_transonly_col8_mapbiomas_municip.csv"), encoding = "UTF-8")
 
 ## 1.1: Tidy -----
 
