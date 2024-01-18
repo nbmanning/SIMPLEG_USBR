@@ -203,7 +203,7 @@ F_facet<-function(data, aoi, class, file_name){
       plot.subtitle = element_text(hjust = 0.5)
     )
   
-  ggsave(filename = paste0(folder_plot, file_name), 
+  ggsave(filename = paste0(folder_plot, file_name),
          plot = p,
          width = 8, height = 8,
          dpi = 300)
@@ -250,10 +250,14 @@ F_line<-function(data, aoi, class, file_name){
     geom_vline(xintercept = as.Date("2012-01-01"), color = "red",
                linetype="dotted", linewidth=0.5)
   
-  ggsave(filename = paste0(folder_plot, file_name), 
+  ggsave(filename = paste0(folder_plot, file_name),
          plot = p,
          width = 9, height = 6,
          dpi = 300)
+  
+  # print stats/data for publication
+  print("Land Transitioned:")
+  print(data %>% filter(year(year) >= 2013 & year(year) <= 2015))
   
   return(p)
 }
