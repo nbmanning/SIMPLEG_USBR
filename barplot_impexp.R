@@ -27,7 +27,7 @@ folder_fig <- "../Figures/"
 imp_maize <- read.csv(paste0(folder_data, "imp_maize.csv"))
 imp_soy <- read.csv(paste0(folder_data, "imp_soy.csv"))
 
-# Rename
+# MANUAL Rename - always double-check
 cols <- c("region_abv", "pct_chg", "pre", "post", "chg", "region")
 
 names(imp_soy) <- cols
@@ -39,11 +39,15 @@ imp_maize$crop <- "maize"
 
 # Join
 imp <- rbind(imp_soy, imp_maize)
-imp <- select(imp, "region_abv", "region", "chg", "crop")
+
+#imp <- select(imp, "region_abv", "region", "chg", "crop")
 
 # Remove spaces and numbers before regions
 ## regex: remove anything up to and including the first space
 imp$region_abv <- gsub(".*\\ ", "", imp$region_abv)
+
+# save for joining 
+df_imp <- imp 
 
 # get sum by region
 imp <- aggregate(imp$chg, list(imp$region), FUN=sum)
@@ -62,7 +66,7 @@ col_pos <- "blue"
 
 (p_imp <- ggplot(imp_nous, aes(x = region, y = chg_mmt))+
   geom_bar(aes(fill = chg_mmt < 0), stat = "identity") + 
-  scale_fill_manual(guide = FALSE, breaks = c(TRUE, FALSE), values=c(col_neg, col_pos))+
+  scale_fill_manual(guide = "none", breaks = c(TRUE, FALSE), values=c(col_neg, col_pos))+
   coord_flip()+
   theme_bw()+
   labs(
@@ -96,11 +100,14 @@ exp_maize$crop <- "maize"
 
 # Join
 exp <- rbind(exp_soy, exp_maize)
-exp <- select(exp, "region_abv", "region", "chg", "crop")
+#exp <- select(exp, "region_abv", "region", "chg", "crop")
 
 # Remove spaces and numbers before regions
 ## regex: remove anything up to and including the first space
 exp$region_abv <- gsub(".*\\ ", "", exp$region_abv)
+
+# Save for later 
+df_exp <- exp 
 
 # get sum by region
 exp <- aggregate(exp$chg, list(exp$region), FUN=sum)
@@ -117,7 +124,7 @@ exp_nous <- exp %>% filter(region != "United States")
    # Set color code on a True-False basis
    geom_bar(aes(fill = chg_mmt < 0), stat = "identity") + 
    # if false, one color, if true, another
-   scale_fill_manual(guide = FALSE, breaks = c(TRUE, FALSE), values=c(col_neg, col_pos))+
+   scale_fill_manual(guide = "none", breaks = c(TRUE, FALSE), values=c(col_neg, col_pos))+
    coord_flip()+
    theme_bw()+
    labs(
@@ -167,3 +174,12 @@ ggsave(paste0(folder_fig, "bar_impexp_f.png"),
 ggsave(paste0(folder_fig, "bar_impexp.png"),
        p,
        width = 12, height = 6)
+
+# 5: Save import and export df's -----------------
+# add labels and join
+df_imp$type <- "Imports"
+df_exp$type <- "Exports"
+df_impexp <- rbind(df_imp, df_exp)
+
+# save
+save(df_impexp, file = "../Results/SIMPLEG-2023-10-29/imports_exports/df_impexp.RData")
