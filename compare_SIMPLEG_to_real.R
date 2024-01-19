@@ -85,31 +85,47 @@ prod <- F_clean_FAOSTAT(source_prod, "Production")
 source_imp <- read.csv(paste0(folder_source, "FAOSTAT_AllCountries_CornSoy_Imports_20072017.csv"))
 imp <- F_clean_FAOSTAT(source_imp, "Imports")  
 
-# get each and re-merge
-imp_soy <- imp %>% filter(crop == "soy") %>% group_by(Area, code) %>% complete(Year = 2007:2017)
-imp_maize <- imp %>% filter(crop == "maize") %>% group_by(Area, code) %>% complete(Year = 2007:2017)
+# separate to make sure they both have complete years 
+imp_soy <- imp %>% 
+  filter(crop == "soy") %>% 
+  group_by(Area, code) %>%
+  complete(Year = 2007:2017) %>%
+  rename("imp_soy" = value) %>%
+  select(-type, -crop)
 
-# rename columns for pivoting later
-imp_soy <- imp_soy %>% rename("imp_soy" = value) %>% select(-type, -crop)
-imp_maize <- imp_maize %>% rename("imp_maize" = value) %>% select(-crop, -type)
 
-# re-join and pivot 
+imp_maize <- imp %>% 
+  # get complete years 
+  filter(crop == "maize") %>% 
+  group_by(Area, code) %>% 
+  complete(Year = 2007:2017) %>%
+  # rename for later merging
+  rename("imp_maize" = value) %>% 
+  select(-crop, -type)
+
+# re-join to get a df of complete cases 
 imp <- left_join(imp_maize, imp_soy, by = c("Area", "code", "Year"))
-#imp <- pivot_longer(imp, cols = c("imp_maize", "imp_soy"), names_to = "crop", values_to = "value")
 
 ### 1.4.2 Exports ---------
 source_exp <- read.csv(paste0(folder_source, "FAOSTAT_AllCountries_CornSoy_Exports_20072017.csv"))
 exp <- F_clean_FAOSTAT(source_exp, "Exports")
 
 # get each crop separately
-exp_soy <- exp %>% filter(crop == "soy") %>% group_by(Area, code) %>% complete(Year = 2007:2017)
-exp_maize <- exp %>% filter(crop == "maize") %>% group_by(Area, code) %>% complete(Year = 2007:2017)
+exp_soy <- exp %>%
+  filter(crop == "soy") %>%
+  group_by(Area, code) %>%
+  complete(Year = 2007:2017) %>%
+  rename("exp_soy" = value) %>%
+  select(-type, -crop)
 
-# rename and re-join
-exp_soy <- exp_soy %>% rename("exp_soy" = value) %>% select(-type, -crop)
-exp_maize <- exp_maize %>% rename("exp_maize" = value) %>% select(-crop, -type)
+exp_maize <- exp %>% 
+  filter(crop == "maize") %>%
+  group_by(Area, code) %>%
+  complete(Year = 2007:2017) %>%
+  rename("exp_maize" = value) %>%
+  select(-type, -crop)
 
-# re-join and pivot 
+# re-join 
 exp <- left_join(exp_maize, exp_soy, by = c("Area", "code", "Year"))
 
 ### 1.4.3: Imports & Exports -------------
@@ -121,53 +137,61 @@ cross <- read.csv(paste0(folder_source, "FAOtoSIMPLEG_RegionCrosswalk2.csv"))
 names(cross) <- gsub("\\.", "", names(cross))
 
 # keep only columns to add to FAO data
-cross_code <- cross %>% 
+cross <- cross %>% 
   select(UNPOPCode, SIMPLEv2RegionCoden154, RegionName) %>% 
   rename("code" = UNPOPCode, "region" = SIMPLEv2RegionCoden154)
 
-# join together and tidy
+# create 'fao_impexp' by joining together and tidying
 fao_impexp <- left_join(imp, exp, by = c("Area", "code", "Year"))
 
-# create tidy import / export data
+# create tidy import / export data at regional level
 fao_impexp <- fao_impexp %>% 
+  
+  # pivot and create import andexport columns
   pivot_longer(cols = -c(Area, code, Year)) %>% 
   separate(name, c('type', 'crop')) %>% 
   mutate(type = case_when(
     type == 'imp' ~ 'Imports',
     type == 'exp' ~ 'Exports'
   )) %>% 
+  
   # replace NA's with 0
-  mutate_at(vars('value'), ~replace_na(.,0))
-
-# join with SIMPLE-G data
-fao_impexp <- fao_impexp %>% left_join(cross_code)
-
-# remove all without a SIMPLE-G region
-fao_impexp <- fao_impexp %>% drop_na(region)
-
-# get to sum of impots and exports by region 
-fao_impexp <- fao_impexp %>% 
+  mutate_at(vars('value'), ~replace_na(.,0)) %>%
+  
+  # join with SIMPLE-G crosswalk info
+  left_join(cross) %>%
+  
+  # remove all without a SIMPLE-G region
+  drop_na(region) %>%
+  
+  # get to sum of impots and exports by region 
   group_by(region, RegionName, type, Year, crop) %>% 
   summarise(value = sum(value)) %>% 
+  
   # rename to match SIMPLE-G
   rename(
     "region_abv" = region,
     "region" = RegionName
   )
 
+
 # set up pre- and post
+year_pre <- 2010
+year_post <- 2013
+
 fao_impexp <- fao_impexp %>% 
-  filter(Year == 2013 | Year == 2010) %>%
+  filter(Year == year_post | Year == year_pre) %>%
   # set to same units as SIMPLE-G
   mutate(value = value/1000) %>% 
   # add a pre-post marker
   mutate(time = case_when(
-    Year == 2010 ~ "pre",
-    Year == 2013 ~ "post"
+    Year == year_pre ~ "pre",
+    Year == year_post ~ "post"
   ))
 
+
 # get changes (then divide by 1000)
-fao_impexp2 <- fao_impexp %>% 
+fao_impexp <- fao_impexp %>% 
   # remove Year to have pre- and post- be the separators
   subset(select = -Year) %>% 
   # separate pre- and post into their own columns
@@ -192,7 +216,7 @@ col_neg <- "red"
 col_pos <- "blue"
 
 # remove US
-fao_impexp_nous <- fao_impexp2 %>% filter(region_abv != "US")
+fao_impexp_nous <- fao_impexp %>% filter(region_abv != "US")
 
 # separate to imports and exports for plotting 
 fao_imp_nous <- fao_impexp_nous %>% filter(type =="Imports")
@@ -241,23 +265,26 @@ fao_exp_nous <- fao_impexp_nous %>% filter(type =="Exports")
 #        width = 12, height = 6)
 
 # 2: Compare SIMPLE-G and FAO -----
-fao_impexp2 <- fao_impexp2 %>% subset(select = -region)
+fao_impexp <- fao_impexp %>% subset(select = -region)
 
-sg_impexp2 <-  sg_impexp %>% 
+# calculate sums from crops
+sg_impexp <-  sg_impexp %>% 
   group_by(region_abv, region, type) %>%
   summarize(pre = sum(pre),
             post = sum(post)) %>% 
   mutate(chg = post-pre,
          chg_mmt = chg/1000)
 
-comp_impexp<- sg_impexp2 %>% 
-  left_join(fao_impexp2) %>% 
+# join SIMPLE-G with FAOSTAT data
+comp_impexp<- sg_impexp %>% 
+  left_join(fao_impexp) %>% 
   # remove any mismatches - removes SSA bc missing from crosswalk
   drop_na() %>% 
   select(region_abv, region, type,
          pre, pre_fao, post, post_fao,
          chg, chg_fao, chg_mmt, chg_fao_mmt) %>% 
   mutate_if(is.numeric, round, 2)
+
   
 # 5: Save import and export df's ---
 
