@@ -204,7 +204,7 @@ fao_impexp <- fao_impexp %>%
             post = sum(post)) %>%
   # # add change and change_mmt
   mutate(chg_fao = post-pre) %>%  
-  mutate(chg_fao_mmt = chg_fao/1000) %>% 
+  mutate(chg_mmt_fao = chg_fao/1000) %>% 
   # rename pre and post so we can merge later
   rename(
     "pre_fao" = pre,
@@ -224,8 +224,8 @@ fao_exp_nous <- fao_impexp_nous %>% filter(type =="Exports")
 
 
 # plot imports using same format as in 'barplot_impexp.R'
-(p_imp <- ggplot(fao_imp_nous, aes(x = region_abv, y = chg_fao_mmt))+
-    geom_bar(aes(fill = chg_fao_mmt < 0), stat = "identity") + 
+(p_imp <- ggplot(fao_imp_nous, aes(x = region_abv, y = chg_mmt_fao))+
+    geom_bar(aes(fill = chg_mmt_fao < 0), stat = "identity") + 
     scale_fill_manual(guide = "none", breaks = c(TRUE, FALSE), values=c(col_neg, col_pos))+
     coord_flip()+
     theme_bw()+
@@ -238,9 +238,9 @@ fao_exp_nous <- fao_impexp_nous %>% filter(type =="Exports")
 )
 
 # plot exports using same format as in 'barplot_impexp.R'
-(p_exp <- ggplot(fao_exp_nous, aes(x = region_abv, y = chg_fao_mmt))+
+(p_exp <- ggplot(fao_exp_nous, aes(x = region_abv, y = chg_mmt_fao))+
    # Set color code on a True-False basis
-   geom_bar(aes(fill = chg_fao_mmt < 0), stat = "identity") + 
+   geom_bar(aes(fill = chg_mmt_fao < 0), stat = "identity") + 
    # if false, one color, if true, another
    scale_fill_manual(guide = "none", breaks = c(TRUE, FALSE), values=c(col_neg, col_pos))+
    coord_flip()+
@@ -265,6 +265,8 @@ fao_exp_nous <- fao_impexp_nous %>% filter(type =="Exports")
 #        width = 12, height = 6)
 
 # 2: Compare SIMPLE-G and FAO -----
+
+## 2.1: Join SIMPLE-G and FAOSTAT ---------
 fao_impexp <- fao_impexp %>% subset(select = -region)
 
 # calculate sums from crops
@@ -276,16 +278,61 @@ sg_impexp <-  sg_impexp %>%
          chg_mmt = chg/1000)
 
 # join SIMPLE-G with FAOSTAT data
-comp_impexp<- sg_impexp %>% 
+comp_impexp_all <- sg_impexp %>% 
   left_join(fao_impexp) %>% 
   # remove any mismatches - removes SSA bc missing from crosswalk
   drop_na() %>% 
   select(region_abv, region, type,
          pre, pre_fao, post, post_fao,
-         chg, chg_fao, chg_mmt, chg_fao_mmt) %>% 
+         chg, chg_fao, chg_mmt, chg_mmt_fao) %>% 
   mutate_if(is.numeric, round, 2)
 
+comp_impexp <- comp_impexp_all %>% 
+  pivot_longer(cols = -c(region_abv, region, type), 
+               names_to = "stat", values_to = "value")
   
+comp_imp <- comp_impexp %>% 
+  filter(type == "Imports")
+
+comp_exp <- comp_impexp %>%
+  filter(type == "Exports")
+
+## 2.2: Plot Changes ---------
+
+# PICK BACK UP HERE -----------
+# Maybe make a new script for plotting??? This one could just be organizing 
+
+# plot as barplot
+## link: https://www.datanovia.com/en/lessons/ggplot-barplot/
+stat_of_interest <- "pre"
+
+comp_plot <- comp_imp %>%  filter(grepl(stat_of_interest, stat))
+
+ggplot(comp_plot, aes(x = region_abv, y = value)) +
+  geom_col(aes(fill = stat), position = position_dodge(0.8), width = 0.7)+
+  coord_flip()+
+  scale_fill_manual(values = c("purple", "green"), 
+                    labels=c('SIMPLE-G', 'FAO'),
+                    #breaks = c('FAO', "SIMPLE-G")
+                    )+
+  labs(
+    title = paste("Comparison of - ", stat_of_interest, "- between FAO and SIMPLE-G Imports"),
+    x="", y=""
+  )
+
+ggplot(comp_plot, aes(x = region_abv, y = value)) +
+  geom_col(aes(fill = stat), position = position_dodge(0.8), width = 0.7)+
+  coord_flip()+
+  scale_fill_manual(values = c("purple", "green"), 
+                    labels=c('SIMPLE-G', 'FAO'),
+                    #breaks = c('FAO', "SIMPLE-G")
+  )+
+  labs(
+    title = paste("Comparison of - ", stat_of_interest, "- between FAO and SIMPLE-G Imports"),
+    x="", y=""
+  )
+    
+
 # 5: Save import and export df's ---
 
 # 2: Compare Area ---------------------------------------------------------------
