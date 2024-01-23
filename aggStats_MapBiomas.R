@@ -174,7 +174,7 @@ agg_brmuni <- df_br %>%
 
 
 # get agg sum of certain 'from' classes
-ag_br_fromveg <- df_br %>%
+agg_br_fromveg <- df_br %>%
   filter(from_level_3 %in% list_from_lv3) %>% 
   aggregate(ha ~ year, sum) %>% 
   mutate(year = as.Date(paste(year, 1, 1), '%Y %m %d'))
@@ -267,13 +267,16 @@ F_line(data = agg_br, aoi = "Brazil", class = "From All Classes to Temporary Cro
        file_name = "line_br_allagg.png")
 
 ### from veg -----
-F_line(data = ag_br_fromveg, aoi = "Brazil", class = "From Relevant Vegetation Classes to Temporary Crops", 
+F_line(data = agg_br_fromveg, aoi = "Brazil", class = "From Relevant Vegetation Classes to Temporary Crops", 
        file_name = "line_br_fromveg.png")
 
-## 3.4: BR Land trans stats -----
-print(ag_br_fromveg %>% filter(year(year) >= 2013 & year(year) <= 2015))
+
+## 3.4: STATS BR Land Trans -----
+print(agg_br_fromveg %>% filter(year(year) >= 2013 & year(year) <= 2015))
 print(agg_br %>% filter(year(year) >= 2013 & year(year) <= 2015))
 
+stat_agg_trans_br <- agg_br %>% filter(year(year) == 2010 | year(year) >= 2013 & year(year) <= 2015)
+stat_agg_trans_br_fromveg <- agg_br_fromveg %>% filter(year(year) == 2010 | year(year) >= 2013 & year(year) <= 2015)
 
 
 # 4: Cerrado --------
@@ -340,9 +343,18 @@ F_line(data = agg_cerr_fromveg, aoi = "Cerrado", class = "From Relevant Vegetati
        file_name = "line_cerr_fromveg.png")
 
 
-## 4.4: Cerr Land trans stats -----
+## 4.4: STATS Cerr Land Trans -----
 print(agg_cerr %>% filter(year(year) >= 2013 & year(year) <= 2015))
 print(agg_cerr_fromveg %>% filter(year(year) >= 2013 & year(year) <= 2015))
+
+stat_agg_trans_cerr <- agg_cerr %>% filter(year(year) == 2010 | year(year) >= 2013 & year(year) <= 2015)
+stat_agg_trans_cerr_fromveg <- agg_cerr_fromveg %>% filter(year(year) == 2010 | year(year) >= 2013 & year(year) <= 2015)
+
+# 5: SAVE stats ---------
+save(
+  stat_agg_br, stat_agg_br_fromveg,
+  stat_agg_cerr, stat_agg_cerr_fromveg,
+  file = "../Results/SIMPLEG-2023-10-29/stat_summary/mapb_agg_land_trans_br_and_cerr.RData")
 
 
 
