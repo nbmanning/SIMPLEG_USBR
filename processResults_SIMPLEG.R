@@ -371,8 +371,8 @@ names(r) <- c("pct_QLAND",
 # link: https://gis.stackexchange.com/questions/421821/how-to-subset-a-spatraster-by-value-in-r
 
 # count cells over 50,000 -- Can't just count NA from MR because others 
-y <- ifel(r_new_qland > 50000, 999999, r_new_qland)
-ncell(y[y==999999])
+stat_newland_over50k <- ifel(r_new_qland > 50000, 999999, r_new_qland)
+stat_newland_over50k <- ncell(stat_newland_over50k[stat_newland_over50k==999999])
 
 
 ## 4.3: World Results ---------
@@ -1036,6 +1036,8 @@ lines(shp_us_mw, lwd = 0.8, lty = 3, col = "darkgray")
 dev.off()
 
 
+
+
 # 6: Brazil Results ----------------------------
 
 ## 6.1 Prep BR Data -----------
@@ -1045,6 +1047,7 @@ r_br <- F_aoi_prep(shp = shp_br, area_name = "Brazil")
 
 # call fxn to create EDA plots of the clipped data 
 F_EDA(r_aoi = r_br, area_name = "Brazil")
+
 
 ### XX 6.1.1 Test vs source ----- 
 # total % change in 
@@ -1303,6 +1306,7 @@ F_ggplot_BR(df = r_br %>% subset("rawch_QCROP")/1000,
             p_title = paste("Brazil Raw Change in\nCrop Production Index", pct_title))
 
 
+## 6.4 : STATS: Save BR Stats
 
 # 7: Cerrado Results ----------------------------
 
@@ -1457,6 +1461,49 @@ terra::plot(r_cerr %>% subset("rawch_QCROP")/1000,
 lines(shp_cerr_states, lwd = 0.8, lty = 3, col = "darkgray")
 
 dev.off()
+
+# 8: STATS --------------------------
+# Function to get the total changes
+F_sum <- function(df, layer){
+  test2 <- df %>% subset(layer)
+  global(test2, fun = "sum", na.rm = T)[1,]
+}
+
+# Function to create df of changes and calculate "PRE" values
+F_area_stats <- function(df, extent_text){
+  labels <- c("new_cropland_area", 
+              "raw_change_cropland_area",
+              "new_crop_production", 
+              "raw_change_crop_production")
+  
+  values <- c(
+    F_sum(df, "new_QLAND"),
+    F_sum(df, "rawch_QLAND"),
+    F_sum(df, "new_QCROP"),
+    F_sum(df, "rawch_QCROP")
+  )
+  
+  df2 <- data.frame(labels, values)
+  df2 <- df2 %>% 
+    pivot_wider(names_from = "labels", values_from = "values") %>% 
+    mutate(extent = extent_text,
+           pre_cropland_area = new_cropland_area - raw_change_cropland_area,
+           pre_crop_production = new_crop_production - raw_change_crop_production) %>% 
+    pivot_longer(cols = -extent, names_to = "labels", values_to = "values")
+}
+
+## 8.1: Get Cropland Area and Crop Production Stats ------
+stat_SG_QLAND_QCROP_US <- F_area_stats(r_us, "US")  
+stat_SG_QLAND_QCROP_BR <- F_area_stats(r_br, "Brazil")  
+stat_SG_QLAND_QCROP_Cerrado <- F_area_stats(r_cerr, "Cerrado")  
+
+## 8.2: Save SIMPLE-G Stats ------- 
+save(
+  stat_SG_QLAND_QCROP_US, stat_SG_QLAND_QCROP_BR, stat_SG_QLAND_QCROP_Cerrado,
+  file = "../Results/SIMPLEG-2023-10-29/stat_summary/sg_QLAND_QCROP_US_BR_Cerr.RData"
+)
+
+## 8.3 Notes on Units ---------
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #  
 # END ----------------------------------------------------------------
