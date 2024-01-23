@@ -12,6 +12,8 @@ rm(list = ls())
 ## Libraries 
 library(tidyverse)
 library(cowplot)
+library(sidrar)
+
 
 ## Constants
 folder_source <- "../Data_source/FAOSTAT/"
@@ -23,7 +25,7 @@ folder_source <- "../Data_source/FAOSTAT/"
 ## Import / Export
 # from script 'barplot_impexp.r'
 load(file = "../Results/SIMPLEG-2023-10-29/imports_exports/df_impexp.RData")
-sg_impexp <- df_impexp %>% mutate(chg_mmt = chg/1000)
+stat_sg_impexp <- df_impexp %>% mutate(chg_mmt = chg/1000)
   
 
 ## Area & Production
@@ -48,6 +50,7 @@ area <- source_area %>%
   )
 
 str(area)
+stat_fao_area <- area %>% filter(Year==2010 | Year == 2013)
 
 # set up new function based on 'area'
 F_clean_FAOSTAT <- function(df, new_element){
@@ -75,7 +78,7 @@ F_clean_FAOSTAT <- function(df, new_element){
 ### Source 1: Production from FAOSTAT
 source_prod <- read.csv(paste0(folder_source, "FAOSTAT_BR_US_Prod_CornSoy_20072017.csv"))
 prod <- F_clean_FAOSTAT(source_prod, "Production") 
-
+stat_fao_prod <- prod %>% filter(Year==2010 | Year == 2013)
 
 ## 1.4: Real Imports & Exports -----------------------------------------------
 
@@ -145,7 +148,7 @@ cross <- cross %>%
 fao_impexp <- left_join(imp, exp, by = c("Area", "code", "Year"))
 
 # create tidy import / export data at regional level
-fao_impexp <- fao_impexp %>% 
+stat_fao_impexp_crop <- fao_impexp %>% 
   
   # pivot and create import andexport columns
   pivot_longer(cols = -c(Area, code, Year)) %>% 
@@ -179,7 +182,8 @@ fao_impexp <- fao_impexp %>%
 year_pre <- 2010
 year_post <- 2013
 
-fao_impexp <- fao_impexp %>% 
+# change from each crop to soy+maize
+fao_impexp <- stat_fao_impexp_crop %>% 
   filter(Year == year_post | Year == year_pre) %>%
   # set to same units as SIMPLE-G
   mutate(value = value/1000) %>% 
@@ -210,6 +214,8 @@ fao_impexp <- fao_impexp %>%
     "pre_fao" = pre,
     "post_fao" = post
   )
+
+stat_fao_impexp <- fao_impexp
 
 ## 1.5: Plot Real Imports & Exports -------
 col_neg <- "red"
@@ -270,7 +276,7 @@ fao_exp_nous <- fao_impexp_nous %>% filter(type =="Exports")
 fao_impexp <- fao_impexp %>% subset(select = -region)
 
 # calculate sums from crops
-sg_impexp <-  sg_impexp %>% 
+df_sg_impexp <-  df_sg_impexp %>% 
   group_by(region_abv, region, type) %>%
   summarize(pre = sum(pre),
             post = sum(post)) %>% 
@@ -278,7 +284,7 @@ sg_impexp <-  sg_impexp %>%
          chg_mmt = chg/1000)
 
 # join SIMPLE-G with FAOSTAT data
-comp_impexp_all <- sg_impexp %>% 
+comp_impexp_all <- df_sg_impexp %>% 
   left_join(fao_impexp) %>% 
   # remove any mismatches - removes SSA bc missing from crosswalk
   drop_na() %>% 
@@ -287,53 +293,281 @@ comp_impexp_all <- sg_impexp %>%
          chg, chg_fao, chg_mmt, chg_mmt_fao) %>% 
   mutate_if(is.numeric, round, 2)
 
+stat_comp_impexp <- comp_impexp_all
+
+# get final df's for plotting 
 comp_impexp <- comp_impexp_all %>% 
   pivot_longer(cols = -c(region_abv, region, type), 
                names_to = "stat", values_to = "value")
   
-comp_imp <- comp_impexp %>% 
-  filter(type == "Imports")
-
-comp_exp <- comp_impexp %>%
-  filter(type == "Exports")
+# comp_imp <- comp_impexp %>% 
+#   filter(type == "Imports")
+# 
+# comp_exp <- comp_impexp %>%
+#   filter(type == "Exports")
 
 ## 2.2: Plot Changes ---------
 
-# PICK BACK UP HERE -----------
 # Maybe make a new script for plotting??? This one could just be organizing 
 
 # plot as barplot
 ## link: https://www.datanovia.com/en/lessons/ggplot-barplot/
-stat_of_interest <- "pre"
+col1 <- "purple"
+col2 <- "green"
 
-comp_plot <- comp_imp %>%  filter(grepl(stat_of_interest, stat))
+### Working Ex --------------
 
-ggplot(comp_plot, aes(x = region_abv, y = value)) +
-  geom_col(aes(fill = stat), position = position_dodge(0.8), width = 0.7)+
-  coord_flip()+
-  scale_fill_manual(values = c("purple", "green"), 
-                    labels=c('SIMPLE-G', 'FAO'),
-                    #breaks = c('FAO', "SIMPLE-G")
-                    )+
-  labs(
-    title = paste("Comparison of - ", stat_of_interest, "- between FAO and SIMPLE-G Imports"),
-    x="", y=""
+# WORKS #
+# #filter
+# comp_imp_plot <- comp_impexp %>%
+#   filter(type == "Imports") %>%
+#   filter(stat == "pre" | stat == "pre_fao") #%>%
+# 
+# # plot
+# p_imp <- ggplot(comp_imp_plot, aes(x = region_abv, y = value)) +
+#   geom_col(aes(fill = stat), position = position_dodge(0.8), width = 0.7)+
+#   coord_flip()+
+#   scale_fill_manual(values = c(col1, col2),
+#                     labels=c('SIMPLE-G', 'FAO'))+
+#   labs(
+#     title = paste("Pre-Simulation", "Imports"),
+#     x="", y=""
+#   )+
+#   theme(legend.position = "none")
+# 
+# ##### exports plot
+# comp_exp_plot <- comp_impexp %>%
+#   filter(type == "Exports") %>%
+#   filter(stat == "pre" | stat == "pre_fao") #%>%
+# 
+# # plot
+# p_exp <-ggplot(comp_exp_plot, aes(x = region_abv, y = value)) +
+#   geom_col(aes(fill = stat), position = position_dodge(0.8), width = 0.7)+
+#   coord_flip()+
+#   scale_fill_manual(values = c(col1, col2),
+#                     labels=c('SIMPLE-G', 'FAO'))+
+#   labs(
+#     title = paste("Pre-Simulation", "Exports"),
+#     x="", y=""
+#   )
+# 
+# ##### together plot
+# (p <- plot_grid(p_imp, p_exp, labels = "AUTO"))
+
+
+#### turn to fxn
+F_plot_compare <- function(df, sg_stat, fao_stat, title){
+  
+  comp_imp_plot <- df %>%
+    filter(type == "Imports") %>%
+    filter(stat == sg_stat | stat == fao_stat) #%>%
+  
+  # plot
+  p_imp <- ggplot(comp_imp_plot, aes(x = region_abv, y = value)) +
+    geom_col(aes(fill = stat), position = position_dodge(0.8), width = 0.7)+
+    coord_flip()+
+    scale_fill_manual(values = c(col1, col2),
+                      labels=c('SIMPLE-G', 'FAO'))+
+    labs(
+      title = paste(title, "Imports"),
+      x="", y=""
+    )+
+    theme(legend.position = "none")
+  
+  ##### exports plot
+  comp_exp_plot <- df %>%
+    filter(type == "Exports") %>%
+    filter(stat == sg_stat | stat == fao_stat) #%>%
+  
+  # plot
+  p_exp <-ggplot(comp_exp_plot, aes(x = region_abv, y = value)) +
+    geom_col(aes(fill = stat), position = position_dodge(0.8), width = 0.7)+
+    coord_flip()+
+    scale_fill_manual(values = c(col1, col2),
+                      labels=c('SIMPLE-G', 'FAO'))+
+    labs(
+      title = paste(title, "Exports"),
+      x="", y=""
+    )
+  
+  ##### together plot
+  (p <- plot_grid(p_imp, p_exp, labels = "AUTO"))
+}
+
+
+### 2.2.1: PRE-stats ---------------
+unique(comp_impexp$stat)
+F_plot_compare(comp_impexp, "pre", "pre_fao", "Pre-Shock")
+
+
+### 2.2.2 POST stats -------------
+F_plot_compare(comp_impexp, "post", "post_fao", "Post-Shock")
+
+### 2.2.3 CHANGE stats (mmt) ---------------
+F_plot_compare(comp_impexp, "chg_mmt", "chg_mmt_fao", "Change (mmt) in")
+
+
+# 3: Compare Area & Production ---------------------------------------------------------------
+# Search terms:
+## "Tabela 1612: Área plantada, área colhida, quantidade produzida, rendimento médio e valor da produção das lavouras temporárias"
+
+
+# Units: 
+## Quantidade produzida = quantity produced (Toneladas)
+## Rendimento médio da produção = average production yield (kg/ha)
+
+
+# Item Codes:
+# 109:Área plantada (Hectares) 
+
+# 1000109: Área plantada - percentual do total geral (%) 
+
+# 216:Área colhida (Hectares)
+
+# 1000216: Área colhida - percentual do total geral (%)
+
+# 214: Quantidade produzida (Toneladas)
+## Quantity Produced (Tons)
+
+# 112: Rendimento médio da produção (Quilogramas por Hectare)
+## Average production yield (kg per ha)
+
+# 215: Valor da produção (Mil Cruzeiros, Mil Cruzados , Mil Cruzados Novos, Mil Cruzeiros Reais [], Mil Reais)
+
+# 1000215: Valor da produção - percentual do total geral (%)
+
+## 3.1: National BR Raw Production (Prod & Planted) ------- 
+# get area harvested and production for BR 
+raw_sidra_br <- get_sidra(x = 1612, 
+                          variable =  c(214, 216), # 214 = Production, 216 = Area Harvested
+                          period = as.character(c(year_pre, year_post)),# list_year_range, #2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021
+                          geo = "Brazil", # Brazil, State, or Município
+                          geo.filter = NULL,
+                          classific = "c81",
+                          category = list(c(0, 2713, 2711)), # 2713 = Soja (em grão); 2711 = Milho (corn) (em grão)
+                          header = T,
+                          format = 3)
+
+## STATS BR PRE PROD AREA----------
+stat_sidra_area_prod_br <- raw_sidra_br %>% filter(Ano == 2010 | Ano == 2013) %>% dplyr::select(-c(Brasil, `Brasil (Código)`, `Nível Territorial (Código)`)) 
+test_br <- stat_sidra_area_prod_br %>% filter(Ano == 2010) 
+test_br
+# 2010 production of soy (tons)
+## 68756343
+
+# 2010 production of corn (tons) 
+## 55364271
+
+# 2010 harvested area of soy (ha)
+## 23327296
+
+# 2010 harvested area of corn (ha)
+## 12678875
+
+
+## STATS BR POST PROD AREA --------
+test_br <- stat_sidra_area_prod_br %>% filter(Ano == 2013) 
+test_br
+
+# 2013 production of soy (tons)
+## 81724477 
+
+# 2013 production of corn (tons) 
+## 80273172
+
+# 2013 harvested area of soy (ha)
+## 27906675
+
+# 2013 harvested area of corn (ha)
+## 15279652
+
+
+
+## 3.2: Cerrado Production & Area Harvested -------
+# get area harvested and production for BR 
+raw_sidra_cerr <- get_sidra(x = 1612, 
+                          variable =  c(214, 216), # 214 = Production, 216 = Area Harvested
+                          period = as.character(c(year_pre, year_post)),# list_year_range, #2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021
+                          geo = "MicroRegion", # Brazil, State, or Município
+                          geo.filter = NULL,
+                          classific = "c81",
+                          category = list(c(0, 2713, 2711)), # 2713 = Soja (em grão); 2711 = Milho (corn) (em grão)
+                          header = T,
+                          format = 3)
+#?get_sidra
+#The geo argument can be one of "Brazil", "Region", "State", "MesoRegion", "MicroRegion", "MetroRegion", "MetroRegionDiv",
+# "IRD", "UrbAglo", "City", "District","subdistrict","Neighborhood","PopArrang". 
+# 'geo.filter' lists can/must be named with the same characters.
+
+# CLEAN
+prod_area_cerr <-  raw_sidra_cerr %>% 
+  dplyr::select("Microrregião Geográfica (Código)", "Ano", "Variável", "Produto das lavouras temporárias", "Valor") %>% 
+  rename("code_micro" = "Microrregião Geográfica (Código)",
+         "year" = "Ano",
+         "var" = "Variável",
+         "type_ag" = "Produto das lavouras temporárias",
+         "value" = "Valor") %>% 
+  mutate(code_micro = as.double(code_micro)) %>% 
+  # spread data to clean
+  pivot_wider(names_from = type_ag, values_from = value) %>% 
+  # rename again
+  rename(
+    "soy" = "Soja (em grão)",
+    "maize" = "Milho (em grão)",
+    "total" = "Total"
+  ) %>% 
+  ## Approach One ##
+  # change NA's to 0
+  mutate(across(where(anyNA), ~ replace_na(., 0))) %>% 
+  # change total to the sum of soy+maize
+  mutate(total = soy + maize) %>% 
+  # ## Approach Two ## -- not sure if I should omit all the NA's bc they aren't technically 0
+  # na.omit()
+  pivot_longer(
+    cols = -c(code_micro, year, var),
+    names_to = "type_ag",
+    values_to = "value"
   )
 
-ggplot(comp_plot, aes(x = region_abv, y = value)) +
-  geom_col(aes(fill = stat), position = position_dodge(0.8), width = 0.7)+
-  coord_flip()+
-  scale_fill_manual(values = c("purple", "green"), 
-                    labels=c('SIMPLE-G', 'FAO'),
-                    #breaks = c('FAO', "SIMPLE-G")
-  )+
-  labs(
-    title = paste("Comparison of - ", stat_of_interest, "- between FAO and SIMPLE-G Imports"),
-    x="", y=""
-  )
-    
 
-# 5: Save import and export df's ---
+library(geobr)
+source_br_micro <- read_micro_region(year = 2010, simplified = T)
 
-# 2: Compare Area ---------------------------------------------------------------
-# 3: Compare Production ---------------------------------------------------------------
+# get ag stats for each microregion
+micro <- source_br_micro %>% left_join(prod_area_cerr)
+
+# load cerr shapefile 
+load(file = "../Data_Source/MapBiomas/shp_br_cerr.Rdata")
+
+# check CRS for each - should be TRUE
+st_crs(micro) == st_crs(shp_br_cerr)
+
+# get municipalities that are at all within the Cerrado
+shp_micro_cerr <- st_intersection(micro, shp_br_cerr)
+#plot(shp_micro_cerr)
+
+# # get just the codes column
+# shp_code_muni_in_cerr <- shp_muni_in_cerr %>% select(code_muni)
+# shp_code_muni_br <- shp_muni %>% select(code_muni)
+# 
+# # get territory codes for municipalities in intersection as numeric
+# muni_codes_cerr <- shp_muni_in_cerr$code_muni
+# muni_codes_br <- shp_muni$code_muni
+
+names(shp_micro_cerr) 
+
+## STATS Cerrado Prod & Area --------------
+stat_sidra_area_prod_micro_cerr_sf <- shp_micro_cerr %>% 
+  dplyr::select(year, code_micro, var, type_ag, value, name_biome) %>% 
+  mutate(var = case_when(
+    var == "Quantidade produzida" ~ "prod",
+    var == "Área colhida" ~ "area"
+  ))
+  
+stat_sidra_area_prod_cerr <- stat_sidra_area_prod_micro_cerr_sf %>%
+  # remove spatial aspect
+  st_drop_geometry() %>% 
+  group_by(year, name_biome, var, type_ag) %>% 
+  summarise(value=sum(value))
+
+## 3.3 Import SIMPLE-G Results -----------
