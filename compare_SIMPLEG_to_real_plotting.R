@@ -59,48 +59,7 @@ load(file = paste0(folder_stat, "sg_QLAND_QCROP_US_BR_Cerr.RData"))
 # plot as barplot
 ## link: https://www.datanovia.com/en/lessons/ggplot-barplot/
 
-
-### Working Ex --------------
-
-# WORKS #
-# #filter
-# comp_imp_plot <- comp_impexp %>%
-#   filter(type == "Imports") %>%
-#   filter(stat == "pre" | stat == "pre_fao") #%>%
-# 
-# # plot
-# p_imp <- ggplot(comp_imp_plot, aes(x = region_abv, y = value)) +
-#   geom_col(aes(fill = stat), position = position_dodge(0.8), width = 0.7)+
-#   coord_flip()+
-#   scale_fill_manual(values = c(col1, col2),
-#                     labels=c('SIMPLE-G', 'FAO'))+
-#   labs(
-#     title = paste("Pre-Simulation", "Imports"),
-#     x="", y=""
-#   )+
-#   theme(legend.position = "none")
-# 
-# ##### exports plot
-# comp_exp_plot <- comp_impexp %>%
-#   filter(type == "Exports") %>%
-#   filter(stat == "pre" | stat == "pre_fao") #%>%
-# 
-# # plot
-# p_exp <-ggplot(comp_exp_plot, aes(x = region_abv, y = value)) +
-#   geom_col(aes(fill = stat), position = position_dodge(0.8), width = 0.7)+
-#   coord_flip()+
-#   scale_fill_manual(values = c(col1, col2),
-#                     labels=c('SIMPLE-G', 'FAO'))+
-#   labs(
-#     title = paste("Pre-Simulation", "Exports"),
-#     x="", y=""
-#   )
-# 
-# ##### together plot
-# (p <- plot_grid(p_imp, p_exp, labels = "AUTO"))
-
-
-#### turn to fxn
+## set up function to plot based on 'baplot_impexp.r'
 F_plot_compare <- function(df, sg_stat, fao_stat, title){
   
   comp_imp_plot <- df %>%
@@ -133,10 +92,35 @@ F_plot_compare <- function(df, sg_stat, fao_stat, title){
     labs(
       title = paste(title, "Exports"),
       x="", y=""
-    )
+    )+
+    theme(legend.position = "none")
+
   
-  ##### together plot
-  (p <- plot_grid(p_imp, p_exp, labels = "AUTO"))
+  # plot imports and exports together
+  (p <- plot_grid(p_imp, 
+                  p_exp, 
+                  labels = c("A", "B"),
+                  align = 'vh',
+                  scale = 0.9))
+  
+  # get legend
+  # link: https://wilkelab.org/cowplot/articles/shared_legends.html
+  legend <- get_legend(
+    p_imp + 
+      guides(color = guide_legend(nrow = 1)) +
+      theme(legend.position = "bottom",
+            legend.title = element_blank())
+  )
+  
+  # add the legend underneath the row we made earlier. Give it 10%
+  # of the height of one plot (via rel_heights).
+  p_with_legend <- plot_grid(p, legend, ncol = 1, rel_heights = c(1, .1))
+  
+  # save 
+  ggsave(filename = paste0(folder_fig, "impexp_", sg_stat, ".png"),
+         plot = p_with_legend,
+         width = 12, height = 6)
+  
 }
 
 ### 1.1: PRE-stats ---------------
@@ -149,11 +133,8 @@ F_plot_compare(stat_comp_impexp_plotting, "post", "post_fao", "Post-Shock")
 F_plot_compare(stat_comp_impexp_plotting, "chg_mmt", "chg_mmt_fao", "Change (mmt) in")
 
 
-
-
-
-
 # 2: AREA HARVESTED -----------
+
 
 # 3: PRODUCTION ------------
 
