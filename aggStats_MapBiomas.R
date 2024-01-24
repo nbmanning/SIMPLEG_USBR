@@ -275,8 +275,8 @@ F_line(data = agg_br_fromveg, aoi = "Brazil", class = "From Relevant Vegetation 
 print(agg_br_fromveg %>% filter(year(year) >= 2013 & year(year) <= 2015))
 print(agg_br %>% filter(year(year) >= 2013 & year(year) <= 2015))
 
-stat_agg_trans_br <- agg_br %>% filter(year(year) == 2010 | year(year) >= 2013 & year(year) <= 2015)
-stat_agg_trans_br_fromveg <- agg_br_fromveg %>% filter(year(year) == 2010 | year(year) >= 2013 & year(year) <= 2015)
+stat_mapb_agg_trans_br <- agg_br %>% filter(year(year) == 2010 | year(year) >= 2013 & year(year) <= 2015)
+stat_mapb_agg_trans_br_fromveg <- agg_br_fromveg %>% filter(year(year) == 2010 | year(year) >= 2013 & year(year) <= 2015)
 
 
 # 4: Cerrado --------
@@ -347,13 +347,13 @@ F_line(data = agg_cerr_fromveg, aoi = "Cerrado", class = "From Relevant Vegetati
 print(agg_cerr %>% filter(year(year) >= 2013 & year(year) <= 2015))
 print(agg_cerr_fromveg %>% filter(year(year) >= 2013 & year(year) <= 2015))
 
-stat_agg_trans_cerr <- agg_cerr %>% filter(year(year) == 2010 | year(year) >= 2013 & year(year) <= 2015)
-stat_agg_trans_cerr_fromveg <- agg_cerr_fromveg %>% filter(year(year) == 2010 | year(year) >= 2013 & year(year) <= 2015)
+stat_mapb_agg_trans_cerr <- agg_cerr %>% filter(year(year) == 2010 | year(year) >= 2013 & year(year) <= 2015)
+stat_mapb_agg_trans_cerr_fromveg <- agg_cerr_fromveg %>% filter(year(year) == 2010 | year(year) >= 2013 & year(year) <= 2015)
 
 # 5: SAVE stats ---------
 save(
-  stat_agg_br, stat_agg_br_fromveg,
-  stat_agg_cerr, stat_agg_cerr_fromveg,
+  stat_mapb_agg_trans_br, stat_mapb_agg_trans_br_fromveg,
+  stat_mapb_agg_trans_cerr, stat_mapb_agg_trans_cerr_fromveg,
   file = "../Results/SIMPLEG-2023-10-29/stat_summary/mapb_agg_land_trans_br_and_cerr.RData")
 
 
