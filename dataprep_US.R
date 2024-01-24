@@ -116,12 +116,16 @@ str(df)
 # create corn/soy data by combining production and area harvest, then calculating yield 
 df <- df %>% 
   mutate(
-    cornSoyAreaHarvested = cornAreaHarvested + cornAreaHarvested,
+    cornSoyAreaHarvested = cornAreaHarvested + soybeansAreaHarvested,
     cornSoyAreaPlanted = cornAreaPlanted + soybeansAreaPlanted,
     cornSoyProd = cornProd + soybeansProd,
     cornSoyYield = cornSoyProd/cornSoyAreaPlanted
   )
 
+#### STATS: Save USDA-NASS Corn, Soy, CornSoy Stat ----------
+stat_usdanass_prod_area <- df
+save(stat_usdanass_prod_area,
+     file = "../Results/SIMPLEG-2023-10-29/stat_summary/sg_QLAND_QCROP_US_BR_Cerr.RData")
 
 ## 1.2: Initial Mapping --------------
 # load mw states for outline
