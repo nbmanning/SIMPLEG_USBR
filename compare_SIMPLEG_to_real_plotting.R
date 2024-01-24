@@ -32,25 +32,25 @@ year_pre <- 2010
 year_post <- 2013
 
 ## Load all STAT data -----
-# USDA - US; Area(ha), Prod('metric tonnes' aka 'mt' aka 'tonnes' aka 1000 kg)
-load(file = paste0(folder_stat, "usda_area_prod.Rdata"))
-
-# FAO - US & BR; Area(ha), Prod(t == tonnes), Imp/Exp(t --> 1000t)
-load(file = paste0(folder_stat, "fao_area_prod.Rdata"))
-
-# SIDRA - BR & Cerrado; Area(ha), Prod(tonnes)
-## NOTE: I changed NA's to 0 before calculating total, so this could be an underestimation 
-load(file = paste0(folder_stat, "sidra_area_prod.Rdata"))
-
-# Comparisons - Import/Export(1000tonnes)
+# # USDA - US; Area(ha), Prod('metric tonnes' aka 'mt' aka 'tonnes' aka 1000 kg)
+# load(file = paste0(folder_stat, "usda_area_prod.Rdata"))
+# 
+# # FAO - US & BR; Area(ha), Prod(t == tonnes), Imp/Exp(t --> 1000t)
+# load(file = paste0(folder_stat, "fao_area_prod.Rdata"))
+# 
+# # SIDRA - BR & Cerrado; Area(ha), Prod(tonnes)
+# ## NOTE: I changed NA's to 0 before calculating total, so this could be an underestimation 
+# load(file = paste0(folder_stat, "sidra_area_prod.Rdata"))
+# 
+# # Comparisons - Import/Export(1000tonnes)
 load(file = paste0(folder_stat, "sg_fao_impexp.Rdata"))
-
-## From Other Scripts ##
-# MAPBIOMAS - BR & Cerrado; New QLAND (Transition)(ha)
-load(file = paste0(folder_stat, "mapb_agg_land_trans_br_and_cerr.RData"))
-
-# SIMPLE-G - QLAND (Cropland Area) & QCROP (Crop Production index)
-load(file = paste0(folder_stat, "sg_QLAND_QCROP_US_BR_Cerr.RData"))
+# 
+# ## From Other Scripts ##
+# # MAPBIOMAS - BR & Cerrado; New QLAND (Transition)(ha)
+# load(file = paste0(folder_stat, "mapb_agg_land_trans_br_and_cerr.RData"))
+# 
+# # SIMPLE-G - QLAND (Cropland Area) & QCROP (Crop Production index)
+# load(file = paste0(folder_stat, "sg_QLAND_QCROP_US_BR_Cerr.RData"))
 
 
 
@@ -97,11 +97,11 @@ F_plot_compare <- function(df, sg_stat, fao_stat, title){
 
   
   # plot imports and exports together
-  (p <- plot_grid(p_imp, 
+  p <- plot_grid(p_imp, 
                   p_exp, 
                   labels = c("A", "B"),
                   align = 'vh',
-                  scale = 0.9))
+                  scale = 0.9)
   
   # get legend
   # link: https://wilkelab.org/cowplot/articles/shared_legends.html
@@ -114,7 +114,9 @@ F_plot_compare <- function(df, sg_stat, fao_stat, title){
   
   # add the legend underneath the row we made earlier. Give it 10%
   # of the height of one plot (via rel_heights).
-  p_with_legend <- plot_grid(p, legend, ncol = 1, rel_heights = c(1, .1))
+  (p_with_legend <- plot_grid(p, legend, ncol = 1, rel_heights = c(1, .1)))
+  
+  return(p_with_legend)
   
   # save 
   ggsave(filename = paste0(folder_fig, "impexp_", sg_stat, ".png"),
@@ -134,6 +136,121 @@ F_plot_compare(stat_comp_impexp_plotting, "chg_mmt", "chg_mmt_fao", "Change (mmt
 
 
 # 2: AREA HARVESTED -----------
+
+# Use stat_comp_impexp_plotting as inspo, but instead
+# of stat = pre and stat = pre_fao, change to source = FAO, SIMPLE-G, USDA, etc.
+
+## 2.1: Import ---------
+load(file = paste0(folder_stat, "clean_area_prod.Rdata"))
+stat_clean_area
+
+### US & Brazil to start ##########
+test <- stat_clean_area %>%
+  #filter(crop == "total") %>% 
+  filter(year == year_pre | year == year_post) %>% 
+  #filter(extent == "Brazil" | extent == "US") %>% 
+  mutate(
+    timing = case_when(
+      year == year_pre ~ "pre",
+      year == year_post ~ "post"
+    )) %>% 
+  pivot_longer(cols = "area", names_to = "stat", values_to = "value")
+  
+test_pre <- test %>% filter(timing == "pre")
+
+# plot
+(p_area_pre <- ggplot(test_pre, aes(x = extent, y = value)) +
+    geom_col(aes(fill = source), position = position_dodge(0.8), width = 0.7)+
+    coord_flip()+
+    # scale_fill_manual(values = c(col1, col2),
+    #                   labels=c('SIMPLE-G', 'FAO'))+
+    labs(
+      title = paste("Pre", title),
+      x="", y=""
+    ))
+
+##### exports plot
+test_post <- test %>% filter(timing == "post")
+
+# ag_stat = either "area" or "prod"; time_input = "pre" or "post"
+# outside function 
+##
+df2 <- df %>%
+  #filter(crop == "total") %>% 
+  filter(year == year_pre | year == year_post) %>% 
+  #filter(extent == "Brazil" | extent == "US") %>% 
+  mutate(
+    timing = case_when(
+      year == year_pre ~ "pre",
+      year == year_post ~ "post"
+    )) %>% 
+  pivot_longer(cols = ag_stat, names_to = "stat", values_to = "value")
+
+##
+F_plot_compare <- function(df, ag_stat, title){
+  
+  df_pre <- df %>% filter(timing == "pre")
+  
+  # plot
+  p_area_pre <- ggplot(df_pre, aes(x = extent, y = value)) +
+      geom_col(aes(fill = source), position = position_dodge(0.8), width = 0.7)+
+      coord_flip()+
+      # scale_fill_manual(values = c(col1, col2),
+      #                   labels=c('SIMPLE-G', 'FAO'))+
+      labs(
+        title = paste("Pre", "Area"),
+        x="", y=""
+      )+ theme(legend.position = element_blank())
+  
+  ##### exports plot
+  df_post <- df %>% filter(timing == "post")
+  
+  # plot
+  (p_area_post <- ggplot(test_pre, aes(x = extent, y = value)) +
+      geom_col(aes(fill = source), position = position_dodge(0.8), width = 0.7)+
+      coord_flip()+
+      # scale_fill_manual(values = c(col1, col2),
+      #                   labels=c('SIMPLE-G', 'FAO'))+
+      labs(
+        title = paste("Pre", "Area"),
+        x="", y=""
+      ))
+  
+  
+  # plot imports and exports together
+  p <- plot_grid(p_area_pre, 
+                 p_area_post, 
+                 labels = c("A", "B"),
+                 align = 'vh',
+                 scale = 0.9)
+  
+  # get legend
+  # link: https://wilkelab.org/cowplot/articles/shared_legends.html
+  legend <- get_legend(
+    p_area_post + 
+      guides(color = guide_legend(nrow = 1)) +
+      theme(legend.position = "bottom",
+            legend.title = element_blank())
+  )
+  
+  # add the legend underneath the row we made earlier. Give it 10%
+  # of the height of one plot (via rel_heights).
+  (p_with_legend <- plot_grid(p, legend, ncol = 1, rel_heights = c(1, .1)))
+  
+  return(p_with_legend)
+  
+  # save 
+  ggsave(filename = paste0(folder_fig, ag_stat, "_comp_", ".png"),
+         plot = p_with_legend,
+         width = 12, height = 6)
+  
+}
+
+F_plot_compare(df = test, ag_stat = "area", title = "Cropland Area")
+
+## 2.2 Clean -------
+
+## 2.3 PLOT ---------
 
 
 # 3: PRODUCTION ------------
