@@ -311,7 +311,7 @@ F_plot_gg_diffpct(df_diff, "cornSoyDiffPctAreaPlanted", yr_one)
 
 # get all columns except the constants
 p_colnames <- colnames(df_diff)
-p_colnames <- p_colnames[! p_colnames %in% c('year', 'state', 'name', 'geometry')]
+p_colnames <- p_colnames[! p_colnames %in% c('year', 'state', 'name', 'fips', 'geometry')]
 
 # run fxn over all columns
 lapply(p_colnames, F_plot_gg_diffpct, data = df_diff, yr = yr_one)
