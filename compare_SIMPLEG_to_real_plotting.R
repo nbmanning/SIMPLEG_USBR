@@ -10,93 +10,55 @@ rm(list = ls())
 
 # 0: Load Libraries & Data and Set Constants ---------------------------------------------------------------
 
-## Load Libraries 
+## Load Libraries -----
 library(tidyverse)
 library(cowplot)
 
-## Load all STAT data 
+## Set Constants ----
 
+### folders 
+folder_stat <- "../Results/SIMPLEG-2023-10-29/stat_summary/"
+folder_fig <- "../Figures/compare_to_real/"
 
+### plotting 
+col_neg <- "red"
+col_pos <- "blue"
 
-## Constants
+col1 <- "purple"
+col2 <- "green"
+
+### years 
+year_pre <- 2010
+year_post <- 2013
+
+## Load all STAT data -----
+# USDA - US; Area(ha), Prod('metric tonnes' aka 'mt' aka 'tonnes' aka 1000 kg)
+load(file = paste0(folder_stat, "usda_area_prod.Rdata"))
+
+# FAO - US & BR; Area(ha), Prod(t == tonnes), Imp/Exp(t --> 1000t)
+load(file = paste0(folder_stat, "fao_area_prod.Rdata"))
+
+# SIDRA - BR & Cerrado; Area(ha), Prod(tonnes)
+## NOTE: I changed NA's to 0 before calculating total, so this could be an underestimation 
+load(file = paste0(folder_stat, "sidra_area_prod.Rdata"))
+
+# Comparisons - Import/Export(1000tonnes)
+load(file = paste0(folder_stat, "sg_fao_impexp.Rdata"))
+
+## From Other Scripts ##
+# MAPBIOMAS - BR & Cerrado; New QLAND (Transition)(ha)
+load(file = paste0(folder_stat, "mapb_agg_land_trans_br_and_cerr.RData"))
+
+# SIMPLE-G - QLAND (Cropland Area) & QCROP (Crop Production index)
+load(file = paste0(folder_stat, "sg_QLAND_QCROP_US_BR_Cerr.RData"))
 
 
 
 # 1: IMPORTS & EXPORTS ---------------------
 
-# 5: PLOTTING IMPORTS / EXPORTS-----------------
-
-# 5.1 Imports & Exports -------
-col_neg <- "red"
-col_pos <- "blue"
-
-# remove US
-fao_impexp_nous <- fao_impexp %>% filter(region_abv != "US")
-
-# separate to imports and exports for plotting 
-fao_imp_nous <- fao_impexp_nous %>% filter(type =="Imports")
-fao_exp_nous <- fao_impexp_nous %>% filter(type =="Exports")
-
-
-# plot imports using same format as in 'barplot_impexp.R'
-(p_imp <- ggplot(fao_imp_nous, aes(x = region_abv, y = chg_mmt_fao))+
-    geom_bar(aes(fill = chg_mmt_fao < 0), stat = "identity") + 
-    scale_fill_manual(guide = "none", breaks = c(TRUE, FALSE), values=c(col_neg, col_pos))+
-    coord_flip()+
-    theme_bw()+
-    labs(
-      title = "Change in Corn-Soy Imports (million metric ton)",
-      x = "",
-      y = ""
-    )+
-    theme(plot.title = element_text(hjust = 0.5))
-)
-
-# plot exports using same format as in 'barplot_impexp.R'
-(p_exp <- ggplot(fao_exp_nous, aes(x = region_abv, y = chg_mmt_fao))+
-    # Set color code on a True-False basis
-    geom_bar(aes(fill = chg_mmt_fao < 0), stat = "identity") + 
-    # if false, one color, if true, another
-    scale_fill_manual(guide = "none", breaks = c(TRUE, FALSE), values=c(col_neg, col_pos))+
-    coord_flip()+
-    theme_bw()+
-    labs(
-      title = "Change in Corn-Soy Exports (million metric ton)",
-      x = "",
-      y = ""
-    )+
-    theme(plot.title = element_text(hjust = 0.5),
-          axis.text.y = element_blank()
-    )
-)
-
-# set up facet plot
-# plot with the individual plots next to one another
-# labels give "A" and "B"
-(p <- plot_grid(p_imp, p_exp, labels = "AUTO"))
-
-# ggsave(paste0(folder_fig, "bar_impexp_fao.png"),
-#        p,
-#        width = 12, height = 6)
-
-# 2: Compare SIMPLE-G and FAO -----
-
-
-
-# comp_imp <- comp_impexp %>% 
-#   filter(type == "Imports")
-# 
-# comp_exp <- comp_impexp %>%
-#   filter(type == "Exports")
-
-## 2.2: Plot Changes ---------
-
-# Maybe make a new script for plotting??? This one could just be organizing 
-
 # plot as barplot
 ## link: https://www.datanovia.com/en/lessons/ggplot-barplot/
-col1 <- "purple"
-col2 <- "green"
+
 
 ### Working Ex --------------
 
@@ -177,19 +139,14 @@ F_plot_compare <- function(df, sg_stat, fao_stat, title){
   (p <- plot_grid(p_imp, p_exp, labels = "AUTO"))
 }
 
-
-### 2.2.1: PRE-stats ---------------
-unique(stat_comp_impexp_plotting$stat)
+### 1.1: PRE-stats ---------------
 F_plot_compare(stat_comp_impexp_plotting, "pre", "pre_fao", "Pre-Shock")
 
-
-### 2.2.2 POST stats -------------
+### 1.2 POST stats -------------
 F_plot_compare(stat_comp_impexp_plotting, "post", "post_fao", "Post-Shock")
 
-### 2.2.3 CHANGE stats (mmt) ---------------
+### 1.3 CHANGE stats (mmt) ---------------
 F_plot_compare(stat_comp_impexp_plotting, "chg_mmt", "chg_mmt_fao", "Change (mmt) in")
-
-
 
 
 
