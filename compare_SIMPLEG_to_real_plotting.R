@@ -142,105 +142,12 @@ F_plot_compare(stat_comp_impexp_plotting, "chg_mmt", "chg_mmt_fao", "Change (mmt
 # of stat = pre and stat = pre_fao, change to source = FAO, SIMPLE-G, USDA, etc.
 
 ## 2.1: Import ---------
-load(file = paste0(folder_stat, "clean_area_prod.Rdata"))
-stat_clean_area
 
-### US & Brazil to start ##########
-test <- stat_clean_area %>%
-  #filter(crop == "total") %>% 
-  filter(year == year_pre | year == year_post) %>% 
-  #filter(extent == "Brazil" | extent == "US") %>% 
-  mutate(
-    timing = case_when(
-      year == year_pre ~ "pre",
-      year == year_post ~ "post"
-    )) %>% 
-  pivot_longer(cols = "area", names_to = "stat", values_to = "value")
-  
-# test_pre <- test %>% filter(timing == "pre")
-# 
-# # plot
-# (p_area_pre <- ggplot(test_pre, aes(x = extent, y = value)) +
-#     geom_col(aes(fill = source), position = position_dodge(0.8), width = 0.7)+
-#     coord_flip()+
-#     # scale_fill_manual(values = c(col1, col2),
-#     #                   labels=c('SIMPLE-G', 'FAO'))+
-#     labs(
-#       title = paste("Pre", "Area"),
-#       x="", y=""
-#     ))+
-#   theme(legend.position = "none")
-# 
-# ##### exports plot
-# test_post <- test %>% filter(timing == "post")
-# 
-# 
-# # plot
-# (p_area_post <- ggplot(test_post, aes(x = extent, y = value)) +
-#     geom_col(aes(fill = source), position = position_dodge(0.8), width = 0.7)+
-#     coord_flip()+
-#     # scale_fill_manual(values = c(col1, col2),
-#     #                   labels=c('SIMPLE-G', 'FAO'))+
-#     labs(
-#       title = paste("Post", "Area"),
-#       x="", y=""
-#     ))+
-#   theme(legend.position = "none")
-# 
-# 
-# 
-# # plot imports and exports together
-# (p <- plot_grid(p_area_pre + theme(legend.position = "none"), 
-#                p_area_post + theme(legend.position = "none"), 
-#                labels = c("A", "B"),
-#                align = 'vh',
-#                scale = 0.9))
-# 
-# # get legend
-# # link: https://wilkelab.org/cowplot/articles/shared_legends.html
-# legend <- get_legend(
-#   p_area_post + 
-#     guides(color = guide_legend(nrow = 1)) +
-#     theme(legend.position = "bottom",
-#           legend.title = element_blank())
-# )
-# 
-# # add the legend underneath the row we made earlier. Give it 10%
-# # of the height of one plot (via rel_heights).
-# (p_with_legend <- plot_grid(p, legend, ncol = 1, rel_heights = c(1, .1)))
-# 
-# return(p_with_legend)
-# 
-# # save 
-# ggsave(filename = paste0(folder_fig, ag_stat, "_comp_", ".png"),
-#        plot = p_with_legend,
-#        width = 12, height = 6)
-# 
-# 
-# 
-# 
-# 
-# 
-# 
-# 
-# 
-# 
-# 
-# 
-# 
-# 
-# 
-# 
-# 
-# 
-# 
-# 
-# 
-# 
-# # ag_stat = either "area" or "prod"; time_input = "pre" or "post"
-# # outside function 
-# ##
-# df2 <- df %>%
+# load clean files 
+load(file = paste0(folder_stat, "clean_area_prod.Rdata"))
+
+# make long (as a test)
+# test <- stat_clean_area %>%
 #   #filter(crop == "total") %>% 
 #   filter(year == year_pre | year == year_post) %>% 
 #   #filter(extent == "Brazil" | extent == "US") %>% 
@@ -249,11 +156,13 @@ test <- stat_clean_area %>%
 #       year == year_pre ~ "pre",
 #       year == year_post ~ "post"
 #     )) %>% 
-#   pivot_longer(cols = ag_stat, names_to = "stat", values_to = "value")
-# 
-##
+#   pivot_longer(cols = "area", names_to = "stat", values_to = "value")
+
+
+# run function to plot 
 F_plot_compare <- function(df, ag_stat, title){
   
+  # first, pivot to make long 
   df <- df %>%
     #filter(crop == "total") %>% 
     filter(year == year_pre | year == year_post) %>% 
@@ -266,6 +175,7 @@ F_plot_compare <- function(df, ag_stat, title){
     pivot_longer(cols = ag_stat, names_to = "stat", values_to = "value")
   
   
+  ##### pre-shock plot
   df_pre <- df %>% filter(timing == "pre")
   
   # plot
@@ -279,7 +189,7 @@ F_plot_compare <- function(df, ag_stat, title){
         x="", y=""
       )
   
-  ##### exports plot
+  ##### post-shock plot
   df_post <- df %>% filter(timing == "post")
   
   # plot
@@ -310,8 +220,8 @@ F_plot_compare <- function(df, ag_stat, title){
             legend.title = element_blank())
   )
   
-  # add the legend underneath the row we made earlier. Give it 10%
-  # of the height of one plot (via rel_heights).
+  # add the legend underneath the row we made earlier with 
+  # 10% of the height of one plot (via rel_heights)
   (p_with_legend <- plot_grid(p, legend, ncol = 1, rel_heights = c(1, .1)))
  
   # save 
@@ -319,6 +229,7 @@ F_plot_compare <- function(df, ag_stat, title){
          plot = p_with_legend,
          width = 12, height = 6)
   
+  # return() to plot in env
   return(p_with_legend)
 }
 
