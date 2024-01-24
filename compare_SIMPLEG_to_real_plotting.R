@@ -135,6 +135,7 @@ F_plot_compare(stat_comp_impexp_plotting, "post", "post_fao", "Post-Shock")
 F_plot_compare(stat_comp_impexp_plotting, "chg_mmt", "chg_mmt_fao", "Change (mmt) in")
 
 
+
 # 2: AREA HARVESTED -----------
 
 # Use stat_comp_impexp_plotting as inspo, but instead
@@ -156,38 +157,114 @@ test <- stat_clean_area %>%
     )) %>% 
   pivot_longer(cols = "area", names_to = "stat", values_to = "value")
   
-test_pre <- test %>% filter(timing == "pre")
-
-# plot
-(p_area_pre <- ggplot(test_pre, aes(x = extent, y = value)) +
-    geom_col(aes(fill = source), position = position_dodge(0.8), width = 0.7)+
-    coord_flip()+
-    # scale_fill_manual(values = c(col1, col2),
-    #                   labels=c('SIMPLE-G', 'FAO'))+
-    labs(
-      title = paste("Pre", title),
-      x="", y=""
-    ))
-
-##### exports plot
-test_post <- test %>% filter(timing == "post")
-
-# ag_stat = either "area" or "prod"; time_input = "pre" or "post"
-# outside function 
-##
-df2 <- df %>%
-  #filter(crop == "total") %>% 
-  filter(year == year_pre | year == year_post) %>% 
-  #filter(extent == "Brazil" | extent == "US") %>% 
-  mutate(
-    timing = case_when(
-      year == year_pre ~ "pre",
-      year == year_post ~ "post"
-    )) %>% 
-  pivot_longer(cols = ag_stat, names_to = "stat", values_to = "value")
-
+# test_pre <- test %>% filter(timing == "pre")
+# 
+# # plot
+# (p_area_pre <- ggplot(test_pre, aes(x = extent, y = value)) +
+#     geom_col(aes(fill = source), position = position_dodge(0.8), width = 0.7)+
+#     coord_flip()+
+#     # scale_fill_manual(values = c(col1, col2),
+#     #                   labels=c('SIMPLE-G', 'FAO'))+
+#     labs(
+#       title = paste("Pre", "Area"),
+#       x="", y=""
+#     ))+
+#   theme(legend.position = "none")
+# 
+# ##### exports plot
+# test_post <- test %>% filter(timing == "post")
+# 
+# 
+# # plot
+# (p_area_post <- ggplot(test_post, aes(x = extent, y = value)) +
+#     geom_col(aes(fill = source), position = position_dodge(0.8), width = 0.7)+
+#     coord_flip()+
+#     # scale_fill_manual(values = c(col1, col2),
+#     #                   labels=c('SIMPLE-G', 'FAO'))+
+#     labs(
+#       title = paste("Post", "Area"),
+#       x="", y=""
+#     ))+
+#   theme(legend.position = "none")
+# 
+# 
+# 
+# # plot imports and exports together
+# (p <- plot_grid(p_area_pre + theme(legend.position = "none"), 
+#                p_area_post + theme(legend.position = "none"), 
+#                labels = c("A", "B"),
+#                align = 'vh',
+#                scale = 0.9))
+# 
+# # get legend
+# # link: https://wilkelab.org/cowplot/articles/shared_legends.html
+# legend <- get_legend(
+#   p_area_post + 
+#     guides(color = guide_legend(nrow = 1)) +
+#     theme(legend.position = "bottom",
+#           legend.title = element_blank())
+# )
+# 
+# # add the legend underneath the row we made earlier. Give it 10%
+# # of the height of one plot (via rel_heights).
+# (p_with_legend <- plot_grid(p, legend, ncol = 1, rel_heights = c(1, .1)))
+# 
+# return(p_with_legend)
+# 
+# # save 
+# ggsave(filename = paste0(folder_fig, ag_stat, "_comp_", ".png"),
+#        plot = p_with_legend,
+#        width = 12, height = 6)
+# 
+# 
+# 
+# 
+# 
+# 
+# 
+# 
+# 
+# 
+# 
+# 
+# 
+# 
+# 
+# 
+# 
+# 
+# 
+# 
+# 
+# 
+# # ag_stat = either "area" or "prod"; time_input = "pre" or "post"
+# # outside function 
+# ##
+# df2 <- df %>%
+#   #filter(crop == "total") %>% 
+#   filter(year == year_pre | year == year_post) %>% 
+#   #filter(extent == "Brazil" | extent == "US") %>% 
+#   mutate(
+#     timing = case_when(
+#       year == year_pre ~ "pre",
+#       year == year_post ~ "post"
+#     )) %>% 
+#   pivot_longer(cols = ag_stat, names_to = "stat", values_to = "value")
+# 
 ##
 F_plot_compare <- function(df, ag_stat, title){
+  
+  df <- df %>%
+    #filter(crop == "total") %>% 
+    filter(year == year_pre | year == year_post) %>% 
+    #filter(extent == "Brazil" | extent == "US") %>% 
+    mutate(
+      timing = case_when(
+        year == year_pre ~ "pre",
+        year == year_post ~ "post"
+      )) %>% 
+    pivot_longer(cols = ag_stat, names_to = "stat", values_to = "value")
+  
   
   df_pre <- df %>% filter(timing == "pre")
   
@@ -198,28 +275,28 @@ F_plot_compare <- function(df, ag_stat, title){
       # scale_fill_manual(values = c(col1, col2),
       #                   labels=c('SIMPLE-G', 'FAO'))+
       labs(
-        title = paste("Pre", "Area"),
+        title = paste("Pre-Shock", title),
         x="", y=""
-      )+ theme(legend.position = element_blank())
+      )
   
   ##### exports plot
   df_post <- df %>% filter(timing == "post")
   
   # plot
-  (p_area_post <- ggplot(test_pre, aes(x = extent, y = value)) +
+  (p_area_post <- ggplot(df_post, aes(x = extent, y = value)) +
       geom_col(aes(fill = source), position = position_dodge(0.8), width = 0.7)+
       coord_flip()+
       # scale_fill_manual(values = c(col1, col2),
       #                   labels=c('SIMPLE-G', 'FAO'))+
       labs(
-        title = paste("Pre", "Area"),
+        title = paste("Post-Shock", title),
         x="", y=""
       ))
   
   
   # plot imports and exports together
-  p <- plot_grid(p_area_pre, 
-                 p_area_post, 
+  p <- plot_grid(p_area_pre + theme(legend.position = "none"), 
+                 p_area_post + theme(legend.position = "none"), 
                  labels = c("A", "B"),
                  align = 'vh',
                  scale = 0.9)
@@ -236,22 +313,14 @@ F_plot_compare <- function(df, ag_stat, title){
   # add the legend underneath the row we made earlier. Give it 10%
   # of the height of one plot (via rel_heights).
   (p_with_legend <- plot_grid(p, legend, ncol = 1, rel_heights = c(1, .1)))
-  
-  return(p_with_legend)
-  
+ 
   # save 
-  ggsave(filename = paste0(folder_fig, ag_stat, "_comp_", ".png"),
+  ggsave(filename = paste0(folder_fig, ag_stat, "_comp", ".png"),
          plot = p_with_legend,
          width = 12, height = 6)
   
+  return(p_with_legend)
 }
 
-F_plot_compare(df = test, ag_stat = "area", title = "Cropland Area")
-
-## 2.2 Clean -------
-
-## 2.3 PLOT ---------
-
-
-# 3: PRODUCTION ------------
-
+F_plot_compare(df = stat_clean_area, ag_stat = "area", title = "Cropland Area")
+F_plot_compare(df = stat_clean_prod, ag_stat = "prod", title = "Ag Production")
