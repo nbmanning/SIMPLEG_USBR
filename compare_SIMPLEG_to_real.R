@@ -36,7 +36,34 @@ usda_key = "34BD2DD3-9049-37A1-BC2C-D8A967E25E42"
 
 # set up FAOSTAT function
 # set up new function based on 'area'
-F_clean_FAOSTAT <- function(df, new_element){
+F_clean_FAOSTAT <- function(df){
+  new <- df %>% 
+    # get only relevant columns
+    select(Area, Item, Year, Value) %>% 
+    # replace with the same input from the SIMPLE-G results 
+    #mutate(Element = new_element) %>% 
+    # change inputs  
+    mutate(Item = case_when(
+      Item == "Maize (corn)" ~ "maize",
+      Item == "Soya beans" ~ "soy")
+    ) %>% 
+    # rename columns
+    rename(
+      #"type" = Element,
+      "crop" = Item,
+      "value" = Value,
+      "extent" = Area,
+      "year" = Year) %>% 
+    mutate(
+      extent = case_when(
+        extent == "United States of America" ~ "US",
+        extent == "Brazil" ~ "Brazil"),
+      source = "FAO")
+  
+  return(new)
+}
+
+F_clean_FAOSTAT_impexp <- function(df, new_element){
   new <- df %>% 
     # get only relevant columns
     select(Area.Code..M49., Area, Element, Item, Year, Value) %>% 
@@ -57,10 +84,17 @@ F_clean_FAOSTAT <- function(df, new_element){
   return(new)
 }
 
+
 source_area <- read.csv(paste0(folder_source, "FAOSTAT_BR_US_AreaHarv_CornSoy_20072017.csv"))
-area <- F_clean_FAOSTAT(source_area, "area") 
-stat_fao_area <- area %>% 
-  filter(Year==year_pre | Year == year_post)
+
+area <- F_clean_FAOSTAT(source_area) 
+str(area)
+stat_fao_area <- area %>%
+  filter(year==year_pre | year == year_post) %>% 
+  pivot_wider(names_from = crop, values_from = value) %>% 
+  mutate(total = maize + soy) %>% 
+  pivot_longer(cols = -c(year, extent, source), names_to = "crop", values_to = "area")
+
 
 ### Source 2: US Stats from USDA-NASS ----------
 # Area Harvested -- SOY
@@ -85,7 +119,7 @@ area_usda_soy <- source_area_usda %>%
   # convert from acres to ha
   mutate(area = area * 0.40468564,
          crop = "soy",
-         country = "US") %>% 
+         extent = "US") %>% 
   dplyr::select(-reference_period_desc)
 
 # Area Harvested -- MAIZE
@@ -110,7 +144,7 @@ area_usda_maize <- source_area_usda %>%
   # convert from acres to ha
   mutate(area = area * 0.40468564,
          crop = "maize",
-         country = "US") %>% 
+         extent = "US") %>% 
   dplyr::select(-reference_period_desc)
 
 # group soy & maize area together
@@ -119,16 +153,25 @@ stat_usda_area <- rbind(area_usda_soy, area_usda_maize)
 # spread to add a 'total' column then gather to make long & tidy
 stat_usda_area <- stat_usda_area %>% 
   pivot_wider(names_from = crop, values_from = area) %>% 
-  mutate(total = maize + soy) %>% 
-  pivot_longer(cols = -c(year, country), names_to = "crop", values_to = "area")
+  mutate(
+    total = maize + soy,
+    source = "USDA-NASS") %>% 
+  pivot_longer(cols = -c(year, extent, source), names_to = "crop", values_to = "area")
+
 
 
 ## 1.2: Real Production -----------------------------------------------
 ### Source 1: Production from FAOSTAT ------
 source_prod <- read.csv(paste0(folder_source, "FAOSTAT_BR_US_Prod_CornSoy_20072017.csv"))
-prod <- F_clean_FAOSTAT(source_prod, "prod") 
+
+prod <- F_clean_FAOSTAT(source_prod) 
+
 stat_fao_prod <- prod %>% 
-  filter(Year==year_pre | Year == year_post)
+  filter(year==year_pre | year == year_post) %>% 
+  pivot_wider(names_from = crop, values_from = value) %>% 
+  mutate(total = maize + soy) %>% 
+  pivot_longer(cols = -c(year, extent, source), names_to = "crop", values_to = "prod")
+
 
 ### Source 2: US stats from USDA-NASS -------
 # Production
@@ -154,7 +197,7 @@ prod_usda_soy <- source_prod_usda %>%
   # convert from bushels to metric tons source: https://grains.org/markets-tools-data/tools/converting-grain-units/
   mutate(prod = prod*0.0272155,
          crop = "soy",
-         country = "US") %>% 
+         extent = "US") %>% 
   dplyr::select(-reference_period_desc)
 
 # Area Harvested -- MAIZE
@@ -179,7 +222,7 @@ prod_usda_maize <- source_prod_usda %>%
   # convert from bushels to metric tons source: https://grains.org/markets-tools-data/tools/converting-grain-units/
   mutate(prod = prod*0.0254,
          crop = "maize",
-         country = "US") %>% 
+         extent = "US") %>% 
   dplyr::select(-reference_period_desc)
 
 # join prod maize & soy together
@@ -188,8 +231,11 @@ stat_usda_prod <- rbind(prod_usda_soy, prod_usda_maize)
 # spread to add a 'total' column then gather to make long & tidy
 stat_usda_prod <- stat_usda_prod %>% 
   pivot_wider(names_from = crop, values_from = prod) %>% 
-  mutate(total = maize + soy) %>% 
-  pivot_longer(cols = -c(year, country), names_to = "crop", values_to = "prod")
+  mutate(
+    total = maize + soy,
+    source = "USDA-NASS") %>% 
+  pivot_longer(cols = -c(year, extent, source), names_to = "crop", values_to = "prod")
+
 
 # 2: Imports & Exports ---------------
 
@@ -204,7 +250,7 @@ stat_SG_impexp <- df_impexp %>% mutate(chg_mmt = chg/1000)
 
 ### Source 1: UN Comtrade - inputs = source, element
 source_imp <- read.csv(paste0(folder_source, "FAOSTAT_AllCountries_CornSoy_Imports_20072017.csv"))
-imp <- F_clean_FAOSTAT(source_imp, "Imports")  
+imp <- F_clean_FAOSTAT_impexp(source_imp, "Imports")  
 
 # separate to make sure they both have complete years 
 imp_soy <- imp %>% 
@@ -229,7 +275,7 @@ imp <- left_join(imp_maize, imp_soy, by = c("Area", "code", "Year"))
 
 ### 2.2.2 Exports ---------
 source_exp <- read.csv(paste0(folder_source, "FAOSTAT_AllCountries_CornSoy_Exports_20072017.csv"))
-exp <- F_clean_FAOSTAT(source_exp, "Exports")
+exp <- F_clean_FAOSTAT_impexp(source_exp, "Exports")
 
 # get each crop separately
 exp_soy <- exp %>%
@@ -466,16 +512,27 @@ stat_sidra_area_prod_br  <- stat_sidra_area_prod_br %>%
   # change back to long data
   pivot_longer(
     cols = -c(extent, year, var),
-    names_to = "type_ag",
+    names_to = "crop",
     values_to = "value"
   ) %>%
   # change to ideal variable names
-  mutate(var = case_when(
-    var == "Quantidade produzida" ~ "prod",
-    var == "Área colhida" ~ "area"
-  ))
+  mutate(
+    var = case_when(
+      var == "Quantidade produzida" ~ "prod",
+      var == "Área colhida" ~ "area"),
+    extent = "Brazil")
   
+stat_sidra_area_br <- stat_sidra_area_prod_br %>% 
+  filter(var == "area") %>% 
+  select(-var) %>% 
+  rename(area = value) %>% 
+  mutate(source = "SIDRA")
 
+stat_sidra_prod_br <- stat_sidra_area_prod_br %>% 
+  filter(var == "prod") %>%
+  select(-var) %>% 
+  rename(prod = value) %>% 
+  mutate(source = "SIDRA")
 
 ## 3.2: Cerrado Production & Area Harvested -------
 # get area harvested and production for BR 
@@ -556,15 +613,95 @@ stat_sidra_area_prod_cerr <- stat_sidra_area_prod_micro_cerr_sf %>%
   group_by(year, name_biome, var, type_ag) %>% 
   summarise(value=sum(value))
 
-## 3.3 Import SIMPLE-G AREA & PROD Results -----------
+stat_sidra_area_cerr <- stat_sidra_area_prod_cerr %>%   
+  filter(var == "area") %>% 
+  rename(area = value,
+         extent = name_biome,
+         crop = type_ag) %>%
+  ungroup() %>% 
+  select(-var) %>% 
+  mutate(source = "SIDRA")
 
+stat_sidra_prod_cerr <- stat_sidra_area_prod_cerr %>%   
+  filter(var == "prod") %>% 
+  rename(prod = value,
+         extent = name_biome,
+         crop = type_ag) %>%
+  ungroup() %>% 
+  select(-var) %>% 
+  mutate(source = "SIDRA")
+
+
+# 4: Import & Clean MAPB AREA Results -----------
 folder_stat <- "../Results/SIMPLEG-2023-10-29/stat_summary/"
-
 load(file = paste0(folder_stat, "mapb_agg_land_trans_br_and_cerr.RData"))
+stat_mapb_agg_trans_br
+str(stat_mapb_agg_trans_br)
+F_clean_mapb <- function(df, extent_name, source_name){
+  df2 <- df %>% 
+    mutate(year = as.numeric(year(year)),
+           extent = extent_name,
+           crop = "total",
+           source = source_name) %>% 
+    rename(area = ha)
+}
+
+stat_mapb_agg_trans_br <- F_clean_mapb(stat_mapb_agg_trans_br, "Brazil", "MapBiomas_AllTemp") 
+stat_mapb_agg_trans_br_fromveg <- F_clean_mapb(stat_mapb_agg_trans_br_fromveg, "Brazil", "MapBiomas_FromVeg") 
+
+stat_mapb_agg_trans_cerr <- F_clean_mapb(stat_mapb_agg_trans_cerr, "Cerrado", "MapBiomas_AllTemp")
+stat_mapb_agg_trans_cerr_fromveg <- F_clean_mapb(stat_mapb_agg_trans_cerr_fromveg, "Cerrado", "MapBiomas_FromVeg")
+
+# 5: Import & Clean SIMPLE-G AREA & PROD Results -----------
 load(file = paste0(folder_stat, "sg_QLAND_QCROP_US_BR_Cerr.RData"))
 
+stat_SG <- rbind(stat_SG_QLAND_QCROP_BR,
+                 stat_SG_QLAND_QCROP_Cerrado,
+                 stat_SG_QLAND_QCROP_US)
 
-# 4: SAVE STATS, SUMMARY, UNITS ------------------------
+stat_SG_area <- stat_SG %>% 
+  filter(labels %in% c("new_cropland_area", "pre_cropland_area")) %>% 
+  mutate(
+    source = "SIMPLE-G",
+    crop = "total",
+    year = case_when(
+      labels == "new_cropland_area" ~ year_post,
+      labels == "pre_cropland_area" ~ year_pre
+    )) %>% 
+  rename(area = values) %>% 
+  select(-labels)
+
+stat_SG_prod <- stat_SG %>% 
+  filter(labels %in% c("new_crop_production", "pre_crop_production")) %>% 
+  mutate(
+    source = "SIMPLE-G",
+    crop = "total",
+    year = case_when(
+      labels == "new_crop_production" ~ year_post,
+      labels == "pre_crop_production" ~ year_pre
+    )) %>% 
+  rename(prod = values) %>% 
+  select(-labels)
+
+# 6: Create clean comparisons ---------------------
+
+## 6.1: Area ----------
+stat_clean_area <- rbind(
+  stat_SG_area, 
+  stat_fao_area, 
+  stat_usda_area, 
+  stat_sidra_area_br, stat_sidra_area_cerr,
+  stat_mapb_agg_trans_br, stat_mapb_agg_trans_br_fromveg,
+  stat_mapb_agg_trans_cerr, stat_mapb_agg_trans_cerr_fromveg
+)
+
+## 6.2: Production ---------
+stat_clean_prod <- rbind(
+  stat_SG_prod, 
+  stat_fao_prod, stat_usda_prod, 
+  stat_sidra_prod_br, stat_sidra_prod_cerr)
+
+# 7: SAVE STATS, SUMMARY, UNITS ------------------------
 # USDA - US; Area(ha), Prod('metric tonnes' aka 'mt' aka 'tonnes' aka 1000 kg)
 save(stat_usda_area, stat_usda_prod, 
      file = paste0(folder_stat, "usda_area_prod.Rdata"))
@@ -593,6 +730,12 @@ save(stat_SG_impexp,
 
 # SIMPLE-G - QLAND (Cropland Area) & QCROP (Crop Production index)
 # load(file = paste0(folder_stat, "sg_QLAND_QCROP_US_BR_Cerr.RData"))
+save(stat_SG, stat_SG_area, stat_SG_prod,
+     file = paste0(folder_stat, "sg_area_prod.Rdata"))
+
+# CLEANED 
+save(stat_clean_area, stat_clean_prod,
+     file = paste0(folder_stat, "clean_area_prod.Rdata"))
 
 
 ## NOTES ON UNITS -----------
