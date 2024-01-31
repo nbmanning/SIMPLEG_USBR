@@ -331,7 +331,7 @@ F_EDA <- function(r_aoi, area_name){
 # NOTE: You can re-run the script starting here if you already ran sections 1, 2, and 3
 
 load("../Data_Derived/shp_usbr.RData")
-r <- readRDS(file = paste0("../Data_Derived/r", pct, ".rds"))
+r <- readRDS(file = paste0("../Data_Derived/20231029/r", pct, ".rds"))
 
 # print cropland area in ha by getting the sum of each grid-cell value
 print(global(r$new_QLAND, fun = "sum", na.rm = T))
