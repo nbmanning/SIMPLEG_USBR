@@ -45,9 +45,10 @@ library(rworldmap) # getting simple BR Border
 ## med: enter "_m" ;
 ## lo: enter "_lo" ;
 ## out / default; enter ""
+
+### For 2024-01-30 run ###
 pct <- "_m" # change when you change 'datafile'
 pct_title <- "- Med" # for plotting, either " - High" or " - Low" or "" or "- Med"
-
 
 # NOTE: will need to change to local location
 folder <- "../Results/SIMPLEG-2024-01-30/"
@@ -57,6 +58,16 @@ datafile   <- paste0(folder, "US_HEAT", pct, "-out.txt")
 folder_der <- "../Data_Derived/20240130/"
 folder_stats <- "../Results/SIMPLEG-2024-01-30/stat_summary/"
 
+### For 2023-10-29 run ###
+# pct <- "" # change when you change 'datafile'
+# pct_title <- "" # for plotting, either " - High" or " - Low" or "" or "- Med"
+
+# folder <- "../Results/SIMPLEG-2023-10-29/"
+# folder_plot <- "../Figures/102923/new"
+# datafile   <- paste0(folder, "sg1x3x10_v2310", pct, "-out.txt")
+# #datafile <- "../Results/SIMPLEG-2023-10-29/sg1x3x10_v2310-out.txt"
+# folder_der <- "../Data_Derived/20231029/"
+# folder_stats <- "../Results/SIMPLEG-2024-10-29/stat_summary/"
 # INITIAL PREP & SAVE -----------------------------------------------------------
 # 1: Prep SIMPLE-G Results --------------------
 
