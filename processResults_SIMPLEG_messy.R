@@ -548,6 +548,77 @@ F_ggplot_world(df = r_row %>% subset("rawch_QLAND")/1000,
                legend_title = "Area (1000 ha)",
                p_title = paste("Raw Change in Cropland Area", pct_title))
 
+
+ggplot()+
+  geom_spatraster(
+    data = r_row %>% subset("rawch_QLAND")/1000, 
+    maxcell = Inf)+
+  scale_fill_whitebox_b(
+    #palette = "viridi", direction = 1,
+    breaks = c(-50, -25, -10, -1, -0.1, 0, 0.01, 0.25, 0.5, 1, 2, 5),
+    palette = "viridi", 
+  )+
+  labs(
+    fill = "Area (1000 ha)",
+    title = paste("Raw Change in Cropland Area", pct_title)
+  )+
+  #theme_minimal() +
+  theme(
+    # set plot size and center it 
+    plot.title = element_text(size = 16, hjust = 0.5),
+    # put legend in the bottom right 
+    legend.position = c(0.15, 0.2),
+    legend.title = element_text(size = 14),
+    legend.text = element_text(size = 10))
+
+##### new attempt: WORKS!!! -------
+
+# example from: https://cloud.r-project.org/web/packages/tidyterra/tidyterra.pdf
+
+# With discrete values
+test3 <-  r_row %>% 
+  subset("rawch_QLAND")/1000
+
+factor <- test3 %>% 
+  mutate(
+    cats = 
+      cut(rawch_QLAND,
+          breaks = c(-50, -25, -10, -1, -0.1, 0, 
+                     0.01, 0.25, 0.5, 1, 2, 5))
+    )
+
+# plot 
+#"atlas", "high_relief", "arid", "soft", "muted", 
+#"purple", "viridi", "gn_yl", "pi_y_g", "bl_yl_rd", "deep"
+ggplot() +
+  geom_spatraster(data = factor, maxcell = Inf, aes(fill = cats)) +
+  #scale_fill_wiki_d(na.value = "white")
+  scale_fill_whitebox_d(palette = "pi_y_g", direction = 1)+
+  theme_bw()+
+  labs(
+    fill = "Area (kha)",
+    title = "Raw Change in Cropland Area",
+  )+
+  
+  #coord_sf(crs = "ESRI:53042")+ #Winkel-Tripel 
+  #coord_sf(crs = "ESRI:53030")+ # Robinson
+  
+  theme(
+    plot.title = 
+      element_text(
+        hjust = 0.5, 
+        size = 22
+      ),
+    legend.title = element_text(size = 18),
+    legend.text = element_text(size = 12)
+  )  
+  
+
+ggsave(filename = paste0(folder_plot, "/gg_world_rawchange_cropland2.png"),
+       width = 14, height = 6, dpi = 300)
+
+# # # # # # # # # # # # #
+
 test <- r_row %>% 
   subset("rawch_QLAND")/1000 %>% 
   raster::clamp(lower = 0, values = T)
@@ -604,7 +675,7 @@ theme_bw()
 
 # new attempt
 
-##### Cerrado ------
+##### Cerrado - WORKS ------
 # Call fxn to clip, count, and clamp data 
 r_cerr <- F_aoi_prep(shp = shp_cerr, area_name = "Cerrado")
 
@@ -646,7 +717,21 @@ ggplot() +
         ),
     legend.title = element_text(size = 18),
     legend.text = element_text(size = 12)
-    )
+    )+
+  annotation_north_arrow(
+    which_north = TRUE,
+    pad_x = unit(0.85, "npc"),
+    pad_y = unit(0.85, "npc"),
+    style = north_arrow_minimal()
+  ) #+
+  # annotation_scale(
+  #   height = unit(0.015, "npc"),
+  #   width_hint = 0.5,
+  #   pad_x = unit(0.04, "npc"),
+  #   pad_y = unit(0.03, "npc"),
+  #   text_cex = .8
+  # )
+
 
 ggsave(filename = paste0(folder_plot, "/gg_cerr_rawchange_cropland.png"),
        width = 12, height = 8, dpi = 300)
