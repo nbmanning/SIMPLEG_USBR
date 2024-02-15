@@ -563,16 +563,18 @@ tes[pb1 < 0] <- NA
 ggplot()+
   geom_spatraster(data = 
                     r_row %>% 
-                    subset("rawch_QLAND")/1000 %>% 
-                    clamp(lower = 0, values = F), 
-                  maxcell = Inf)+
+                    subset("rawch_QLAND")/1000,# %>% 
+                    #clamp(lower = 0, values = F), 
+                    maxcell = Inf
+                  )+
   scale_fill_whitebox_b(
     #palette = "viridi", direction = 1,
     #"atlas", "high_relief", "arid", "soft", "muted", 
     #"purple", "viridi", "gn_yl", "pi_y_g", "bl_yl_rd", "deep"
-    palette = "bl_yl_rd", #direction = 1,
+    palette = "bl_yl_rd", direction = -1,
     #breaks = c(-25, -10, -1, 0, 0.1, 0.5, 1)
     #breaks = c(-50, -25, -10, -1, -0.1, 0, 0.01, 0.25, 0.5, 1, 2, 5)
+    breaks = c(-50, -25, -10, -1, 0, 0.01, 0.1, 0.25, 0.5)
   )+
   labs(
     fill = "Area (1000 ha)",
@@ -586,6 +588,111 @@ ggplot()+
     legend.position = c(0.15, 0.2),
     legend.title = element_text(size = 14),
     legend.text = element_text(size = 10))
+
+
+##### new attempt -----
+ggplot() +
+  geom_spatraster(
+    data = r_row %>% subset("rawch_QLAND")/1000,# %>% 
+                   #clamp(lower = 0, values = F), 
+                   maxcell = Inf
+  ) +
+  scale_fill_hypso_b(
+    breaks = c(-50, -25, -10, -1, 0, 0.01, 0.1, 0.25, 0.5)
+    ) #+
+theme_bw()
+
+# new attempt
+
+##### Cerrado ------
+# Call fxn to clip, count, and clamp data 
+r_cerr <- F_aoi_prep(shp = shp_cerr, area_name = "Cerrado")
+
+# call fxn to create EDA plots of the clipped data 
+F_EDA(r_aoi = r_cerr, area_name = "Cerrado")
+
+v_cerr_states = vect(shp_cerr_states)
+
+#"atlas", "high_relief", "arid", "soft", "muted", "purple", 
+# "viridi", "gn_yl", "pi_y_g", "bl_yl_rd", "deep"
+
+
+
+# attempt 'raw land change' with tidyterra
+ggplot() +
+  geom_spatraster(
+    data = r_cerr %>% subset("rawch_QLAND")/1000, 
+    maxcell = Inf
+  )+
+  scale_fill_whitebox_c("gn_yl",
+                        n.breaks = 16,
+                        guide = guide_legend(reverse = TRUE))+
+  geom_spatvector(
+    data = v_cerr_states, 
+    fill = NA,
+    color = "grey20",
+    linewidth = 0.2
+    )+
+  theme_bw()+
+  labs(
+    fill = "Area (kha)",
+    title = "Raw Change in Cerrado Cropland",
+  )+
+  theme(
+    plot.title = 
+      element_text(
+        hjust = 0.5, 
+        size = 22
+        ),
+    legend.title = element_text(size = 18),
+    legend.text = element_text(size = 12)
+    )
+
+ggsave(filename = paste0(folder_plot, "/gg_cerr_rawchange_cropland.png"),
+       width = 12, height = 8, dpi = 300)
+
+  
+
+#"atlas", "high_relief", "arid", "soft", "muted", "purple", 
+# "viridi", "gn_yl", "pi_y_g", "bl_yl_rd", "deep"
+
+# attempt 'raw prod change' with tidyterra
+ggplot() +
+  geom_spatraster(
+    data = r_cerr %>% subset("rawch_QCROP")/1000,# %>% 
+    #clamp(lower = 0, values = F), 
+    maxcell = Inf
+  )+
+  scale_fill_whitebox_c("gn_yl", #direction = -1,
+                        #breaks = seq(0,1,0.1)
+                        n.breaks = 16,
+                        guide = guide_legend(reverse = TRUE))+
+  # scale_fill_whitebox_b("gn_yl", #direction = -1, 
+  #                       breaks = seq(0,1.5,0.1),
+  #                       #n.breaks = 16,
+  #                       guide = guide_legend(reverse = TRUE))+
+  #coord_sf(crs = 4674)+
+  geom_spatvector(
+    data = v_cerr_states, 
+    fill = NA,
+    color = "grey20",
+    linewidth = 0.2
+  )+
+  theme_bw()+
+  labs(
+    fill = "Tons CE",
+    title = "Raw Change in Cerrado Production Index",
+  )+
+  theme(
+    plot.title = element_text(
+      hjust = 0.5, size = 22),
+    legend.title = element_text(size = 18),
+    legend.text = element_text(size = 12))
+
+ggsave(filename = paste0(folder_plot, "/gg_cerr_rawchange_prod.png"),
+       width = 12, height = 8, dpi = 300)
+
+
 
 
 ### Actual (Raw) Change in Crop Production Index ###
