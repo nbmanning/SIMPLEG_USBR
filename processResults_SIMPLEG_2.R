@@ -45,6 +45,16 @@ library(rworldmap) # getting simple BR Border
 ## lo: enter "_lo" ;
 ## out / default; enter ""
 
+### For 2024-02-12 run ###
+pct <- "_m" # change when you change 'datafile'
+pct_title <- " - Med" # for plotting, either " - High" or " - Low" or "" or "- Med"
+
+folder <- "../Results/SIMPLEG-2024-02-12/"
+folder_plot <- "../Figures/021224/"
+datafile   <- paste0(folder, "sg1x3x10_v2401_US_Heat", pct, "-out.txt")
+folder_der <- "../Data_Derived/20240212/"
+folder_stats <- paste0(folder, "stat_summary/")
+
 
 # ### For 2024-01-30 run ###
 # pct <- "_m" # change when you change 'datafile'
@@ -58,16 +68,17 @@ library(rworldmap) # getting simple BR Border
 # folder_der <- "../Data_Derived/20240130/"
 # folder_stats <- "../Results/SIMPLEG-2024-01-30/stat_summary/"
 
-### For 2023-10-29 run ###
-pct <- "" # change when you change 'datafile'
-pct_title <- "" # for plotting, either " - High" or " - Low" or "" or "- Med"
 
-folder <- "../Results/SIMPLEG-2023-10-29/"
-folder_plot <- "../Figures/102923/new"
-datafile   <- paste0(folder, "sg1x3x10_v2310", pct, "-out.txt")
-#datafile <- "../Results/SIMPLEG-2023-10-29/sg1x3x10_v2310-out.txt"
-folder_der <- "../Data_Derived/20231029/"
-folder_stats <- "../Results/SIMPLEG-2024-10-29/stat_summary/"
+### For 2023-10-29 run ###
+# pct <- "" # change when you change 'datafile'
+# pct_title <- "" # for plotting, either " - High" or " - Low" or "" or "- Med"
+# 
+# folder <- "../Results/SIMPLEG-2023-10-29/"
+# folder_plot <- "../Figures/102923/new"
+# datafile   <- paste0(folder, "sg1x3x10_v2310", pct, "-out.txt")
+# #datafile <- "../Results/SIMPLEG-2023-10-29/sg1x3x10_v2310-out.txt"
+# folder_der <- "../Data_Derived/20231029/"
+# folder_stats <- "../Results/SIMPLEG-2024-10-29/stat_summary/"
 
 
 # CREATE FUNCTIONS --------------
@@ -82,7 +93,7 @@ folder_stats <- "../Results/SIMPLEG-2024-10-29/stat_summary/"
 # fxn to Create and Save Violin Plots and Basic Histograms 
 F_p_violin <- function(df, area){
   
-  # histograms
+  # histograms (log and normal) as PNG's for all layers in stack  
   png(filename = paste0(folder_plot, str_to_lower(area), pct, "_hist", ".png"))
   terra::hist(df, maxcell=100000000000)
   dev.off()
@@ -91,22 +102,26 @@ F_p_violin <- function(df, area){
   terra::hist(log(df), maxcell=10000000000)
   dev.off()
   
-  # subset and change names
+  ## subset and change names ##
+  
+  # CPI = Crop Production Index
+  
+  # separate the PERCENT CHANGES layers into their own df's  
   df_pct <- df %>% 
     subset(c("pct_QLAND", "pct_QCROP")) 
   names(df_pct) <- c("Cropland Area % Change", "CPI % Change")
   
+  # separate the RAW CHANGES layers into their own df's  
   df_rawch <- df %>% 
     subset(c("rawch_QLAND", "rawch_QCROP"))
-  #names(df_rawch) <- c("Cropland Area Raw Change", "CPI Raw Change")
   names(df_rawch) <- c("Cropland Area", "CPI")
   
+  # separate the NEW VALUES layers into their own df's
   df_new <- df %>% 
     subset(c("new_QLAND", "new_QCROP"))
-  #names(df_new) <- c("Cropland Area New Values", "CPI New Values")
   names(df_new) <- c("Cropland Area", "CPI")
   
-  # plot
+  # plot the boxplots next to one another (e.g. all the % change boxplots in one section)
   p1 <- bwplot(df_pct, 
                main = paste(area, "% Change", pct_title),
                ylab = "% Change")
@@ -181,15 +196,33 @@ F_aoi_prep <- function(shp, area_name){
   F_count_invalid(r_aoi, "new_QCROP")
   r_aoi_new_qcrop <- F_clamp(r_aoi, "new_QCROP")
   
+  # # Crop Specific
+  # F_count_invalid(r_aoi, "new_LND_MAZ")
+  # r_aoi_new_maize <- F_clamp(r_aoi, "new_LND_MAZ")
+  # 
+  # F_count_invalid(r_aoi, "new_LND_SOY")
+  # r_aoi_new_soy <- F_clamp(r_aoi, "new_LND_SOY")
+  
   # get other layers
   r_aoi_pct_qland <- r_aoi %>% subset("pct_QLAND")
   r_aoi_rawch_qland <- r_aoi %>% subset("rawch_QLAND")
+  
   r_aoi_pct_qcrop <- r_aoi %>% subset("pct_QCROP")
   r_aoi_rawch_qcrop <- r_aoi %>% subset("rawch_QCROP")
   
+  # r_aoi_pct_maize <- r_aoi %>% subset("pct_LND_MAZ")
+  # r_aoi_rawch_maize <- r_aoi %>% subset("rawch_MAZ")
+  # 
+  # r_aoi_pct_soy <- r_aoi %>% subset("pct_LND_SOY")
+  # r_aoi_rawch_soy <- r_aoi %>% subset("rawch_SOY")
+  
   # re-stack and re-order
-  r_aoi <- c(r_aoi_new_qland, r_aoi_pct_qland, r_aoi_rawch_qland,
-             r_aoi_new_qcrop, r_aoi_pct_qcrop, r_aoi_rawch_qcrop)
+  r_aoi <- c(
+    r_aoi_new_qland, r_aoi_pct_qland, r_aoi_rawch_qland,
+    r_aoi_new_qcrop, r_aoi_pct_qcrop, r_aoi_rawch_qcrop,
+    # r_aoi_new_maize, r_aoi_pct_maize, r_aoi_rawch_soy,
+    # r_aoi_new_soy, r_aoi_pct_soy, r_aoi_rawch_soy
+  )
   
   # save clipped and clamped raster with new AOI 
   saveRDS(r_aoi, file = paste0(folder_der, "r", pct, "_", area_name, ".rds"))
@@ -207,6 +240,9 @@ F_EDA <- function(r_aoi, area_name){
   write.csv(table_area, file = paste0(folder, "/summary_tables/", "table_", area_name, pct, "_102923", ".csv"))
   print(global(r_aoi$rawch_QLAND, fun = "sum", na.rm = T))
   print(global(r_aoi$rawch_QCROP, fun = "sum", na.rm = T))
+  # print(global(r_aoi$rawch_MAZ, fun = "sum", na.rm = T))
+  # print(global(r_aoi$rawch_SOY, fun = "sum", na.rm = T))
+  
   # Call EDA fxn to get and save violin plots 
   F_p_violin(r_aoi, area_name)
   
@@ -221,6 +257,7 @@ F_EDA <- function(r_aoi, area_name){
 
 load("../Data_Derived/shp_usbr.RData")
 r <- readRDS(file = paste0(folder_der, "r", pct, ".rds"))
+# r <- readRDS(file = paste0(folder_der, "r_maizesoy", pct, ".rds"))
 
 # print cropland area in ha by getting the sum of each grid-cell value
 print(global(r$new_QLAND, fun = "sum", na.rm = T))
@@ -237,22 +274,45 @@ r_new_qland <- subset(r, "new_QLAND")
 r_pct_qcrop <- subset(r, "pct_QCROP")
 r_new_qcrop <- subset(r, "new_QCROP")
 
+# r_pct_maize <- subset(r, "pct_LND_MAZ")
+# r_new_maize <- subset(r, "new_LND_MAZ")
+# 
+# r_pct_soy <- subset(r, "pct_LND_SOY")
+# r_new_soy <- subset(r, "new_LND_soy")
+
 # NOTE: rawch = Raw Change
 r_rawch_qcrop <- r_new_qcrop - (r_new_qcrop / ((r_pct_qcrop/100)+1))
 r_rawch_qland <- r_new_qland - (r_new_qland / ((r_pct_qland/100)+1))
 
-r <- c(r, r_rawch_qcrop, r_rawch_qland)
+# r_rawch_maize <- r_new_maize - (r_new_maize / ((r_pct_maize/100)+1))
+# r_rawch_soy <- r_new_soy - (r_new_soy / ((r_pct_soy/100)+1))
+
+r <- c(
+  r, 
+  r_rawch_qcrop, r_rawch_qland,
+  #r_rawch_maize, r_rawch_soy
+  )
+
 r
 
 # set names 
 names(r)
-names(r) <- c("pct_QLAND", 
-              "new_QLAND", 
-              "pct_QCROP", 
-              "new_QCROP", 
-              "rawch_QCROP", 
-              "rawch_QLAND")
-
+names(r) <- c(
+  "pct_QLAND", 
+  "new_QLAND", 
+  "pct_QCROP", 
+  "new_QCROP",
+  #"pct_LND_MAZ", 
+  #"pct_LND_SOY", 
+  #"new_LND_MAZ", 
+  #"new_LND_SOY"
+  
+  "rawch_QCROP", 
+  "rawch_QLAND"
+  # 
+  # "rawch_MAZ",
+  # "rawch_SOY"
+)
 
 ## 2.2: Count New Land Values ----- 
 
@@ -295,7 +355,7 @@ pdf(file = paste0(folder_plot, "world", pct, "_maps", ".pdf"),
     )
 par(mfrow=c(2,2), mar = c(0, 0.1, 0, 0.1))
 
-### Post-Sim Cropland Area ###
+### Post-Sim Cropland Area ####################
 terra::plot(r_row %>% subset("new_QLAND")/1000,
             type = "interval",
             breaks = c(0, 1, 5, 10, 20, 25, 30, 35, 45, 50),
@@ -313,7 +373,7 @@ terra::plot(r_row %>% subset("new_QLAND")/1000,
 
 
 
-### Actual (Raw) Change in Cropland Area ###
+### Actual (Raw) Change in Cropland Area ####################
 terra::plot(r_row %>% subset("rawch_QLAND")/1000,
             type = "interval",
             #breaks = c(-50000, -25000, -10000, -1000, -100, 0, 1, 10, 100, 500, 1000),
@@ -334,7 +394,7 @@ terra::plot(r_row %>% subset("rawch_QLAND")/1000,
 #lines(vect(ext(shp_us_mw)), lwd = 0.8, lty = 1, col = "black")
 #lines(vect(ext(shp_cerr)), lwd = 0.8, lty = 1, col = "black")
 
-### Post-Sim Crop Index ###
+### Post-Sim Crop Index ####################
 terra::plot(r_row %>% subset("new_QCROP")/1000,
             type = "interval",
             breaks = c(0, 1, 5, 10, 20, 25, 30, 35, 45, 50),
@@ -348,7 +408,7 @@ terra::plot(r_row %>% subset("new_QCROP")/1000,
 lines(shp_world, col = "gray80")
 #lines(shp_us_mw, lwd = 0.8, lty = 3, col = "darkgray")
 
-### Actual (Raw) Change in Crop Production Index ###
+### Actual (Raw) Change in Crop Production Index ####################
 terra::plot(r_row %>% subset("rawch_QCROP")/1000,
             type = "interval",
             breaks = c(-50, -25, -10, -1, -0.1, 0, 0.01, 0.25, 0.5, 1, 2, 5),
@@ -366,6 +426,10 @@ terra::plot(r_row %>% subset("rawch_QCROP")/1000,
 #lines(vect(ext(shp_cerr)), lwd = 0.8, lty = 1, col = "black")
 
 dev.off()
+
+# TO-DO #
+### WORLD MAIZE MAP ####################
+### WORLD SOY MAP ####################
 
 # 3: US Results  ----------------------------
 ## 3.1 Prep Data -------
@@ -390,7 +454,7 @@ pdf(file = paste0(folder_plot, "us", pct, "_maps", ".pdf"),
 par(mfrow=c(2,2), mar = c(0, 0.1, 0, 0.1))
 
 
-### Post-Sim Cropland Area ###
+### Post-Sim Cropland Area ####################
 terra::plot(r_us %>% subset("new_QLAND")/1000,
             type = "interval",
             breaks = c(0, 1, 5, 10, 20, 25, 30, 35, 45, 50),
@@ -408,7 +472,7 @@ lines(shp_us_mw, lwd = 0.8, lty = 3, col = "darkgray")
 
 
 
-### Actual (Raw) Change in Cropland Area ###
+### Actual (Raw) Change in Cropland Area ####################
 
 # NOTE: the test here is set to the Crop Production INDEX not area! They need the same color scheme, so I set it to the QCROP! 
 test <- max(abs(minmax(r_us %>% subset("rawch_QCROP")/1000)))
@@ -434,7 +498,7 @@ lines(shp_us_mw, lwd = 0.8, lty = 3, col = "darkgray")
 
 
 
-### Post-Sim Crop Index ###
+### Post-Sim Crop Index ####################
 terra::plot(r_us %>% subset("new_QCROP")/1000,
             type = "interval",
             breaks = c(0, 1, 5, 10, 20, 25, 30, 35, 45, 50),
@@ -451,7 +515,7 @@ terra::plot(r_us %>% subset("new_QCROP")/1000,
 lines(shp_us_mw, lwd = 0.8, lty = 3, col = "darkgray")
 
 
-### Actual (Raw) Change in Crop Production Index ###
+### Actual (Raw) Change in Crop Production Index ####################
 terra::plot(r_us %>% subset("rawch_QCROP")/1000,
             type = "continuous",
             breaks = test_breaks,
@@ -468,6 +532,8 @@ lines(shp_us_mw, lwd = 0.8, lty = 3, col = "darkgray")
 
 dev.off()
 
+### Maize Map ####################
+### Soy Map ####################
 
 
 
@@ -489,7 +555,7 @@ pdf(file = paste0(folder_plot, "brazil", pct, "_maps", ".pdf"),
 #par(mfrow=c(3,2), oma = c(0,0,0,0))
 par(mfrow=c(2,2), mar = c(0, 0.1, 0, 0.1))
 
-### Post-Sim Cropland Area ###
+### Post-Sim Cropland Area ####################
 terra::plot(r_br %>% subset("new_QLAND")/1000,
             type = "interval",
             breaks = c(0, 1, 5, 10, 20, 25, 30, 35, 45, 50),
@@ -501,7 +567,7 @@ terra::plot(r_br %>% subset("new_QLAND")/1000,
             ))
 lines(shp_cerr_states, lwd = 0.8, lty = 3, col = "darkgray")
 
-### Actual (Raw) Change in Cropland Area ###
+### Actual (Raw) Change in Cropland Area ####################
 # NOTE: the test here is set to the Crop Production INDEX not area! 
 test <- max(abs(minmax(r_br %>% subset("rawch_QCROP")/1000)))
 #test_breaks <- seq(0, test, length.out = 100)
@@ -521,7 +587,7 @@ terra::plot(r_br %>% subset("rawch_QLAND")/1000,
             ))
 lines(shp_cerr_states, lwd = 0.8, lty = 3, col = "darkgray")
 
-### Post-Sim Crop Index ###
+### Post-Sim Crop Index ####################
 terra::plot(r_br %>% subset("new_QCROP")/1000,
             type = "interval",
             breaks = c(0, 1, 5, 10, 20, 25, 30, 35, 45, 50),
@@ -535,7 +601,7 @@ lines(shp_cerr_states, lwd = 0.8, lty = 3, col = "darkgray")
 
 
 
-### Actual (Raw) Change in Crop Production Index ###
+### Actual (Raw) Change in Crop Production Index ####################
 # test <- max(abs(minmax(r_br_rawch_qcrop/1000)))
 # test_breaks <- seq(0, test, length.out = 100)
 terra::plot(r_br %>% subset("rawch_QCROP")/1000,
@@ -551,6 +617,8 @@ lines(shp_cerr_states, lwd = 0.8, lty = 3, col = "darkgray")
 dev.off()
 
 
+### Maize Map ####################
+### Soy Map ####################
 
 
 
@@ -571,7 +639,7 @@ pdf(file = paste0(folder_plot, "cerr", pct, "_maps", ".pdf"),
 )
 par(mfrow=c(2,2), mar = c(0.4, 0.8, 0.4, 0.8))
 
-### Post-Sim Cropland Area ###
+### Post-Sim Cropland Area ####################
 terra::plot(r_cerr %>% subset("new_QLAND")/1000,
             type = "interval",
             breaks = c(0, 1, 5, 10, 20, 25, 30, 35, 45, 50),
@@ -583,7 +651,7 @@ terra::plot(r_cerr %>% subset("new_QLAND")/1000,
             ))
 lines(shp_cerr_states, lwd = 0.8, lty = 3, col = "darkgray")
 
-### Actual (Raw) Change in Cropland Area ###
+### Actual (Raw) Change in Cropland Area ####################
 test <- max(abs(minmax(r_cerr %>% subset("rawch_QCROP")/1000)))
 #test_breaks <- seq(0, test, length.out = 100)
 
@@ -601,7 +669,7 @@ terra::plot(r_cerr %>% subset("rawch_QLAND")/1000,
             ))
 lines(shp_cerr_states, lwd = 0.8, lty = 3, col = "darkgray")
 
-### Post-Sim Crop Index ###
+### Post-Sim Crop Index ####################
 terra::plot(r_cerr %>% subset("new_QCROP")/1000,
             # changed for Cerr; removed 0.1
             type = "interval",
@@ -614,7 +682,7 @@ terra::plot(r_cerr %>% subset("new_QCROP")/1000,
             ))
 lines(shp_cerr_states, lwd = 0.8, lty = 3, col = "darkgray")
 
-### Actual (Raw) Change in Crop Production Index ###
+### Actual (Raw) Change in Crop Production Index ####################
 test <- max(abs(minmax(r_cerr %>% subset("rawch_QCROP")/1000)))
 terra::plot(r_cerr %>% subset("rawch_QCROP")/1000,
             type = "continuous",
@@ -629,6 +697,12 @@ lines(shp_cerr_states, lwd = 0.8, lty = 3, col = "darkgray")
 
 dev.off()
 
+
+### Maize Map ####################
+### Soy Map ####################
+
+
+
 # 6: STATS --------------------------
 # Function to get the total changes
 F_sum <- function(df, layer){
@@ -639,10 +713,18 @@ F_sum <- function(df, layer){
 # Function to create df of changes and calculate "PRE" values
 F_area_stats <- function(df, extent_text){
   # create column of labels for easier recall
-  labels <- c("new_cropland_area", 
-              "raw_change_cropland_area",
-              "new_crop_production", 
-              "raw_change_crop_production")
+  labels <- c(
+    "new_cropland_area", 
+    "raw_change_cropland_area",
+    "new_crop_production", 
+    "raw_change_crop_production"
+    
+    # "new_soy_area",
+    # "raw_change_soy_area",
+    # 
+    # "new_maize_area",
+    # "raw_change_maize_area"
+    )
   
   # get layers from input df
   values <- c(
@@ -650,6 +732,12 @@ F_area_stats <- function(df, extent_text){
     F_sum(df, "rawch_QLAND"),
     F_sum(df, "new_QCROP"),
     F_sum(df, "rawch_QCROP")
+    
+    F_sum(df, "new_SOY"),
+    F_sum(df, "rawch_SOY")
+    F_sum(df, "new_MAZ"),
+    F_sum(df, "rawch_MAZ")
+    
   )
   
   # create data frame from the other layers and their labels 
