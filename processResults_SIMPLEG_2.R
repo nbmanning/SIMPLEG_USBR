@@ -12,7 +12,10 @@
 ## SIMPLE-G Result files as '.txt' from 'processResults_SIMPLEG_1.R'
 
 # NOTES:
-## Create a folder named 'raster' in your local directory before running
+## Create the following folders in your local 'Results' directory:
+### 'raster' which houses the results as rasters to pull into a GIS
+### 'summary_tables' which houses a table with the stats for each area (min, mean, median, 1st & 3rd Quartiles, max, and NA's)
+### 'stat_summary' which houses the raw values for changes in cropland area and production as an R data file to bring into another script   
 
 # Next Steps:
 ## implement ggplot code with tidyterra instead of terra for better graphics
@@ -219,7 +222,7 @@ F_aoi_prep <- function(shp, area_name){
   # re-stack and re-order
   r_aoi <- c(
     r_aoi_new_qland, r_aoi_pct_qland, r_aoi_rawch_qland,
-    r_aoi_new_qcrop, r_aoi_pct_qcrop, r_aoi_rawch_qcrop,
+    r_aoi_new_qcrop, r_aoi_pct_qcrop, r_aoi_rawch_qcrop
     # r_aoi_new_maize, r_aoi_pct_maize, r_aoi_rawch_soy,
     # r_aoi_new_soy, r_aoi_pct_soy, r_aoi_rawch_soy
   )
@@ -237,7 +240,7 @@ F_EDA <- function(r_aoi, area_name){
   table_area <- summary(r_aoi, size = 1000000000) # set size to not use a sample
   print(table_area)
   
-  write.csv(table_area, file = paste0(folder, "/summary_tables/", "table_", area_name, pct, "_102923", ".csv"))
+  write.csv(table_area, file = paste0(folder, "summary_tables/", "table_", area_name, pct, "_102923", ".csv"))
   print(global(r_aoi$rawch_QLAND, fun = "sum", na.rm = T))
   print(global(r_aoi$rawch_QCROP, fun = "sum", na.rm = T))
   # print(global(r_aoi$rawch_MAZ, fun = "sum", na.rm = T))
@@ -289,7 +292,7 @@ r_rawch_qland <- r_new_qland - (r_new_qland / ((r_pct_qland/100)+1))
 
 r <- c(
   r, 
-  r_rawch_qcrop, r_rawch_qland,
+  r_rawch_qcrop, r_rawch_qland#,
   #r_rawch_maize, r_rawch_soy
   )
 
@@ -733,10 +736,10 @@ F_area_stats <- function(df, extent_text){
     F_sum(df, "new_QCROP"),
     F_sum(df, "rawch_QCROP")
     
-    F_sum(df, "new_SOY"),
-    F_sum(df, "rawch_SOY")
-    F_sum(df, "new_MAZ"),
-    F_sum(df, "rawch_MAZ")
+    # F_sum(df, "new_SOY"),
+    # F_sum(df, "rawch_SOY")
+    # F_sum(df, "new_MAZ"),
+    # F_sum(df, "rawch_MAZ")
     
   )
   
@@ -757,11 +760,17 @@ stat_SG_QLAND_QCROP_US <- F_area_stats(r_us, "US")
 stat_SG_QLAND_QCROP_BR <- F_area_stats(r_br, "Brazil")  
 stat_SG_QLAND_QCROP_Cerrado <- F_area_stats(r_cerr, "Cerrado")  
 
+stat_SG_summary <- rbind(stat_SG_QLAND_QCROP_US, stat_SG_QLAND_QCROP_BR, stat_SG_QLAND_QCROP_Cerrado)
+
 ## 6.2: Save SIMPLE-G Stats ------- 
 save(
-  stat_SG_QLAND_QCROP_US, stat_SG_QLAND_QCROP_BR, stat_SG_QLAND_QCROP_Cerrado,
+  stat_SG_QLAND_QCROP_US, stat_SG_QLAND_QCROP_BR, stat_SG_QLAND_QCROP_Cerrado, stat_SG_summary,
   file = paste0(folder_stats, "sg_QLAND_QCROP_US_BR_Cerr.RData")
 )
+
+write.csv(stat_SG_summary, 
+          file = paste0(folder_stats, "sg", pct, "_stat_summary_US_BR_Cerr.csv"),
+          row.names = F)
 
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #  
