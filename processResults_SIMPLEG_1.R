@@ -39,17 +39,28 @@ library(rworldmap) # getting simple BR Border
 ## lo: enter "_lo" ;
 ## out / default; enter ""
 
-### For 2024-01-30 run ###
-pct <- "_m" # change when you change 'datafile'
-pct_title <- "- Med" # for plotting, either " - High" or " - Low" or "" or "- Med"
 
-# NOTE: will need to change to local location
-folder <- "../Results/SIMPLEG-2024-01-30/"
-folder_plot <- "../Figures/013024/new"
-datafile   <- paste0(folder, "US_HEAT", pct, "-out.txt")
-#datafile <- "../Results/SIMPLEG-2023-10-29/sg1x3x10_v2310-out.txt"
-folder_der <- "../Data_Derived/20240130/"
-folder_stats <- "../Results/SIMPLEG-2024-01-30/stat_summary/"
+### For 2024-02-12 run ###
+pct <- "_m" # change when you change 'datafile'
+pct_title <- " - Med" # for plotting, either " - High" or " - Low" or "" or "- Med"
+
+folder <- "../Results/SIMPLEG-2024-02-12/"
+folder_plot <- "../Figures/021224/"
+datafile   <- paste0(folder, "sg1x3x10_v2401_US_Heat", pct, "-out.txt")
+folder_der <- "../Data_Derived/20240212/"
+folder_stats <- paste0(folder, "stat_summary/")
+
+# ### For 2024-01-30 run ###
+# pct <- "_m" # change when you change 'datafile'
+# pct_title <- "- Med" # for plotting, either " - High" or " - Low" or "" or "- Med"
+# 
+# # NOTE: will need to change to local location
+# folder <- "../Results/SIMPLEG-2024-01-30/"
+# folder_plot <- "../Figures/013024/new"
+# datafile   <- paste0(folder, "US_HEAT", pct, "-out.txt")
+# #datafile <- "../Results/SIMPLEG-2023-10-29/sg1x3x10_v2310-out.txt"
+# folder_der <- "../Data_Derived/20240130/"
+# folder_stats <- "../Results/SIMPLEG-2024-01-30/stat_summary/"
 
 ### For 2023-10-29 run ###
 # pct <- "" # change when you change 'datafile'
@@ -86,21 +97,29 @@ dat <- read.table(newfile, sep=",", header=T)
 
 ###### **SIMPLE-G Results Key** ------------
 
+names(dat)
+
 # GRIDOUT.GRID.VAR == The Grid Cell ID
 
 # LON == Longitude in XXX
 
 # LAT == Latitude in XXX
 
-# pct_QLAND == % change in cropland area
+# pct_QLAND == % change in cropland harvested area
 
-# new_QLAND ==  the post-simulation (Post-Sim) area of cropland in 1000 (?) ha
+# new_QLAND ==  post-simulation (Post-Sim) area of cropland in 1000 ha
 
-# pct_QCROP ==    % change in the gridded crop production index
+# pct_QCROP ==  % change in the gridded crop production index
 
-# new_QCROP ==    the Post-Sim quantity index for crop 
-# production in 1000-ton (corn-equivalent)
+# new_QCROP ==  Post-Sim quantity index for crop production in 1000-ton (corn-equivalent)
 
+# pct_LND_MAZ ==  % change in cropland harvested area devoted to maize
+
+# pct_LND_SOY ==  % change in cropland harvested area devoted to soybeans
+
+# new_LND_MAZ ==  post-simulation area of maize cropland (1000 ha) 
+
+# new_LND_SOY ==  post-simulation area of soybeans cropland (1000 ha)
 
 
 # 2: Create Raster Stack & Save Rasters ----------
