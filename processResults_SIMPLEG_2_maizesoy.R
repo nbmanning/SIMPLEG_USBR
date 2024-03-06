@@ -55,8 +55,11 @@ library(rworldmap) # getting simple BR Border
 
 
 ### For 2024-03-03 run ###
-# Define the string to search for in file names
-search_string <- "2024-03-03"
+# Define the model date 
+# NOTE: Assumes the results are downloaded and saved in YYYY-MM-DD format
+date_string <- "2024-03-03"
+
+# Set model version & parameter flexibility
 datafile_version <- "sg1x3x10_v2402_US_Heat"
 pct <- "_m" # change when you change 'datafile'
 pct_title <- " - Med" # for plotting, either " - High" or " - Low" or "" or "- Med"
@@ -64,28 +67,28 @@ pct_title <- " - Med" # for plotting, either " - High" or " - Low" or "" or "- M
 
 ## same for each model run ##
 # create vars to house results
-folder <- "../Results/SIMPLEG-2024-02-12/"
+#folder <- "../Results/SIMPLEG-2024-02-12/"
 
 folder_der <- "../Data_Derived/"
-folder_der <- paste0(folder_der, search_string, "/")
+folder_der <- paste0(folder_der, date_string, "/")
 
 folder_fig <- "../Figures/"
-folder_fig <- paste0(folder_fig, search_string, "/")
+folder_fig <- paste0(folder_fig, date_string, "/")
 
 
-folder_results <- paste0("../Results/SIMPLEG-", search_string, "/")
+folder_results <- paste0("../Results/SIMPLEG-", date_string, "/")
 folder_stats <- paste0(folder_results, "stat_summary/")
 
 
 ### For 2024-02-12 run ###
-pct <- "_m" # change when you change 'datafile'
-pct_title <- " - Med" # for plotting, either " - High" or " - Low" or "" or "- Med"
-
-folder <- "../Results/SIMPLEG-2024-02-12/"
-folder_plot <- "../Figures/021224/"
-datafile   <- paste0(folder, "sg1x3x10_v2401_US_Heat", pct, "-out.txt")
-folder_der <- "../Data_Derived/20240212/"
-folder_stats <- paste0(folder, "stat_summary/")
+# pct <- "_m" # change when you change 'datafile'
+# pct_title <- " - Med" # for plotting, either " - High" or " - Low" or "" or "- Med"
+# 
+# folder <- "../Results/SIMPLEG-2024-02-12/"
+# folder_plot <- "../Figures/021224/"
+# datafile   <- paste0(folder, "sg1x3x10_v2401_US_Heat", pct, "-out.txt")
+# folder_der <- "../Data_Derived/20240212/"
+# folder_stats <- paste0(folder, "stat_summary/")
 
 
 # ### For 2024-01-30 run ###
@@ -126,11 +129,11 @@ folder_stats <- paste0(folder, "stat_summary/")
 F_p_violin <- function(df, area){
   
   # histograms (log and normal) as PNG's for all layers in stack  
-  png(filename = paste0(folder_plot, str_to_lower(area), pct, "_hist", ".png"))
+  png(filename = paste0(folder_fig, str_to_lower(area), pct, "_hist", ".png"))
   terra::hist(df, maxcell=100000000000)
   dev.off()
   
-  png(filename = paste0(folder_plot, str_to_lower(area), pct, "_hist_log", ".png"))
+  png(filename = paste0(folder_fig, str_to_lower(area), pct, "_hist_log", ".png"))
   terra::hist(log(df), maxcell=10000000000)
   dev.off()
   
@@ -156,7 +159,7 @@ F_p_violin <- function(df, area){
 
   # plot the boxplots next to one another (e.g. all the % change boxplots in one section)
   # F_p_violin_save <- function(){  
-  #   png(filename = paste0(folder_plot, str_to_lower(area), pct, "_bw", "_pctchange", "_maizesoy", ".png"))
+  #   png(filename = paste0(folder_fig, str_to_lower(area), pct, "_bw", "_pctchange", "_maizesoy", ".png"))
   #   plot(p1)
   #   dev.off()
   # }
@@ -170,15 +173,15 @@ F_p_violin <- function(df, area){
                main = paste(area, "Post-Sim Values", pct_title),
                ylab = "Area (ha) or kg CE")
   
-  png(filename = paste0(folder_plot, str_to_lower(area), pct, "_bw", "_pctchange", ".png"))
+  png(filename = paste0(folder_fig, str_to_lower(area), pct, "_bw", "_pctchange", ".png"))
   plot(p1)
   dev.off()
   
-  png(filename = paste0(folder_plot, str_to_lower(area), pct, "_bw", "_rawchange", ".png"))
+  png(filename = paste0(folder_fig, str_to_lower(area), pct, "_bw", "_rawchange", ".png"))
   plot(p2)
   dev.off()
   
-  png(filename = paste0(folder_plot, str_to_lower(area), pct, "_bw", "_newvalues", ".png"))
+  png(filename = paste0(folder_fig, str_to_lower(area), pct, "_bw", "_newvalues", ".png"))
   plot(p3)
   dev.off()
   
@@ -207,15 +210,15 @@ F_p_violin <- function(df, area){
                ylab = "Area (ha)")
   
 
-  png(filename = paste0(folder_plot, str_to_lower(area), pct, "_bw", "_pctchange", "_maizesoy", ".png"))
+  png(filename = paste0(folder_fig, str_to_lower(area), pct, "_bw", "_pctchange", "_maizesoy", ".png"))
   plot(p4)
   dev.off()
   
-  png(filename = paste0(folder_plot, str_to_lower(area), pct, "_bw", "_rawchange", "_maizesoy", ".png"))
+  png(filename = paste0(folder_fig, str_to_lower(area), pct, "_bw", "_rawchange", "_maizesoy", ".png"))
   plot(p5)
   dev.off()
   
-  png(filename = paste0(folder_plot, str_to_lower(area), pct, "_bw", "_newvalues", "_maizesoy", ".png"))
+  png(filename = paste0(folder_fig, str_to_lower(area), pct, "_bw", "_newvalues", "_maizesoy", ".png"))
   plot(p6)
   dev.off()
   
@@ -438,12 +441,12 @@ F_EDA(r_aoi = r_row, area_name = "World")
 # open saving function
 
 # old; used to use PNG
-# png(filename = paste0(folder_plot, "world", pct, "_maps", ".png"),
+# png(filename = paste0(folder_fig, "world", pct, "_maps", ".png"),
 #     width = 1800, height = 1200)
 #par(mfrow=c(3,2), oma = c(0,0,0,0))
 
 # current; use PDF then convert after
-pdf(file = paste0(folder_plot, "world", pct, "_maps", ".pdf"),
+pdf(file = paste0(folder_fig, "world", pct, "_maps", ".pdf"),
     width = 18, height = 18
     )
 par(mfrow=c(2,2), mar = c(0, 0.1, 0, 0.1))
@@ -521,7 +524,7 @@ terra::plot(r_row %>% subset("rawch_QCROP")/1000,
 dev.off()
 
 # TO-DO #
-pdf(file = paste0(folder_plot, "maize_soy_world", pct, "_maps", ".pdf"),
+pdf(file = paste0(folder_fig, "maize_soy_world", pct, "_maps", ".pdf"),
     width = 18, height = 18
 )
 par(mfrow=c(2,2), mar = c(0, 0.1, 0, 0.1))
@@ -650,7 +653,7 @@ F_EDA(r_aoi = r_us, area_name = "US")
 mycolors <- colorRampPalette(brewer.pal(9, "RdPu"))(100)
 
 
-pdf(file = paste0(folder_plot, "us", pct, "_maps", ".pdf"),
+pdf(file = paste0(folder_fig, "us", pct, "_maps", ".pdf"),
     width = 18, height = 18
 )
 par(mfrow=c(2,2), mar = c(0, 0.1, 0, 0.1))
@@ -677,13 +680,13 @@ lines(shp_us_mw, lwd = 0.8, lty = 3, col = "darkgray")
 ### Actual (Raw) Change in Cropland Area ####################
 
 # NOTE: the test here is set to the Crop Production INDEX not area! They need the same color scheme, so I set it to the QCROP! 
-test <- max(abs(minmax(r_us %>% subset("rawch_QCROP")/1000)))
+test <- max(abs(minmax(r_us %>% subset("rawch_QLAND")/1000)))
 test_breaks <- seq(-test, 1, length.out = 100)
 
 # max is 24.1, set to 25 for simplicity
 #test_breaks <- seq(0, 2, length.out = 100)
 #test <- max(abs(minmax(r_us_rawch_qland/1000)))
-terra::plot(r_us %>% subset("rawch_QCROP")/1000,
+terra::plot(r_us %>% subset("rawch_QLAND")/1000,
             type = "continuous",
             breaks = test_breaks,
             col = rev(mycolors),
@@ -734,185 +737,91 @@ lines(shp_us_mw, lwd = 0.8, lty = 3, col = "darkgray")
 
 dev.off()
 
-# TO-DO #
-pdf(file = paste0(folder_plot, "us", pct, "_maps", ".pdf"),
+### MAIZE MAP ####################
+pdf(file = paste0(folder_fig, "maize_soy_us", pct, "_maps", ".pdf"),
     width = 18, height = 18
 )
 par(mfrow=c(2,2), mar = c(0, 0.1, 0, 0.1))
 
-
-### Post-Sim Cropland Area ####################
-terra::plot(r_us %>% subset("new_QLAND")/1000,
-            type = "interval",
-            breaks = c(0, 1, 5, 10, 20, 25, 30, 35, 45, 50),
+#### Post-Sim Cropland Area ####################
+terra::plot(r_us %>% subset("new_LND_MAZ"),
+            #type = "interval",
+            #breaks = c(0, 1, 5, 10, 20, 25, 30, 35, 45, 50),
+            #col = brewer.pal(9, "YlGn"),
             
+            type = "continuous",
             col = brewer.pal(9, "YlGn"),
-            main = paste("US Post-Simulation\nCrop Area", pct_title),
-            plg=list( # parameters for drawing legend
-              title = "Area (kha)",
-              #title.cex = 2, # Legend title size
-              #cex = 2 # Legend text size
+            main = paste("US Post-Simulation Maize Area", pct_title),
+            plg=list(
+              title = "Area (ha)",
               x = "bottomright"
-            )
-)
-lines(shp_us_mw, lwd = 0.8, lty = 3, col = "darkgray")
+            ))
+lines(shp_us_mw, lwd = 0.8, lty = 3, col = "darkgray") 
 
 
+#### Actual (Raw) Change in Cropland Area ####################
+# 
+# # NOTE: the test here is set to the Crop Production INDEX not area! They need the same color scheme, so I set it to the QCROP! 
+# test <- max(abs(minmax(r_us %>% subset("rawch_QCROP")/1000)))
+# test_breaks <- seq(-test, 1, length.out = 100)
+# 
+# # max is 24.1, set to 25 for simplicity
+test <- max(abs(minmax(r_us %>% subset("rawch_MAZ"))))
+test_breaks <- seq(0, test, length.out = 100)
 
-### Actual (Raw) Change in Cropland Area ####################
-
-# NOTE: the test here is set to the Crop Production INDEX not area! They need the same color scheme, so I set it to the QCROP! 
-test <- max(abs(minmax(r_us %>% subset("rawch_QCROP")/1000)))
-test_breaks <- seq(-test, 1, length.out = 100)
-
-# max is 24.1, set to 25 for simplicity
+# max is 1.48, set to 2 for simplicity
 #test_breaks <- seq(0, 2, length.out = 100)
-#test <- max(abs(minmax(r_us_rawch_qland/1000)))
-terra::plot(r_us %>% subset("rawch_QCROP")/1000,
+
+terra::plot(r_us %>% subset("rawch_MAZ"),
             type = "continuous",
-            breaks = test_breaks,
-            col = rev(mycolors),
-            #col = brewer.pal(n = 11, name = "RdBu"), 
-            main = paste("US Raw Change in\nCropland Area", pct_title),
-            plg=list( # parameters for drawing legend
-              title = "Area (kha)",
-              #title.cex = 2, # Legend title size
-              #cex = 2 # Legend text size
+            main = paste("US Raw Change in Maize Area", pct_title),
+            plg=list(
+              title = "Area (ha)",
               x = "bottomright"
-            )
-)
+            ))
 lines(shp_us_mw, lwd = 0.8, lty = 3, col = "darkgray")
 
+### SOY MAP ######################
 
-
-### Post-Sim Crop Index ####################
-terra::plot(r_us %>% subset("new_QCROP")/1000,
-            type = "interval",
-            breaks = c(0, 1, 5, 10, 20, 25, 30, 35, 45, 50),
+#### Post-Sim Cropland Area ####################
+terra::plot(r_us %>% subset("new_LND_SOY"),
+            #type = "interval",
+            #breaks = c(0, 1, 5, 10, 20, 25, 30, 35, 45, 50),
+            #col = brewer.pal(9, "YlGn"),
+            
+            type = "continuous",
             col = brewer.pal(9, "YlGn"),
-            main = paste("US Post-Simulation\nCrop Index", pct_title), 
-            #plg = list(x="bottomright")
-            plg=list( # parameters for drawing legend
-              title = "Tons CE",
-              #title.cex = 2, # Legend title size
-              #cex = 2 # Legend text size
+            main = paste("US Post-Simulation Soy Area", pct_title),
+            plg=list(
+              title = "Area (ha)",
               x = "bottomright"
-            )
-)
-lines(shp_us_mw, lwd = 0.8, lty = 3, col = "darkgray")
+            ))
+lines(shp_us_mw, lwd = 0.8, lty = 3, col = "darkgray") 
 
 
-### Actual (Raw) Change in Crop Production Index ####################
-terra::plot(r_us %>% subset("rawch_QCROP")/1000,
+#### Actual (Raw) Change in Cropland Area ####################
+# 
+# # NOTE: the test here is set to the Crop Production INDEX not area! They need the same color scheme, so I set it to the QCROP! 
+# test <- max(abs(minmax(r_us %>% subset("rawch_QCROP")/1000)))
+# test_breaks <- seq(-test, 1, length.out = 100)
+# 
+# # max is 24.1, set to 25 for simplicity
+test <- max(abs(minmax(r_us %>% subset("rawch_SOY"))))
+test_breaks <- seq(0, test, length.out = 100)
+
+# max is 1.48, set to 2 for simplicity
+#test_breaks <- seq(0, 2, length.out = 100)
+
+terra::plot(r_us %>% subset("rawch_SOY"),
             type = "continuous",
-            breaks = test_breaks,
-            col = rev(mycolors),
-            main = paste("US Raw Change in\nCrop Production Index", pct_title),
-            plg=list( # parameters for drawing legend
-              title = "Tons CE",
-              #title.cex = 2, # Legend title size
-              #cex = 2 # Legend text size
+            main = paste("US Raw Change in Soy Area", pct_title),
+            plg=list(
+              title = "Area (ha)",
               x = "bottomright"
-            )
-)
+            ))
 lines(shp_us_mw, lwd = 0.8, lty = 3, col = "darkgray")
 
 dev.off()
-
-# ## TO-DO ##
-# ### MAIZE MAP ####################
-# pdf(file = paste0(folder_plot, "us", pct, "_maps", ".pdf"),
-#     width = 18, height = 18
-# )
-# par(mfrow=c(2,2), mar = c(0, 0.1, 0, 0.1))
-# 
-# 
-# #### Post-Sim Cropland Area ####################
-# terra::plot(r_us %>% subset("new_QLAND")/1000,
-#             type = "interval",
-#             breaks = c(0, 1, 5, 10, 20, 25, 30, 35, 45, 50),
-#             
-#             col = brewer.pal(9, "YlGn"),
-#             main = paste("US Post-Simulation\nCrop Area", pct_title),
-#             plg=list( # parameters for drawing legend
-#               title = "Area (kha)",
-#               #title.cex = 2, # Legend title size
-#               #cex = 2 # Legend text size
-#               x = "bottomright"
-#             )
-# )
-# lines(shp_us_mw, lwd = 0.8, lty = 3, col = "darkgray")
-# 
-# 
-# 
-# #### Actual (Raw) Change in Cropland Area ####################
-# 
-# # NOTE: the test here is set to the Crop Production INDEX not area! They need the same color scheme, so I set it to the QCROP! 
-# test <- max(abs(minmax(r_us %>% subset("rawch_QCROP")/1000)))
-# test_breaks <- seq(-test, 1, length.out = 100)
-# 
-# # max is 24.1, set to 25 for simplicity
-# #test_breaks <- seq(0, 2, length.out = 100)
-# #test <- max(abs(minmax(r_us_rawch_qland/1000)))
-# terra::plot(r_us %>% subset("rawch_QCROP")/1000,
-#             type = "continuous",
-#             breaks = test_breaks,
-#             col = rev(mycolors),
-#             #col = brewer.pal(n = 11, name = "RdBu"), 
-#             main = paste("US Raw Change in\nCropland Area", pct_title),
-#             plg=list( # parameters for drawing legend
-#               title = "Area (kha)",
-#               #title.cex = 2, # Legend title size
-#               #cex = 2 # Legend text size
-#               x = "bottomright"
-#             )
-# )
-# lines(shp_us_mw, lwd = 0.8, lty = 3, col = "darkgray")
-# 
-# ### SOY MAP ######################
-# #### Post-Sim Cropland Area ####################
-# terra::plot(r_us %>% subset("new_QLAND")/1000,
-#             type = "interval",
-#             breaks = c(0, 1, 5, 10, 20, 25, 30, 35, 45, 50),
-#             
-#             col = brewer.pal(9, "YlGn"),
-#             main = paste("US Post-Simulation\nCrop Area", pct_title),
-#             plg=list( # parameters for drawing legend
-#               title = "Area (kha)",
-#               #title.cex = 2, # Legend title size
-#               #cex = 2 # Legend text size
-#               x = "bottomright"
-#             )
-# )
-# lines(shp_us_mw, lwd = 0.8, lty = 3, col = "darkgray")
-# 
-# 
-# 
-# #### Actual (Raw) Change in Cropland Area ####################
-# 
-# # NOTE: the test here is set to the Crop Production INDEX not area! They need the same color scheme, so I set it to the QCROP! 
-# test <- max(abs(minmax(r_us %>% subset("rawch_QCROP")/1000)))
-# test_breaks <- seq(-test, 1, length.out = 100)
-# 
-# # max is 24.1, set to 25 for simplicity
-# #test_breaks <- seq(0, 2, length.out = 100)
-# #test <- max(abs(minmax(r_us_rawch_qland/1000)))
-# terra::plot(r_us %>% subset("rawch_QCROP")/1000,
-#             type = "continuous",
-#             breaks = test_breaks,
-#             col = rev(mycolors),
-#             #col = brewer.pal(n = 11, name = "RdBu"), 
-#             main = paste("US Raw Change in\nCropland Area", pct_title),
-#             plg=list( # parameters for drawing legend
-#               title = "Area (kha)",
-#               #title.cex = 2, # Legend title size
-#               #cex = 2 # Legend text size
-#               x = "bottomright"
-#             )
-# )
-# lines(shp_us_mw, lwd = 0.8, lty = 3, col = "darkgray")
-# 
-# dev.off()
 
 
 # 4: Brazil Results ----------------------------
@@ -927,7 +836,7 @@ F_EDA(r_aoi = r_br, area_name = "Brazil")
 
 ## 4.2 Plot Best BR Map ---------
 
-pdf(file = paste0(folder_plot, "brazil", pct, "_maps", ".pdf"),
+pdf(file = paste0(folder_fig, "brazil", pct, "_maps", ".pdf"),
     width = 18, height = 18
 )
 #par(mfrow=c(3,2), oma = c(0,0,0,0))
@@ -995,8 +904,8 @@ lines(shp_cerr_states, lwd = 0.8, lty = 3, col = "darkgray")
 dev.off()
 
 
-## TO-DO ##
-pdf(file = paste0(folder_plot, "maize_soy_br", pct, "_maps", ".pdf"),
+# PLOTTING #
+pdf(file = paste0(folder_fig, "maize_soy_br", pct, "_maps", ".pdf"),
     width = 15, height = 15
 )
 par(mfrow=c(2,2), mar = c(0.4, 0.8, 0.4, 0.8))
@@ -1082,7 +991,7 @@ F_EDA(r_aoi = r_cerr, area_name = "Cerrado")
 
 ## 5.2 Plot Best Cerrado Map ---------
 
-pdf(file = paste0(folder_plot, "cerr", pct, "_maps", ".pdf"),
+pdf(file = paste0(folder_fig, "cerr", pct, "_maps", ".pdf"),
     width = 15, height = 15
 )
 par(mfrow=c(2,2), mar = c(0.4, 0.8, 0.4, 0.8))
@@ -1145,8 +1054,8 @@ lines(shp_cerr_states, lwd = 0.8, lty = 3, col = "darkgray")
 
 dev.off()
 
-## TO-DO ##
-pdf(file = paste0(folder_plot, "maize_soy_cerr", pct, "_maps", ".pdf"),
+## PLOTTING ##
+pdf(file = paste0(folder_fig, "maize_soy_cerr", pct, "_maps", ".pdf"),
     width = 15, height = 15
 )
 par(mfrow=c(2,2), mar = c(0.4, 0.8, 0.4, 0.8))
@@ -1323,7 +1232,7 @@ print(global(r_row_noUS$rawch_QCROP, fun = "sum", na.rm = T))
 
 ### 4.3.3 Plot World w Clamped US --------
 
-pdf(file = paste0(folder_plot, "world_US0", pct, "_maps", ".pdf"),
+pdf(file = paste0(folder_fig, "world_US0", pct, "_maps", ".pdf"),
     width = 18, height = 18
 )
 
@@ -1766,7 +1675,7 @@ F_calc_area_change <- function(new, pct_change){
 # 5: Plot as PNG instead of PDF -------------------------
 ### US OLD (OMITTED) ---------
 # Open Save Function
-png(filename = paste0(folder_plot, "us", pct, "_maps", ".png"),
+png(filename = paste0(folder_fig, "us", pct, "_maps", ".png"),
     width = 1100, height = 700)
 #par(mfrow=c(3,2), oma = c(0,0,0,0))
 par(mfrow=c(1,6), oma = c(0,0,0,0))
@@ -1851,7 +1760,7 @@ dev.off()
 
 ### BR OLD PNG ----------
 # Open Save Function
-png(filename = paste0(folder_plot, "brazil", pct, "_maps", ".png"),
+png(filename = paste0(folder_fig, "brazil", pct, "_maps", ".png"),
     width = 1000, height = 950)
 #par(mfrow=c(3,2), oma = c(0,0,0,0))
 par(mfrow=c(1,6), oma = c(0,0,0,0))
@@ -1928,7 +1837,7 @@ dev.off()
 
 ### CERRADO OLD PNG ------------
 # Open Save Function
-png(filename = paste0(folder_plot, "cerrado", pct, "_maps", ".png"),
+png(filename = paste0(folder_fig, "cerrado", pct, "_maps", ".png"),
     width = 1000, height = 950)
 #par(mfrow=c(3,2), oma = c(0,0,0,0))
 par(mfrow=c(1,6), oma = c(0,0,0,0))
