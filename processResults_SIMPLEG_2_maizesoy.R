@@ -63,7 +63,9 @@ pct_title <- " - Med" # for plotting, either " - High" or " - Low" or "" or "- M
 
 
 ## same for each model run ##
-# create vars to house results 
+# create vars to house results
+folder <- "../Results/SIMPLEG-2024-02-12/"
+
 folder_der <- "../Data_Derived/"
 folder_der <- paste0(folder_der, search_string, "/")
 
@@ -314,8 +316,18 @@ F_EDA <- function(r_aoi, area_name){
   table_area <- summary(r_aoi, size = 1000000000) # set size to not use a sample
   print(table_area)
   
-  #write.csv(table_area, file = paste0(folder, "summary_tables/", "table_", area_name, pct, "_102923", ".csv"))
-  write.csv(table_area, file = paste0(folder, "summary_tables/", "table_", area_name, pct, "_021224", ".csv"))
+  #write.csv(table_area, file = paste0(folder_results, "summary_tables/", "table_", area_name, pct, "_102923", ".csv"))
+  tables_file <- paste0(folder_results, "summary_tables/")
+  
+  if (!(any(grepl("summary_tables", folder_results)))) {
+    # If no file name contains the search string, create a folder with that string
+    dir.create(tables_file)
+    cat("Folder ", tables_file, "created.\n")
+  } else {
+    cat("Folder ", tables_file, "already exists.\n")
+  }
+  
+  write.csv(table_area, file = paste0(folder_results, "summary_tables/", "table_", area_name, pct, "_021224", ".csv"))
   print(global(r_aoi$rawch_QLAND, fun = "sum", na.rm = T))
   print(global(r_aoi$rawch_QCROP, fun = "sum", na.rm = T))
   print(global(r_aoi$rawch_MAZ, fun = "sum", na.rm = T))
@@ -1305,7 +1317,7 @@ summary(r_row_noUS, size = 1000000000000000000)
 table_noUS <- summary(r_row_noUS, size = 1000000000) # set size to not use a sample
 print(table_noUS)
 
-write.csv(table_noUS, file = paste0(folder, "/summary_tables/table_World_noUS", pct, "_102923", ".csv"))
+write.csv(table_noUS, file = paste0(folder_results, "/summary_tables/table_World_noUS", pct, "_102923", ".csv"))
 print(global(r_row_noUS$rawch_QLAND, fun = "sum", na.rm = T))
 print(global(r_row_noUS$rawch_QCROP, fun = "sum", na.rm = T))
 
