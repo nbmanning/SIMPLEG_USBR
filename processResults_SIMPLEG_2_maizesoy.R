@@ -52,6 +52,29 @@ library(rworldmap) # getting simple BR Border
 ## lo: enter "_lo" ;
 ## out / default; enter ""
 
+
+
+### For 2024-03-03 run ###
+# Define the string to search for in file names
+search_string <- "2024-03-03"
+datafile_version <- "sg1x3x10_v2402_US_Heat"
+pct <- "_m" # change when you change 'datafile'
+pct_title <- " - Med" # for plotting, either " - High" or " - Low" or "" or "- Med"
+
+
+## same for each model run ##
+# create vars to house results 
+folder_der <- "../Data_Derived/"
+folder_der <- paste0(folder_der, search_string, "/")
+
+folder_fig <- "../Figures/"
+folder_fig <- paste0(folder_fig, search_string, "/")
+
+
+folder_results <- paste0("../Results/SIMPLEG-", search_string, "/")
+folder_stats <- paste0(folder_results, "stat_summary/")
+
+
 ### For 2024-02-12 run ###
 pct <- "_m" # change when you change 'datafile'
 pct_title <- " - Med" # for plotting, either " - High" or " - Low" or "" or "- Med"

@@ -8,13 +8,16 @@
 
 # Edited by: Nick Manning 
 # Initial edit date: May 2023
-# Last edited: Jan 2024
+# Last edited: Feb 2024
 
 # REQUIRES:
 ## SIMPLE-G Result files as '.txt' 
 
 # NOTES:
 ## Create a folder named 'raster' in your local directory before running
+
+# Next:
+## Clean up beginning portion. Ideally, we would enter a given string, check if the files are there, if not, then create the files, rahter than having to recreate the file structure each time
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
 
@@ -39,16 +42,62 @@ library(rworldmap) # getting simple BR Border
 ## lo: enter "_lo" ;
 ## out / default; enter ""
 
+# new code #
+# Define the string to search for in file names
+search_string <- "2024-03-03"
 
-### For 2024-02-12 run ###
+# create vars to house results 
+folder_der <- "../Data_Derived/"
+folder_fig <- "../Figures/"
+
+# List all files and folders in the current directory
+files_der <- list.dirs(folder_der)
+files_fig <- list.dirs(folder_fig)
+
+# Check if any file name contains the search string
+if (!(any(grepl(search_string, files_der)))) {
+  # If no file name contains the search string, create a folder with that string
+  dir.create(paste0(folder_der, search_string))
+  
+  cat("Derived Data Folder", search_string, "created.\n")
+} else {
+  cat("A folder with the string", search_string, "in its name already exists.\n")
+}
+
+# check for figures folder
+if (!(any(grepl(search_string, files_fig)))) {
+  # If no file name contains the search string, create a folder with that string
+  dir.create(paste0(folder_fig, search_string))
+  
+  cat("Figure Folder", search_string, "created.\n")
+} else {
+  cat("A folder with the string", search_string, "in its name already exists.\n")
+}
+
+### For 2024-03-03 run ###
+datafile_version <- "sg1x3x10_v2402_US_Heat"
 pct <- "_m" # change when you change 'datafile'
 pct_title <- " - Med" # for plotting, either " - High" or " - Low" or "" or "- Med"
 
-folder <- "../Results/SIMPLEG-2024-02-12/"
-folder_plot <- "../Figures/021224/"
-datafile   <- paste0(folder, "sg1x3x10_v2401_US_Heat", pct, "-out.txt")
-folder_der <- "../Data_Derived/20240212/"
-folder_stats <- paste0(folder, "stat_summary/")
+folder_results <- paste0("../Results/SIMPLEG-", search_string, "/")
+folder_fig <- paste0(folder_fig, search_string, "/")
+
+folder_der <- paste0(folder_der, search_string, "/")
+folder_stats <- paste0(folder_results, "stat_summary/")
+
+datafile   <- paste0(folder_results, datafile_version, pct, "-out.txt")
+
+# # # # # # # # # #
+
+# ### For 2024-02-12 run ###
+# pct <- "_m" # change when you change 'datafile'
+# pct_title <- " - Med" # for plotting, either " - High" or " - Low" or "" or "- Med"
+# 
+# folder_results <- "../Results/SIMPLEG-2024-02-12/"
+# folder_plot <- "../Figures/021224/"
+# datafile   <- paste0(folder_results, "sg1x3x10_v2401_US_Heat", pct, "-out.txt")
+# folder_der <- "../Data_Derived/20240212/"
+# folder_stats <- paste0(folder_results, "stat_summary/")
 
 # ### For 2024-01-30 run ###
 # pct <- "_m" # change when you change 'datafile'
@@ -88,7 +137,7 @@ new.lines <-
 
 # write temporary file 
 # NOTE: Will need to change to local location
-newfile = paste0(folder, "temp.txt")
+newfile = paste0(folder_results, "temp.txt")
 writeLines(new.lines, newfile, sep="\n")
 
 # read in new data table -- takes a bit
@@ -137,72 +186,101 @@ gridded(dat) = T
 prct_ras = stack(dat) 
 
 # add rasters to file - uncomment and change 'ras_file' to local location
-ras_file <- paste0(folder, "raster/")
+ras_file <- paste0(folder_results, "raster/")
 
-# writeRaster(prct_ras$pct_QLAND, paste0(ras_file, "qLand_pct_", pct, ".tif"), format="GTiff", overwrite=TRUE)
-# writeRaster(prct_ras$new_QLAND, paste0(ras_file, "qLand_new_", pct, ".tif"), format="GTiff", overwrite=TRUE)
-# writeRaster(prct_ras$pct_QCROP, paste0(ras_file, "qCrop_pct_", pct, ".tif"), format="GTiff", overwrite=TRUE)
-# writeRaster(prct_ras$new_QCROP, paste0(ras_file, "qCrop_new_", pct, ".tif"), format="GTiff", overwrite=TRUE)
+# check for figures folder
+if (!(any(grepl("raster", folder_results)))) {
+  # If no file name contains the search string, create a folder with that string
+  dir.create(ras_file)
+  cat("Folder ", ras_file, "created.\n")
+} else {
+  cat("Folder ", ras_file, "already exists.\n")
+}
+  
+
+writeRaster(prct_ras$pct_QLAND, paste0(ras_file, "qLand_pct_", pct, ".tif"), format="GTiff", overwrite=TRUE)
+writeRaster(prct_ras$new_QLAND, paste0(ras_file, "qLand_new_", pct, ".tif"), format="GTiff", overwrite=TRUE)
+writeRaster(prct_ras$pct_QCROP, paste0(ras_file, "qCrop_pct_", pct, ".tif"), format="GTiff", overwrite=TRUE)
+writeRaster(prct_ras$new_QCROP, paste0(ras_file, "qCrop_new_", pct, ".tif"), format="GTiff", overwrite=TRUE)
+
+writeRaster(prct_ras$pct_LND_MAZ, paste0(ras_file, "MAZ_pct_", pct, ".tif"), format="GTiff", overwrite=TRUE)
+writeRaster(prct_ras$new_LND_MAZ, paste0(ras_file, "MAZ_new_", pct, ".tif"), format="GTiff", overwrite=TRUE)
+writeRaster(prct_ras$pct_LND_SOY, paste0(ras_file, "SOY_pct_", pct, ".tif"), format="GTiff", overwrite=TRUE)
+writeRaster(prct_ras$new_LND_SOY, paste0(ras_file, "MAZ_new_", pct, ".tif"), format="GTiff", overwrite=TRUE)
 
 # add Longitude and Latitude rasters (only need to do this one time, they aren't different for diff percents)
-# writeRaster(prct_ras$LON, paste0(ras_file, "USBR_SIMPLEG_10292023_LON.tif"), format="GTiff", overwrite=TRUE)
-# writeRaster(prct_ras$LAT, paste0(ras_file, "USBR_SIMPLEG_10292023_LAT.tif"), format="GTiff", overwrite=TRUE)
+writeRaster(prct_ras$LON, paste0(ras_file, "USBR_SIMPLEG_LON.tif"), format="GTiff", overwrite=TRUE)
+writeRaster(prct_ras$LAT, paste0(ras_file, "USBR_SIMPLEG_LAT.tif"), format="GTiff", overwrite=TRUE)
+
+# NOTE: in the future could try below code, from https://stackoverflow.com/questions/68253507/how-to-write-raster-bylayer-using-terra-package-in-r
+# z <- writeRaster(s, paste0(names(s), ".tif"), overwrite=TRUE)
 
 ## Save 'terra' object ------ 
 # create SpatRaster using terra
 r <- terra::rast(dat)
+
+# Get results for new/pct for Maize and Soy
+r_maizesoy <- subset(r, c("pct_QLAND", "new_QLAND", "pct_QCROP", "new_QCROP",
+                 "pct_LND_MAZ", "pct_LND_SOY", "new_LND_MAZ", "new_LND_SOY"))
+
+# get 
 r <- subset(r, c("pct_QLAND", "new_QLAND", "pct_QCROP", "new_QCROP"))
 
+# save
 saveRDS(r, file = paste0(folder_der, "r", pct, ".rds"))
+saveRDS(r_maizesoy, file = paste0(folder_der, "r_maizesoy", pct, ".rds"))
+
 
 
 # 3: Get Shapefiles: US-MW, BR, & Cerrado ------------
 
-### Load World Shapefile ###
-shp_world <- st_read(system.file("shapes/world.gpkg", package="spData"))
+# NOTE: Only need to run once per computer - these don't change for different model results
 
-### Load US Shapefile ###
-shp_us <- states(cb = TRUE, resolution = "20m") %>%
-  filter(!STUSPS %in% c("AK", "HI", "PR"))
-
-#### Load US-MW Shapefile ###
-shp_us_mw <- shp_us %>%
-  filter(STUSPS %in% c("IA", "IL", "IN", "KS", "MI", "MN",
-                       "MO", "ND", "NE", "OH", "SD", "WI"))
-
-#### Load Cerrado Shapefile ###
-shp_cerr <- read_biomes(
-  year = 2019,
-  simplified = T,
-  showProgress = T) %>%
-  dplyr::filter(name_biome == "Cerrado")
-
-
-#### Load BR Shapefile ###
-shp_br <- read_country(
-  year = 2019,
-  simplified = T,
-  showProgress = T)
-
-#### Load Simple BR Border Shapefile ###
-data("countriesCoarse")
-shp_br_border <- countriesCoarse %>% subset(SOV_A3 == "BRA")
-shp_br_border <- st_combine(st_as_sf(shp_br_border))
-
-## Load Cerrado Outline ##
-# get Brazil States outline
-shp_cerr_states <- read_state(
-  year = 2019,
-  simplified = T)
-
-# filter to Cerrado States
-shp_cerr_states <- shp_cerr_states %>%
-  dplyr::filter(abbrev_state %in% c("TO","MA","PI","BA","MG",
-                                    "SP","MS","MT","GO","DF"))
-
-# # Save Shapefiles ------
-save(shp_br, shp_br_border,
-     shp_cerr, shp_cerr_states,
-     shp_us, shp_us_mw,
-     shp_world,
-     file = "../Data_Derived/shp_usbr.RData")
+# ### Load World Shapefile ###
+# shp_world <- st_read(system.file("shapes/world.gpkg", package="spData"))
+# 
+# ### Load US Shapefile ###
+# shp_us <- states(cb = TRUE, resolution = "20m") %>%
+#   filter(!STUSPS %in% c("AK", "HI", "PR"))
+# 
+# #### Load US-MW Shapefile ###
+# shp_us_mw <- shp_us %>%
+#   filter(STUSPS %in% c("IA", "IL", "IN", "KS", "MI", "MN",
+#                        "MO", "ND", "NE", "OH", "SD", "WI"))
+# 
+# #### Load Cerrado Shapefile ###
+# shp_cerr <- read_biomes(
+#   year = 2019,
+#   simplified = T,
+#   showProgress = T) %>%
+#   dplyr::filter(name_biome == "Cerrado")
+# 
+# 
+# #### Load BR Shapefile ###
+# shp_br <- read_country(
+#   year = 2019,
+#   simplified = T,
+#   showProgress = T)
+# 
+# #### Load Simple BR Border Shapefile ###
+# data("countriesCoarse")
+# shp_br_border <- countriesCoarse %>% subset(SOV_A3 == "BRA")
+# shp_br_border <- st_combine(st_as_sf(shp_br_border))
+# 
+# ## Load Cerrado Outline ##
+# # get Brazil States outline
+# shp_cerr_states <- read_state(
+#   year = 2019,
+#   simplified = T)
+# 
+# # filter to Cerrado States
+# shp_cerr_states <- shp_cerr_states %>%
+#   dplyr::filter(abbrev_state %in% c("TO","MA","PI","BA","MG",
+#                                     "SP","MS","MT","GO","DF"))
+# 
+# # # Save Shapefiles ------
+# save(shp_br, shp_br_border,
+#      shp_cerr, shp_cerr_states,
+#      shp_us, shp_us_mw,
+#      shp_world,
+#      file = "../Data_Derived/shp_usbr.RData")
