@@ -85,7 +85,7 @@ folder_stats <- paste0(folder_results, "stat_summary/")
 # pct_title <- " - Med" # for plotting, either " - High" or " - Low" or "" or "- Med"
 # 
 # folder <- "../Results/SIMPLEG-2024-02-12/"
-# folder_plot <- "../Figures/021224/"
+# folder_fig <- "../Figures/021224/"
 # datafile   <- paste0(folder, "sg1x3x10_v2401_US_Heat", pct, "-out.txt")
 # folder_der <- "../Data_Derived/20240212/"
 # folder_stats <- paste0(folder, "stat_summary/")
@@ -97,7 +97,7 @@ folder_stats <- paste0(folder_results, "stat_summary/")
 # 
 # # NOTE: will need to change to local location
 # folder <- "../Results/SIMPLEG-2024-01-30/"
-# folder_plot <- "../Figures/013024/new"
+# folder_fig <- "../Figures/013024/new"
 # datafile   <- paste0(folder, "US_HEAT", pct, "-out.txt")
 # #datafile <- "../Results/SIMPLEG-2023-10-29/sg1x3x10_v2310-out.txt"
 # folder_der <- "../Data_Derived/20240130/"
@@ -109,7 +109,7 @@ folder_stats <- paste0(folder_results, "stat_summary/")
 # pct_title <- "" # for plotting, either " - High" or " - Low" or "" or "- Med"
 # 
 # folder <- "../Results/SIMPLEG-2023-10-29/"
-# folder_plot <- "../Figures/102923/new"
+# folder_fig <- "../Figures/102923/new"
 # datafile   <- paste0(folder, "sg1x3x10_v2310", pct, "-out.txt")
 # #datafile <- "../Results/SIMPLEG-2023-10-29/sg1x3x10_v2310-out.txt"
 # folder_der <- "../Data_Derived/20231029/"
@@ -636,7 +636,275 @@ terra::plot(r_row %>% subset("rawch_SOY"),
 
 dev.off()
 
+## 2.5 World Results with 'tidyterra' -------
+
+library(tidyterra)
+
+## FUNCTION ##
+#"atlas", "high_relief", "arid", "soft", "muted", "purple", "viridi", "gn_yl", "pi_y_g", "bl_yl_rd", "deep"
+F_ggplot_world <- function(df, brks, pal, legend_title, p_title, save_title){
+  
+  p <- ggplot()+
+    geom_spatraster(data = df, maxcell = Inf)+
+    scale_fill_whitebox_c(
+      #palette = "viridi", direction = 1,
+      palette = pal,
+      breaks = brks
+    )+
+    labs(
+      fill = legend_title,
+      title = p_title
+    )+
+    theme_minimal() +
+    theme(
+      # set plot size and center it 
+      plot.title = element_text(size = 16, hjust = 0.5),
+      # put legend in the bottom right 
+      legend.position = c(0.15, 0.2),
+      legend.title = element_text(size = 14),
+      legend.text = element_text(size = 10))
+  
+  ggsave(plot = p, filename = paste0(folder_fig, "/", save_title),
+         width = 14, height = 6, dpi = 300)
+  
+  return(p)
+}
+
+F_ggplot_interval <- function(df, title_text, title_legend, save_title){
+
+  # plot 
+  #"atlas", "high_relief", "arid", "soft", "muted", 
+  #"purple", "viridi", "gn_yl", "pi_y_g", "bl_yl_rd", "deep"
+  p <- ggplot() +
+    geom_spatraster(data = df, maxcell = Inf, aes(fill = cats)) +
+    #scale_fill_wiki_d(na.value = "white")
+    scale_fill_whitebox_d(palette = "pi_y_g", direction = 1)+
+    theme_bw()+
+    labs(
+      fill = title_legend,
+      title = title_text,
+    )+
+    
+    #coord_sf(crs = "ESRI:53042")+ #Winkel-Tripel 
+    #coord_sf(crs = "ESRI:53030")+ # Robinson
+    
+    theme(
+      plot.title = 
+        element_text(
+          hjust = 0.5, 
+          size = 22
+        ),
+      legend.title = element_text(size = 18),
+      legend.text = element_text(size = 12)
+    )  
+  
+  ggsave(plot = p, filename = paste0(folder_fig, "/", save_title),
+         width = 14, height = 6, dpi = 300)
+  
+  return(p)
+  
+
+}
+
+
+### Post-Sim Cropland Area ####################
+
+## PREVIOUS VERSION ##
+# terra::plot(r_row %>% subset("new_QLAND")/1000,
+#             type = "interval",
+#             breaks = c(0, 1, 5, 10, 20, 25, 30, 35, 45, 50),
+#             
+#             col = brewer.pal(9, "YlGn"),
+#             main = paste("Post-Simulation Crop Area", pct_title),
+#             plg=list( # parameters for drawing legend
+#               title = "Area (1000 ha) / Grid Cell",
+#               #title.cex = 2, # Legend title size
+#               #cex = 2 # Legend text size
+#               x = "bottomleft"
+#             )
+# )
+# #lines(shp_us_mw, lwd = 0.8, lty = 3, col = "darkgray")
+
+### Post-Sim Cropland Area ###
+# takes a while
+### DONE ###
+F_ggplot_world(df = r_row %>% subset("new_QLAND"),
+               brks = waiver(),
+               pal = "gn_yl", 
+               legend_title = "Area (1000 ha)",
+               p_title = paste("Post-Sim Cropland Area", pct_title),
+               save_title = "gg_world_croplandarea.png")
+
+### Actual (Raw) Change in Cropland Area ####################
+
+# PREVIOUS #
+# terra::plot(r_row %>% subset("rawch_QLAND")/1000,
+#             type = "interval",
+#             #breaks = c(-50000, -25000, -10000, -1000, -100, 0, 1, 10, 100, 500, 1000),
+#             breaks = c(-50, -25, -10, -1, -0.1, 0, 0.01, 0.1, 0.25, 0.5, 1),
+#             #breaks = c(-50, -25, -10, -1, -0.1, 0, 0.01, 0.25, 0.5, 1, 2, 5),
+#             #col = rev(mycolors),
+#             col = brewer.pal(n = 11, name = "RdBu"),
+#             
+#             main = paste("Raw Change in Cropland Area", pct_title),
+#             plg=list( # parameters for drawing legend
+#               title = "Area (1000 ha) / Grid Cell",
+#               #title.cex = 2, # Legend title size
+#               #cex = 2 # Legend text size
+#               x = "bottomleft"
+#             )
+# )
+
+# with function -- not great
+# F_ggplot_world(df = r_row %>% subset("rawch_QLAND")/1000,
+#                brks = c(-50, -25, -10, -1, -0.1, 0, 0.01, 0.25, 0.5, 1, 2, 5),
+#                pal = "viridi", 
+#                legend_title = "Area (1000 ha)",
+#                p_title = paste("Raw Change in Cropland Area", pct_title))
+# 
+
+## DONE ## 
+# example from: https://cloud.r-project.org/web/packages/tidyterra/tidyterra.pdf
+# With discrete values
+test3 <-  r_row %>%
+  subset("rawch_QLAND")
+
+# create df
+factor <- test3 %>%
+  mutate(
+    cats =
+      cut(rawch_QLAND,
+          breaks = c(-50, -25, -10, -1, -0.1, 0,
+                     0.01, 0.25, 0.5, 1, 2, 5))
+  )
+
+
+F_ggplot_interval(
+  df = factor, 
+  title_text = "Raw Change in Cropland Area",
+  title_legend = "Area (1000 ha)",
+  save_title = "gg_world_rawch_croplandarea.png")
+
+
+### Post-Sim Crop Index ##### 
+### DONE (with continuous color scheme) ###
+F_ggplot_world(df = r_row %>% subset("new_QCROP"),
+               brks = waiver(),
+               pal = "gn_yl", 
+               legend_title = "Tons CE",
+               p_title = paste("Post-Sim Crop Production Index", pct_title),
+               save_title = "gg_world_cropindex.png")
+
+
+### Actual (Raw) Change in Crop Index ####################
+## DONE ## 
+# example from: https://cloud.r-project.org/web/packages/tidyterra/tidyterra.pdf
+# With discrete values
+test3 <-  r_row %>%
+  subset("rawch_QCROP")
+
+# create df
+factor <- test3 %>%
+  mutate(
+    cats =
+      cut(rawch_QCROP,
+          breaks = c(-50, -25, -10, -1, -0.1, 0,
+                     0.01, 0.25, 0.5, 1, 2, 5))
+  )
+
+
+F_ggplot_interval(
+  df = factor, 
+  title_text = "Raw Change in Crop Index",
+  title_legend = "Area (1000 ha)",
+  save_title = "gg_world_rawch_cropindex.png")
+
+### Maize Map ####################
+#### Post-Sim Cropland Area ####################
+F_ggplot_world(df = r_row %>% subset("new_LND_MAZ")/1000,
+               brks = waiver(),
+               pal = "gn_yl", 
+               legend_title = "Tons CE",
+               p_title = paste("Post-Sim Maize Area", pct_title),
+               save_title = "gg_world_maize_croparea.png")
+
+#### Actual (Raw) Change in Cropland Area ####################
+F_ggplot_world(
+  df = r_row %>% subset("rawch_MAZ"),
+  brks = waiver(),
+  pal = "gn_yl", 
+  legend_title = "Tons CE",
+  p_title = paste("Change in Maize Area", pct_title),
+  save_title = "gg_world_maize_rawch_croparea_cont.png"
+)
+
+## Interval ##
+test3 <-  r_row %>%
+  subset("rawch_MAZ")
+
+# create df
+factor <- test3 %>%
+  mutate(
+    cats =
+      cut(
+        rawch_MAZ,
+        breaks = c(-10, -5, -3, -1, -0.1, 0, 0.01, 0.1, .2, .3, .5),
+      )
+  )
+
+F_ggplot_interval(
+  df = factor, 
+  title_text = "Raw Change in Maize Area",
+  title_legend = "Area (ha)",
+  save_title = "gg_world_maize_rawch_croparea_int.png")
+
+### Soy Map ####################
+
+#### Post-Sim Cropland Area ####################
+F_ggplot_world(df = r_row %>% subset("new_LND_SOY"),
+               brks = waiver(),
+               pal = "gn_yl", 
+               legend_title = "Tons CE",
+               p_title = paste("Post-Sim Soy Area", pct_title),
+               save_title = "gg_world_soy_croparea.png")
+
+#### Actual (Raw) Change in Cropland Area ####################
+
+## Continuous ##
+
+F_ggplot_world(
+  df = r_row %>% subset("rawch_SOY"),
+  brks = waiver(),
+  pal = "gn_yl", 
+  legend_title = "Tons CE",
+  p_title = paste("Post-Sim Soy Area", pct_title),
+  save_title = "gg_world_soy_rawch_croparea_cont.png"
+)
+
+## Interval ##
+test3 <-  r_row %>%
+  subset("rawch_SOY")
+
+# create df
+factor <- test3 %>%
+  mutate(
+    cats =
+      cut(
+        rawch_SOY,
+        breaks = c(-10, -5, -3, -1, -0.1, 0, 0.01, 0.1, .2, .3, .5),
+      )
+  )
+
+F_ggplot_interval(
+  df = factor, 
+  title_text = "Raw Change in Soy Area",
+  title_legend = "Area (ha)",
+  save_title = "gg_world_soy_rawch_croparea_int.png")
+
+
 # 3: US Results  ----------------------------
+
+
 ## 3.1 Prep Data -------
 
 # Call fxn to clip, count, and clamp data 
@@ -823,6 +1091,103 @@ lines(shp_us_mw, lwd = 0.8, lty = 3, col = "darkgray")
 
 dev.off()
 
+## 3.3 TidyTerra US Plots ######################
+F_ggplot_world <- function(df, brks, pal, legend_title, p_title, save_title){
+  
+  p <- ggplot()+
+    geom_spatraster(data = df, maxcell = Inf)+
+    scale_fill_whitebox_c(
+      #palette = "viridi", direction = 1,
+      palette = pal,
+      breaks = brks
+    )+
+    labs(
+      fill = legend_title,
+      title = p_title
+    )+
+    theme_minimal() +
+    theme(
+      # set plot size and center it 
+      plot.title = element_text(size = 16, hjust = 0.5),
+      # put legend in the bottom right 
+      legend.position = c(0.15, 0.2),
+      legend.title = element_text(size = 14),
+      legend.text = element_text(size = 10))
+  
+  ggsave(plot = p, filename = paste0(folder_fig, "/", save_title),
+         width = 14, height = 6, dpi = 300)
+  
+  return(p)
+}
+
+F_ggplot_interval <- function(df, title_text, title_legend, save_title){
+  
+  # plot 
+  #"atlas", "high_relief", "arid", "soft", "muted", 
+  #"purple", "viridi", "gn_yl", "pi_y_g", "bl_yl_rd", "deep"
+  p <- ggplot() +
+    geom_spatraster(data = df, maxcell = Inf, aes(fill = cats)) +
+    #scale_fill_wiki_d(na.value = "white")
+    scale_fill_whitebox_d(palette = "pi_y_g", direction = 1)+
+    theme_bw()+
+    labs(
+      fill = title_legend,
+      title = title_text,
+    )+
+    
+    #coord_sf(crs = "ESRI:53042")+ #Winkel-Tripel 
+    #coord_sf(crs = "ESRI:53030")+ # Robinson
+    
+    theme(
+      plot.title = 
+        element_text(
+          hjust = 0.5, 
+          size = 22
+        ),
+      legend.title = element_text(size = 18),
+      legend.text = element_text(size = 12)
+    )  
+  
+  ggsave(plot = p, filename = paste0(folder_fig, "/", save_title),
+         width = 14, height = 6, dpi = 300)
+  
+  return(p)
+  
+  
+}
+
+### Post-Sim Cropland #####################################
+
+### Post-Sim Cropland Area ###
+terra::plot(r_us %>% subset("new_QLAND")/1000,
+            type = "interval",
+            breaks = c(0, 1, 5, 10, 20, 25, 30, 35, 45, 50),
+            
+            col = brewer.pal(9, "YlGn"),
+            main = paste("US Post-Simulation\nCrop Area", pct_title),
+            plg=list( # parameters for drawing legend
+              title = "Area (kha)",
+              #title.cex = 2, # Legend title size
+              #cex = 2 # Legend text size
+              x = "bottomright"
+            )
+)
+lines(shp_us_mw, lwd = 0.8, lty = 3, col = "darkgray")
+
+
+### Actual (Raw) Cropland Change #####################################
+### Post-Sim Crop Production Index #####################################
+### Actual (Raw) Production Change #####################################
+
+### MAIZE MAPS #####################################
+
+#### Post-Sim Cropland #####################################
+#### Actual (Raw) Cropland Change #####################################
+
+### SOY MAPS #####################################
+
+#### Post-Sim Cropland #####################################
+#### Actual (Raw) Cropland Change #####################################
 
 # 4: Brazil Results ----------------------------
 
@@ -979,6 +1344,101 @@ lines(shp_cerr_states, lwd = 0.8, lty = 3, col = "darkgray")
 
 dev.off()
 
+## 4.3 TidyTerra BR Plots ######################
+
+F_ggplot_world <- function(df, brks, pal, legend_title, p_title, save_title){
+  
+  p <- ggplot()+
+    geom_spatraster(data = df, maxcell = Inf)+
+    scale_fill_whitebox_c(
+      #palette = "viridi", direction = 1,
+      palette = pal,
+      breaks = brks
+    )+
+    labs(
+      fill = legend_title,
+      title = p_title
+    )+
+    theme_minimal() +
+    theme(
+      # set plot size and center it 
+      plot.title = element_text(size = 16, hjust = 0.5),
+      # put legend in the bottom right 
+      legend.position = c(0.15, 0.2),
+      legend.title = element_text(size = 14),
+      legend.text = element_text(size = 10))
+  
+  ggsave(plot = p, filename = paste0(folder_fig, "/", save_title),
+         width = 14, height = 6, dpi = 300)
+  
+  return(p)
+}
+
+F_ggplot_interval <- function(df, title_text, title_legend, save_title){
+  
+  # plot 
+  #"atlas", "high_relief", "arid", "soft", "muted", 
+  #"purple", "viridi", "gn_yl", "pi_y_g", "bl_yl_rd", "deep"
+  p <- ggplot() +
+    geom_spatraster(data = df, maxcell = Inf, aes(fill = cats)) +
+    #scale_fill_wiki_d(na.value = "white")
+    scale_fill_whitebox_d(palette = "pi_y_g", direction = 1)+
+    theme_bw()+
+    labs(
+      fill = title_legend,
+      title = title_text,
+    )+
+    
+    #coord_sf(crs = "ESRI:53042")+ #Winkel-Tripel 
+    #coord_sf(crs = "ESRI:53030")+ # Robinson
+    
+    theme(
+      plot.title = 
+        element_text(
+          hjust = 0.5, 
+          size = 22
+        ),
+      legend.title = element_text(size = 18),
+      legend.text = element_text(size = 12)
+    )  
+  
+  ggsave(plot = p, filename = paste0(folder_fig, "/", save_title),
+         width = 14, height = 6, dpi = 300)
+  
+  return(p)
+  
+  
+}
+
+### Post-Sim Cropland #####################################
+### Post-Sim Cropland Area ###
+terra::plot(r_br %>% subset("new_QLAND")/1000,
+            type = "interval",
+            breaks = c(0, 1, 5, 10, 20, 25, 30, 35, 45, 50),
+            col = brewer.pal(9, "YlGn"),
+            main = paste("Brazil Post-Simulation\nCrop Area", pct_title),
+            plg=list(
+              title = "Area (kha)",
+              x = "bottomright"
+            ))
+lines(shp_cerr_states, lwd = 0.8, lty = 3, col = "darkgray")
+
+# ^^PICK UP HERE^^ ##############################
+
+### Actual (Raw) Cropland Change #####################################
+### Post-Sim Crop Production Index #####################################
+### Actual (Raw) Production Change #####################################
+
+### MAIZE MAPS #####################################
+
+#### Post-Sim Cropland #####################################
+#### Actual (Raw) Cropland Change #####################################
+
+### SOY MAPS #####################################
+
+#### Post-Sim Cropland #####################################
+#### Actual (Raw) Cropland Change #####################################
+
 # 5: Cerrado Results ----------------------------
 
 ## 5.1 Prep Data -----------
@@ -1128,6 +1588,23 @@ terra::plot(r_cerr %>% subset("rawch_QLAND"),
 lines(shp_cerr_states, lwd = 0.8, lty = 3, col = "darkgray")
 
 dev.off()
+
+## 5.3 TidyTerra Cerr Plots ######################
+
+### Post-Sim Cropland #####################################
+### Actual (Raw) Cropland Change #####################################
+### Post-Sim Crop Production Index #####################################
+### Actual (Raw) Production Change #####################################
+
+### MAIZE MAPS #####################################
+
+#### Post-Sim Cropland #####################################
+#### Actual (Raw) Cropland Change #####################################
+
+### SOY MAPS #####################################
+
+#### Post-Sim Cropland #####################################
+#### Actual (Raw) Cropland Change #####################################
 
 
 # 6: STATS --------------------------
