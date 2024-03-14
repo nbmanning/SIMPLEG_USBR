@@ -6,7 +6,7 @@
 # Last edited: March 2024
 
 # REQUIRES:
-## SIMPLE-G Result files as '.CSV' 
+## SIMPLE-G Result file as '.xlsx' 
 
 # 0: Load Libraries & Set Constants ---- 
 rm(list = ls())
@@ -26,6 +26,11 @@ search_string <- "2024-03-03"
 folder_results <- paste0("../Results/SIMPLEG-", search_string, "/imports_exports/")
 
 folder_fig <- paste0("../Figures/", search_string, "/")
+
+
+## Set Model Pct Here ##
+pct_model <- "m"
+
 
 # 0: Check folders --------------  
 # Check if folders exist; if not, create
@@ -155,8 +160,8 @@ test2 <- F_clean_sheet("Soy Exp", "l")
 
 # 2 Run Fxn & Join --------
 
-# set model variable here 
-pct_model <- "m"
+# reset model variable here if you want to re-run with different amounts 
+# pct_model <- "m"
 
 ## 2.1: Exports -------
 # Get Exports  
