@@ -313,7 +313,6 @@ test2 <- F_clean_sheet("Soy Exp", "l")
 pct_model <- "m"
 exp_soy <- F_clean_sheet(var = "Soy Exp", pct = pct_model)
 exp_maize <- F_clean_sheet(var = "Corn Exp", pct = pct_model)
-
 exp_cornsoy <- rbind(exp_soy, exp_maize)
 #exp <- select(exp, "region_abv", "region", "chg", "crop")
 
