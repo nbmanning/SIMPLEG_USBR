@@ -60,148 +60,22 @@ source_path <- paste0(files_results, "regional_results.xlsx")
 data_list <- import_list(source_path)
 
 
-# 1: Imports (NONE??)------
+# 1: Tidy ------
 
-## tidy -----
 # Load in data as xlsx (diff from previous)
 source_path <- paste0(files_results, "regional_results.xlsx")
 data_list <- import_list(source_path)
 
-# Load in data
-# imp_maize <- read.csv(paste0(folder_results, "imp_maize.csv"))
-# imp_soy <- read.csv(paste0(folder_results, "imp_soy.csv"))
-
-# imp_maize <- datalist[[]]
-
-# MANUAL Rename - always double-check
-cols <- c("region_abv", "pct_chg", "pre", "post", "chg", "region")
-
-names(imp_soy) <- cols
-names(imp_maize) <- cols
-
-# Set Crop Col
-imp_soy$crop <- "soy"
-imp_maize$crop <- "maize"
-
-# Join
-imp <- rbind(imp_soy, imp_maize)
-
-#imp <- select(imp, "region_abv", "region", "chg", "crop")
-
-# Remove spaces and numbers before regions
-## regex: remove anything up to and including the first space
-imp$region_abv <- gsub(".*\\ ", "", imp$region_abv)
-
-# save for joining 
-df_imp <- imp 
-
-# get sum by region
-imp <- aggregate(imp$chg, list(imp$region), FUN=sum)
-names(imp) <- c("region", "chg")
-imp$chg_mmt <- imp$chg/1000
-
-# exclude us
-imp_nous <- imp %>% filter(region != "United States")
-
-
-## plot --------
-
-### set colors here -------
-col_neg <- "red"
-col_pos <- "blue"
-
-(p_imp <- ggplot(imp_nous, aes(x = region, y = chg_mmt))+
-  geom_bar(aes(fill = chg_mmt < 0), stat = "identity") + 
-  scale_fill_manual(guide = "none", breaks = c(TRUE, FALSE), values=c(col_neg, col_pos))+
-  coord_flip()+
-  theme_bw()+
-  labs(
-    title = "Change in Corn-Soy Imports (million metric ton)",
-    x = "",
-    y = ""
-  )+
-  theme(plot.title = element_text(hjust = 0.5))
-)
-
-# save
-ggsave(paste0(folder_fig, "bar_imp.png"),
-       width = 6, height = 8)
-
-
-# 2: Exports ------------
-
-## 2.1 tidy -----
-
-# # Load in data
-# exp_maize <- read.csv(paste0(folder_results, "exp_maize.csv"))
-# exp_soy <- read.csv(paste0(folder_results, "exp_soy.csv"))
-
-# raw_exp_maize <- data_list[["Corn Exp"]]
-# df <- raw_exp_maize
-# 
-# # Extract just the first letter of each column name
-# setting <- substr(colnames(df), 1, 1)
-# 
-# # Get the combined model setting (l,m, or h) and variable; e.g. Pct-m
-# df <- rbind(setting, df)
-# 
-# # Combine the first two rows with a hyphen in between
-# combined_row <- paste(df[2, ], df[1, ], sep = "-")
-# 
-# # Add the combined row as the first row
-# df <- rbind(combined_row, df[-c(1, 2), ])
-# 
-# #get model info then remove 
-# model_info <- df[2, ]
-# df <- df[-2, ]
-# 
-# # Update column names to model variable 
-# colnames(df) <- as.character(unlist(df[1, ]))
-# 
-# colnames(df)[1] <- "region_abv"
-# 
-# # Remove the duplicated row
-# df <- df[-1, ]
-# 
-# 
-# # Assuming your data frame is named df
-# # Filter columns based on certain character in row 2
-# char_to_keep <- "l"  # NOTE: Change this to the model setting you want to keep
-# 
-# # Save pre-existing column names
-# pre_existing_colnames <- colnames(df)
-# 
-# # Filter columns based on predefined character in column names
-# columns_to_keep <- c(
-#   TRUE, 
-#   sapply(
-#     # apply this function to all except the first row 
-#     pre_existing_colnames[-1], 
-#     # function is using one col_name, make a T/F if it contains the char_to_keep
-#     function(col_name) substr(
-#       col_name, nchar(col_name), nchar(col_name))
-#     == char_to_keep
-#   )
-# )
-# 
-# # Subset the data frame to keep the desired columns
-# df <- df[, columns_to_keep]
-# 
-# # Remove spaces and numbers before regions
-# ## regex: remove anything up to and including the first space
-# df$region_abv <- gsub(".*\\ ", "", df$region_abv)
-# 
-# # add column with model type and remove from column names
-# df$modeltype <- "Low"
-
-
+# function to get one sheet of data and clean it
+## var == the name of the sheet we want
+## pct == the model type for elasticity; enter either "l" for low, "m" for medium, or "h" for high
 F_clean_sheet <- function(var, pct){
   # var <-  "Corn Exp"
   # pct <- "l"
   # 
   # get one sheet 
   data <- data_list[[var]]
-
+  
   # Extract just the first letter of each column name
   setting <- substr(colnames(data), 1, 1)
   
@@ -274,155 +148,84 @@ F_clean_sheet <- function(var, pct){
     mutate(chg_mmt = chg/1000)
   
   return(data)
-  }
+}
 
 test <- F_clean_sheet("Soy Exp", "m")
 test2 <- F_clean_sheet("Soy Exp", "l")
 
-# test <- test %>% 
-#   #rename_with(~ gsub("-(\\d{2})$", "", .x), contains("-"))
-#   rename_with(~ gsub("-\\d{2}$", "", .x), contains("-"))
+# 2 Run Fxn & Join --------
 
-# # remove model type from all columns 
-# # Define the string to remove from column names
-# string_to_remove <- "-l"  # Change this to the string you want to remove
-# 
-# # Remove the specified string from column names
-# new_colnames <- gsub(string_to_remove, "", pre_existing_colnames)
-# 
-# # Update the column names in the data frame
-# colnames(df) <- new_colnames
-
-
-
-
-
-# Rename
-#cols <- c("region_abv", "pct_chg", "pre", "post", "chg", "region")
-#cols <- c("region_abv", "pct_chg", "pre", "post", "chg")
-
-#names(exp_soy) <- cols
-#exp_maize <- df
-#names(exp_maize) <- cols
-
-# Set Crop Col
-#exp_soy$crop <- "soy"
-#exp_maize$crop <- "maize"
-
-## 2.2 Run Fxn & Join --------
+# set model variable here 
 pct_model <- "m"
-exp_soy <- F_clean_sheet(var = "Soy Exp", pct = pct_model)
-exp_maize <- F_clean_sheet(var = "Corn Exp", pct = pct_model)
-exp_cornsoy <- rbind(exp_soy, exp_maize)
-#exp <- select(exp, "region_abv", "region", "chg", "crop")
 
-# Remove spaces and numbers before regions
-## regex: remove anything up to and including the first space
-#exp$region_abv <- gsub(".*\\ ", "", exp$region_abv)
+## 2.1: Exports -------
+# Get Exports  
+exp_soy <- F_clean_sheet(var = "Soy Exp", pct = pct_model)
+exp_corn <- F_clean_sheet(var = "Corn Exp", pct = pct_model)
+exp_cornsoy <- rbind(exp_soy, exp_corn)
 
 # Rename to change 
 exp <- exp_cornsoy 
 
-## 2.3 Rename and Agg ----------
-names(exp)
 
-# # rename columns - can ADD TO FUNCTION USING SOMETHING LIKE paste0(-,pct)
-# exp <- exp %>% 
-#   rename(
-#     "pct_chg" = "Pct-m",
-#     "pre" = "Pre-m",
-#     "post" = "Post-m",
-#     "chg" = "CH-m"
-#   )
-# 
-# # convert certain columns to numeric
-# exp <- exp %>%
-#   #mutate_at(vars(columns_to_convert), as.numeric)
-#   mutate_at(vars(c("pct_chg", "pre", "post", "chg")), as.numeric)
-
-#cols <- c("region_abv", "pct_chg", "pre", "post", "chg")
-
-# get million metric tons 
-#exp$chg_mmt <- (exp$chg)/1000
+# Get Exports  
+exp_soy <- F_clean_sheet(var = "Soy Exp", pct = pct_model)
+exp_corn <- F_clean_sheet(var = "Corn Exp", pct = pct_model)
+exp_cornsoy <- rbind(exp_soy, exp_corn)
 
 # get sum by region
-exp <- aggregate(exp$chg, list(exp$region_abv), FUN=sum)
-names(exp) <- c("region", "chg")
+exp <- aggregate(exp_cornsoy$chg, list(exp_cornsoy$region_abv), FUN=sum)
+
+# rename
+names(exp) <- c("region_abv", "chg")
 
 # get million metric tons 
 exp$chg_mmt <- (exp$chg)/1000
 
 # exclude us
-exp_nous <- exp %>% filter(region != "US")
+exp_nous <- exp %>% filter(region_abv != "US")
 
-## 2.4 Plot --------
+## 2.2 Imports ----------
+# Get Imports  
+imp_soy <- F_clean_sheet(var = "Soy Imp", pct = pct_model)
+imp_corn <- F_clean_sheet(var = "Corn Imp", pct = pct_model)
+imp_cornsoy <- rbind(imp_soy, imp_corn)
+
+# get sum by region
+imp <- aggregate(imp_cornsoy$chg, list(imp_cornsoy$region_abv), FUN=sum)
+
+# rename
+names(imp) <- c("region_abv", "chg")
+
+# get million metric tons 
+imp$chg_mmt <- (imp$chg)/1000
+
+# exclude us
+imp_nous <- imp %>% filter(region_abv != "US")
+
+
+# 3: Separate Bar Plots --------
 col_neg <- "red"
 col_pos <- "blue"
 
 # plot vertical barplot
 #helpful link: https://stackoverflow.com/questions/48463210/how-to-color-code-the-positive-and-negative-bars-in-barplot-using-ggplot
 
-### Corn-Soy Exports ------
-(p_exp <- ggplot(exp_nous, aes(x = region, y = chg_mmt))+
-   # Set color code on a True-False basis
-   geom_bar(aes(fill = chg_mmt < 0), stat = "identity") + 
-   # if false, one color, if true, another
-   scale_fill_manual(guide = "none", breaks = c(TRUE, FALSE), values=c(col_neg, col_pos))+
-   coord_flip()+
-   theme_bw()+
-   labs(
-     title = "Change in Corn-Soy Exports (million metric ton)",
-     x = "",
-     y = ""
-   )+
-    theme(
-      plot.title = element_text(hjust = 0.5),
-      # remove y-axis text (use when we're merging exp and imp graphs)
-      #axis.text.y = element_blank()
-    )
-)
-
-# save
-ggsave(paste0(folder_fig, "bar_exp.png"),
-       width = 6, height = 8)
-
-
-### Corn Exports ------------
-exp_maize_nous <- exp_maize %>% filter(region_abv != "US")
-(p_exp_corn <- ggplot(exp_maize_nous, aes(x = region_abv, y = chg_mmt))+
-   # Set color code on a True-False basis
-   geom_bar(aes(fill = chg_mmt < 0), stat = "identity") + 
-   # if false, one color, if true, another
-   scale_fill_manual(guide = "none", breaks = c(TRUE, FALSE), values=c(col_neg, col_pos))+
-   coord_flip()+
-   theme_bw()+
-   labs(
-     title = "Change in Corn Exports (million metric ton)",
-     x = "",
-     y = ""
-   )+
-   theme(
-     plot.title = element_text(hjust = 0.5),
-     # remove y-axis text (use when we're merging exp and imp graphs)
-     #axis.text.y = element_blank()
-   )
-)
-
-# save
-ggsave(paste0(folder_fig, "bar_exp_corn.png"),
-       width = 6, height = 8)
-
-### Soy Exports ------------
-exp_soy_nous <- exp_soy %>% filter(region_abv != "US")
-(p_exp_soy <- ggplot(exp_soy_nous, aes(x = region_abv, y = chg_mmt))+
+F_ggplot_bar_vert_sep <- function(df, y_var, title_text, save_text){
+  
+  # need to do to use character evaluation
+  y_var <- rlang::sym(y_var)
+  
+  # plot
+  (p <- ggplot(df, aes(x = region_abv, y = !! y_var ))+
     # Set color code on a True-False basis
-    geom_bar(aes(fill = chg_mmt < 0), stat = "identity") + 
+    geom_bar(aes(fill = !! y_var < 0), stat = "identity") + 
     # if false, one color, if true, another
     scale_fill_manual(guide = "none", breaks = c(TRUE, FALSE), values=c(col_neg, col_pos))+
     coord_flip()+
     theme_bw()+
     labs(
-      title = "Change in Soy Exports (million metric ton)",
+      title = title_text,
       x = "",
       y = ""
     )+
@@ -431,62 +234,172 @@ exp_soy_nous <- exp_soy %>% filter(region_abv != "US")
       # remove y-axis text (use when we're merging exp and imp graphs)
       #axis.text.y = element_blank()
     )
-)
+  )
+  # save
+  ggsave(paste0(folder_fig, save_text),
+         width = 6, height = 8)
+  
+  return(p)
+  
+}
 
-# save
-ggsave(paste0(folder_fig, "bar_exp_soy.png"),
-       width = 6, height = 8)
 
-# 3: Facet Plot ------------
+## 3.1 Exports -----------------
+### Corn-Soy Exports ------
+(p_exp <- F_ggplot_bar_vert_sep(
+  df = exp_nous,
+  y_var = "chg_mmt",
+  title_text = "Change in Corn-Soy Exports (million metric ton)",
+  save_text = "bar_exp_fxn.png"
+))
 
-## 3.1 Corn & Soy Imports Facet ---------
 
-## 3.2 Corn & Soy Exports Facet -------
+### Corn Exports ------------
+exp_corn_nous <- exp_corn %>% filter(region_abv != "US")
+(p_exp_corn <- F_ggplot_bar_vert_sep(
+  df = exp_corn_nous,
+  y_var = "chg_mmt",
+  title_text = "Change in Corn Exports (million metric ton)",
+  save_text = "bar_exp_corn.png"
+))
+
+
+### Soy Exports ------------
+exp_soy_nous <- exp_soy %>% filter(region_abv != "US")
+(p_exp_soy <- F_ggplot_bar_vert_sep(
+  df = exp_soy_nous,
+  y_var = "chg_mmt",
+  title_text = "Change in Soy Exports (million metric ton)",
+  save_text = "bar_exp_soy.png"
+))
+
+
+## 3.2 Imports ------------------
+### Corn-Soy Imports ------
+(p_imp <- F_ggplot_bar_vert_sep(
+  df = imp_nous,
+  y_var = "chg_mmt",
+  title_text = "Change in Corn-Soy Imports (million metric ton)",
+  save_text = "bar_imp_fxn.png"
+))
+
+
+### Corn Imports ------------
+imp_corn_nous <- imp_corn %>% filter(region_abv != "US")
+(p_imp_corn <- F_ggplot_bar_vert_sep(
+  df = imp_corn_nous,
+  y_var = "chg_mmt",
+  title_text = "Change in Corn Imports (million metric ton)",
+  save_text = "bar_imp_corn.png"
+))
+
+
+### Soy Imports ------------
+imp_soy_nous <- imp_soy %>% filter(region_abv != "US")
+(p_imp_soy <- F_ggplot_bar_vert_sep(
+  df = imp_soy_nous,
+  y_var = "chg_mmt",
+  title_text = "Change in Soy Imports (million metric ton)",
+  save_text = "bar_imp_soy.png"
+))
+
+# 4: Facet Plot ------------
+F_ggplot_bar_facet <- function(df, y_var, facet_var, title_text, save_text){
+  # set y variable to use in ggplot- need to do to use character evaluation
+  y_var <- rlang::sym(y_var)
+  
+  # plot 
+  p <- ggplot(df, aes(x = region_abv, y = !! y_var))+
+    geom_bar(aes(fill = !! y_var < 0), stat = "identity") + 
+    scale_fill_manual(guide = FALSE, breaks = c(TRUE, FALSE), values=c(col_neg, col_pos))+
+    coord_flip()+
+    facet_wrap({{facet_var}})+
+    theme_bw()+
+    labs(
+      title = title_text,
+      x = "",
+      y = ""
+    )+
+    theme(plot.title = element_text(hjust = 0.5))
+  
+  # save
+  ggsave(paste0(folder_fig, save_text),
+         width = 12, height = 8)
+  
+  # plot in environment 
+  return(p)
+}
+
+## 4.1 Corn & Soy Facets -------
+
+### Exports --------
 exp_cornsoy_nous <- exp_cornsoy %>% filter(region_abv != "US")
 
 # plot with facets
-ggplot(exp_cornsoy_nous, aes(x = region_abv, y = chg_mmt))+
-  geom_bar(aes(fill = chg_mmt < 0), stat = "identity") + 
-  scale_fill_manual(guide = FALSE, breaks = c(TRUE, FALSE), values=c(col_neg, col_pos))+
-  coord_flip()+
-  facet_wrap("crop")+
-  theme_bw()+
-  labs(
-    title = "Change in Corn & Soy Exports (million metric ton)",
-    x = "",
-    y = ""
-  )+
-  theme(plot.title = element_text(hjust = 0.5))
+(F_ggplot_bar_facet(
+  df = exp_cornsoy_nous,
+  y_var = "chg_mmt",
+  facet_var = "crop",
+  title_text = "Change in Corn & Soy Exports (million metric ton)",
+  save_text = "bar_f_exp_cornsoy.png"
+))
 
-ggsave(paste0(folder_fig, "bar_exp_cornsoy.png"),
-       width = 12, height = 8)
+### Imports ------------
+imp_cornsoy_nous <- imp_cornsoy %>% filter(region_abv != "US")
 
-## 3.3 Agg imports & Exports Facet -------
+# plot with facets
+(F_ggplot_bar_facet(
+  df = imp_cornsoy_nous,
+  y_var = "chg_mmt",
+  facet_var = "crop",
+  title_text = "Change in Corn & Soy Imports (million metric ton)",
+  save_text = "bar_f_imp_cornsoy.png"
+))
+
+### Corn v. Soy ------------
+imp_cornsoy$type <- "Imports"
+exp_cornsoy$type <- "Exports"
+impexp_cornsoy <- rbind(imp_cornsoy, exp_cornsoy)
+impexp_cornsoy_nous <- impexp_cornsoy %>% filter(region_abv!= "US")
+
+# plot just soy imp & exp with facets
+(F_ggplot_bar_facet(
+  df = impexp_cornsoy_nous %>% filter(crop == "Soy"),
+  y_var = "chg_mmt",
+  facet_var = "type",
+  title_text = "Change in Soy Exports & Imports (million metric ton)",
+  save_text = "bar_f_impexp_soy.png"
+))
+
+# plot just corn imp & exp with facets
+(F_ggplot_bar_facet(
+  df = impexp_cornsoy_nous %>% filter(crop == "Corn"),
+  y_var = "chg_mmt",
+  facet_var = "type",
+  title_text = "Change in Corn Exports & Imports (million metric ton)",
+  save_text = "bar_f_impexp_corn.png"
+))
+
+## 4.2 Agg imports & Exports Facet -------
+
 # add facet column
 imp$type <- "Imports"
 exp$type <- "Exports"
 impexp <- rbind(imp, exp)
 
-impexp_nous <- impexp %>% filter(region != "United States")
+impexp_nous <- impexp %>% filter(region_abv != "US")
 
 # plot with facets
-ggplot(impexp_nous, aes(x = region, y = chg_mmt))+
-  geom_bar(aes(fill = chg_mmt < 0), stat = "identity") + 
-  scale_fill_manual(guide = FALSE, breaks = c(TRUE, FALSE), values=c(col_neg, col_pos))+
-  coord_flip()+
-  facet_wrap("type")+
-  theme_bw()+
-  labs(
-    title = "Change in Corn-Soy Exports (million metric ton)",
-    x = "",
-    y = ""
-  )+
-  theme(plot.title = element_text(hjust = 0.5))
+(F_ggplot_bar_facet(
+  df = impexp_nous,
+  y_var = "chg_mmt",
+  facet_var = "type",
+  title_text = "Change in Corn and Soy Imports & Exports (million metric ton)",
+  save_text = "bar_f_impexp.png"
+))
 
-ggsave(paste0(folder_fig, "bar_impexp_f.png"),
-       width = 12, height = 8)
 
-# 4: Facet Plot 2 ------
+# 5: Facet Plot 2 ------
 # plot with the individual plots next to one another
 # labels give "A" and "B"
 (p <- plot_grid(p_imp, p_exp, labels = "AUTO"))
@@ -494,11 +407,13 @@ ggsave(paste0(folder_fig, "bar_impexp.png"),
        p,
        width = 12, height = 6)
 
-# 5: Save import and export df's -----------------
+
+# 6: Save import and export df's -----------------
 # add labels and join
-df_imp$type <- "Imports"
-df_exp$type <- "Exports"
-df_impexp <- rbind(df_imp, df_exp)
+
+df_impexp_cornsoy <- rbind(imp_cornsoy, exp_cornsoy)
+df_impexp <- rbind(imp, exp)
 
 # save
-save(df_impexp, file = "../Results/SIMPLEG-2023-10-29/imports_exports/df_impexp.RData")
+save(df_impexp_cornsoy, file = paste0(files_results, "df_impexp_cornsoy.RData"))
+save(df_impexp, file = paste0(files_results, "df_impexp.RData"))
