@@ -313,6 +313,21 @@ F_aoi_prep <- function(shp, area_name){
   return(r_aoi)
 }
 
+
+# fxn to calculate total % Change
+F_calc_pct_change <- function(final, raw_ch){
+  
+  initial = final - raw_ch
+  
+  pct_change = ((final - initial)/initial)*100
+  print(paste("% Change is: ", pct_change))
+}
+
+F_calc_pct_change(
+  final = (global(r_row$new_QLAND, fun = "sum", na.rm = T))[[1]],
+  raw_ch = (global(r_row$rawch_QLAND, fun = "sum", na.rm = T))[[1]]
+)
+
 # fxn to get summary of data, call the violin fxn, and plot a basic map
 F_EDA <- function(r_aoi, area_name){  
   # Get and save a summary table
@@ -331,11 +346,31 @@ F_EDA <- function(r_aoi, area_name){
   }
   
   write.csv(table_area, file = paste0(folder_results, "summary_tables/", "table_", area_name, pct, "_021224", ".csv"))
-  print(global(r_aoi$rawch_QLAND, fun = "sum", na.rm = T))
-  print(global(r_aoi$rawch_QCROP, fun = "sum", na.rm = T))
-  print(global(r_aoi$rawch_MAZ, fun = "sum", na.rm = T))
-  print(global(r_aoi$rawch_SOY, fun = "sum", na.rm = T))
+  print("Totals for Casc. Effect Graph and for Total Change")
   
+  # Print total change values then calculate % Change
+  print(global(r_aoi$new_QLAND, fun = "sum", na.rm = T))
+  print(global(r_aoi$rawch_QLAND, fun = "sum", na.rm = T))
+  F_calc_pct_change(
+    final = (global(r_aoi$new_QLAND, fun = "sum", na.rm = T))[[1]],
+    raw_ch = (global(r_aoi$rawch_QLAND, fun = "sum", na.rm = T))[[1]]
+  )
+  
+  print(global(r_aoi$rawch_QCROP, fun = "sum", na.rm = T))
+  
+  print(global(r_aoi$new_LND_MAZ, fun = "sum", na.rm = T))
+  print(global(r_aoi$rawch_MAZ, fun = "sum", na.rm = T))
+  F_calc_pct_change(
+    final = (global(r_aoi$new_LND_MAZ, fun = "sum", na.rm = T))[[1]],
+    raw_ch = (global(r_aoi$rawch_MAZ, fun = "sum", na.rm = T))[[1]]
+  )
+  
+  print(global(r_aoi$new_LND_SOY, fun = "sum", na.rm = T))
+  print(global(r_aoi$rawch_SOY, fun = "sum", na.rm = T))
+  F_calc_pct_change(
+    final = (global(r_aoi$new_LND_SOY, fun = "sum", na.rm = T))[[1]],
+    raw_ch = (global(r_aoi$rawch_SOY, fun = "sum", na.rm = T))[[1]]
+  )
   # Call EDA fxn to get and save violin plots 
   F_p_violin(r_aoi, area_name)
   
@@ -931,7 +966,7 @@ par(mfrow=c(2,2), mar = c(0, 0.1, 0, 0.1))
 
 
 ### Post-Sim Cropland Area ####################
-terra::plot(r_us %>% subset("new_QLAND")/1000,
+terra::plot(r_us %>% subset("new_QLAND"),
             type = "interval",
             breaks = c(0, 1, 5, 10, 20, 25, 30, 35, 45, 50),
             
@@ -946,6 +981,9 @@ terra::plot(r_us %>% subset("new_QLAND")/1000,
 )
 lines(shp_us_mw, lwd = 0.8, lty = 3, col = "darkgray")
 
+# PICK UP HERE ##############
+# next task is to use use tidyterra function from world to try and plot US. 
+## for Post-Sim, use continuous, for change, maybe use interval? 
 
 
 ### Actual (Raw) Change in Cropland Area ####################
@@ -1223,7 +1261,8 @@ F_ggplot_brcerr <- function(df, area, brks, pal, legend_title, p_title, save_tit
       # set plot size and center it 
       plot.title = element_text(size = 16, hjust = 0.5),
       # put legend in the bottom right 
-      legend.position = c(0.15, 0.2),
+      #legend.position = c(0.15, 0.2),
+      legend.position = c(0.1, 0.15),
       legend.title = element_text(size = 14),
       legend.text = element_text(size = 10))+
     # add Cerado Outline
@@ -1236,8 +1275,8 @@ F_ggplot_brcerr <- function(df, area, brks, pal, legend_title, p_title, save_tit
   
   # set conditional width 7 height (FUTURE)
   if(area== "Cerrado"){
-    w = 8
-    h = 12
+    w = 12
+    h = 8
   }
   else{
     w = 14
