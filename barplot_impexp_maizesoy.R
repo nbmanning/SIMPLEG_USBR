@@ -68,12 +68,14 @@ data_list <- import_list(source_path)
 # 1: Tidy ------
 
 # Load in data as xlsx (diff from previous)
-source_path <- paste0(files_results, "regional_results.xlsx")
-data_list <- import_list(source_path)
+# source_path <- paste0(files_results, "regional_results.xlsx")
+# data_list <- import_list(source_path)
 
 # function to get one sheet of data and clean it
 ## var == the name of the sheet we want
 ## pct == the model type for elasticity; enter either "l" for low, "m" for medium, or "h" for high
+
+# CHANGE TO USE 'data' AS THE ARGUMENT SO THIS CAN BE LOOPED
 F_clean_sheet <- function(var, pct){
   # var <-  "Corn Exp"
   # pct <- "l"
@@ -151,9 +153,12 @@ F_clean_sheet <- function(var, pct){
     #mutate_at(vars(columns_to_convert), as.numeric)
     mutate_at(vars(c("pct_chg", "pre", "post", "chg")), as.numeric) %>% 
     mutate(chg_mmt = chg/1000)
-  
+
   return(data)
 }
+
+
+
 
 test <- F_clean_sheet("Soy Exp", "m")
 test2 <- F_clean_sheet("Soy Exp", "l")
@@ -422,3 +427,51 @@ df_impexp <- rbind(imp, exp)
 # save
 save(df_impexp_cornsoy, file = paste0(files_results, "df_impexp_cornsoy.RData"))
 save(df_impexp, file = paste0(files_results, "df_impexp.RData"))
+
+
+# 7: Calc Totals --------------------
+F_calc_totals <- function(data){
+  ## add row for total changes ##
+  # Calculate sum for columns A and B, and mean for column C
+  summarised_data <- data %>%
+    summarise(
+      pre = sum(pre),
+      post = sum(post),
+    ) 
+  
+  # get character values from the dataset   
+  summarised_data <- summarised_data %>% 
+    mutate(
+    # ca
+      pct_chg = ((post-pre)/pre)*100,
+      chg = post-pre,
+      chg_mmt = chg/1000,
+      
+      region_abv = "Total",
+      variable = data$variable[1],
+      crop = data$crop[1],
+      type = data$type[1],
+      modeltype = data$modeltype[1]
+    )
+  
+  
+  # Add a row at the bottom with the total values
+  data <- summarised_data %>%
+    bind_rows(data, .)
+  
+  return(data)
+}
+
+test_total <- F_calc_totals(test)
+
+## 7.1 Imports ----------
+sheets <- names(data_list)
+data_clean <- lapply(X = sheets, FUN = F_clean_sheet, pct = "m")
+names(data_clean) <- names(data_list)
+data_clean <- lapply(X = data_clean, FUN = F_calc_totals)
+
+rio::export(
+  data_clean, 
+  file = paste0(folder_results, 'regional_results_clean_', pct_model, '.xlsx'))
+
+## 7.2 Exports ----------
