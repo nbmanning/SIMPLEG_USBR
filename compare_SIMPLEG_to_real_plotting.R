@@ -5,6 +5,10 @@
 # Creation Date: 1/24/24
 # Last edited: Jan 2024
 
+# STATUS: Working! But we still need to 
+## Check units and make sure they are consistent, especially with tons corn equivalent vs. tonnes
+## make the graphs look prettier
+
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #  
 rm(list = ls())
 
