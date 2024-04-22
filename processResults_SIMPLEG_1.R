@@ -188,15 +188,17 @@ prct_ras = stack(dat)
 # add rasters to file - uncomment and change 'ras_file' to local location
 ras_file <- paste0(folder_results, "raster/")
 
-# check for figures folder
-if (!(any(grepl("raster", folder_results)))) {
-  # If no file name contains the search string, create a folder with that string
-  dir.create(ras_file)
-  cat("Folder ", ras_file, "created.\n")
+# create results directory
+files_results <- list.dirs(folder_results)
+
+# Check if any results folder contains the word 'raster' yet
+if (!(any(grepl("raster", files_results)))) {
+  # If no file name contains the word 'raster', create a raster folder
+  dir.create(paste0(ras_file))
+  cat("Raster Folder", ras_file, "created.\n")
 } else {
-  cat("Folder ", ras_file, "already exists.\n")
-}
-  
+  cat("A folder with the string", "raster", "in its name already exists.\n")
+}  
 
 writeRaster(prct_ras$pct_QLAND, paste0(ras_file, "qLand_pct_", pct, ".tif"), format="GTiff", overwrite=TRUE)
 writeRaster(prct_ras$new_QLAND, paste0(ras_file, "qLand_new_", pct, ".tif"), format="GTiff", overwrite=TRUE)
