@@ -79,6 +79,10 @@ eco <- eco %>%
 ggplot(data = eco) + 
   geom_sf(aes(fill = ECO_ID))
 
+# save
+st_write(eco, "../Data_Source/wwf_ecoregions/agg_wwf_terr_ecos.shp")
+
+
 ## 1.2: Load SIMPLE-G -------------
 # load Raster - Maize+Soy - World
 r_ms_w <- readRDS(file = paste0(folder_der, "r", pct, "_World", ".rds"))
