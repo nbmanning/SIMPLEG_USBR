@@ -26,7 +26,10 @@ year_pre <- 2010
 year_post <- 2013
 
 # add personal key from USDA-NASS
-usda_key = "34BD2DD3-9049-37A1-BC2C-D8A967E25E42"
+
+## NOTE: EACH USER WILL HAVE TO PROVIDE THEIR OWN KEY ##
+
+usda_key = ""
 
 
 # 1: Real Area & Production (US/BR; FAOSTAT & USDA) ---------
