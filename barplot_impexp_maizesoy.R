@@ -21,11 +21,11 @@ library(rio)
 ## Files ##
 getwd()
 
-search_string <- "2024-03-03"
+date_string <- "2024-03-03"
 
-folder_results <- paste0("../Results/SIMPLEG-", search_string, "/imports_exports/")
+folder_results <- paste0("../Results/SIMPLEG-", date_string, "/imports_exports/")
 
-folder_fig <- paste0("../Figures/", search_string, "/")
+folder_fig <- paste0("../Figures/", date_string, "/")
 
 
 ## Set Model Pct Here ##
@@ -40,24 +40,24 @@ files_fig <- list.dirs(folder_fig)
 
 # Check if any imp/exp folder exists in the search string folder 
 
-if (!(any(grepl(search_string, files_results)))) {
+if (!(any(grepl(date_string, files_results)))) {
   # If no file name contains the search string, create a folder with that string
   dir.create(paste0(folder_results))
   
-  cat("Results Folder", search_string, "created.\n")
+  cat("Results Folder", date_string, "created.\n")
 } else {
-  cat("A folder with the string", search_string, "in its name already exists.\n")
+  cat("A folder with the string", date_string, "in its name already exists.\n")
 }
 
 
 # check for figures folder
-if (!(any(grepl(search_string, files_fig)))) {
+if (!(any(grepl(date_string, files_fig)))) {
   # If no file name contains the search string, create a folder with that string
   dir.create(paste0(folder_fig))
   
-  cat("Figure Folder", search_string, "created.\n")
+  cat("Figure Folder", date_string, "created.\n")
 } else {
-  cat("A folder with the string", search_string, "in its name already exists.\n")
+  cat("A folder with the string", date_string, "in its name already exists.\n")
 }
 
 # 0: Import Source Data ----------
@@ -370,6 +370,7 @@ imp_cornsoy_nous <- imp_cornsoy %>% filter(region_abv != "US")
 ### Corn v. Soy ------------
 imp_cornsoy$type <- "Imports"
 exp_cornsoy$type <- "Exports"
+
 impexp_cornsoy <- rbind(imp_cornsoy, exp_cornsoy)
 impexp_cornsoy_nous <- impexp_cornsoy %>% filter(region_abv!= "US")
 
