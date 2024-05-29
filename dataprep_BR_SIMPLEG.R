@@ -6,7 +6,7 @@
 ## had definite maize layers and MapBiomas does not. 
 
 # creation date: 7/27/23
-# last updated: October 2023
+# last updated: May 2024
 
 # links: 
 ## BR GeoTiff Download: https://brasil.mapbiomas.org/en/colecoes-mapbiomas-1?cama_set_language=en
