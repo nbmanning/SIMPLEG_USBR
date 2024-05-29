@@ -49,6 +49,7 @@ search_string <- "2024-03-03"
 # create vars to house results 
 folder_der <- "../Data_Derived/"
 folder_fig <- "../Figures/"
+folder_stat <- "../Results/"
 
 # List all files and folders in the current directory
 files_der <- list.dirs(folder_der)
@@ -74,6 +75,7 @@ if (!(any(grepl(search_string, files_fig)))) {
   cat("A folder with the string", search_string, "in its name already exists.\n")
 }
 
+
 ### For 2024-03-03 run ###
 datafile_version <- "sg1x3x10_v2402_US_Heat"
 pct <- "_m" # change when you change 'datafile'
@@ -83,9 +85,22 @@ folder_results <- paste0("../Results/SIMPLEG-", search_string, "/")
 folder_fig <- paste0(folder_fig, search_string, "/")
 
 folder_der <- paste0(folder_der, search_string, "/")
-folder_stats <- paste0(folder_results, "stat_summary/")
+folder_stat <- paste0(folder_results, "stat_summary/")
 
 datafile   <- paste0(folder_results, datafile_version, pct, "-out.txt")
+
+# check for stats folder 
+files_stat <- list.dirs(folder_results)
+
+if (!(any(grepl("stat_summary", files_stat)))) {
+  # If no file name contains the search string, create a folder with that string
+  dir.create(paste0(folder_results, "stat_summary"))
+  
+  cat("Figure Folder", "stat_summary", "created.\n")
+} else {
+  cat("A folder with the string", "stat_summary", "in its name already exists.\n")
+}
+
 
 # # # # # # # # # #
 
@@ -97,7 +112,7 @@ datafile   <- paste0(folder_results, datafile_version, pct, "-out.txt")
 # folder_plot <- "../Figures/021224/"
 # datafile   <- paste0(folder_results, "sg1x3x10_v2401_US_Heat", pct, "-out.txt")
 # folder_der <- "../Data_Derived/20240212/"
-# folder_stats <- paste0(folder_results, "stat_summary/")
+# folder_stat <- paste0(folder_results, "stat_summary/")
 
 # ### For 2024-01-30 run ###
 # pct <- "_m" # change when you change 'datafile'
@@ -109,7 +124,7 @@ datafile   <- paste0(folder_results, datafile_version, pct, "-out.txt")
 # datafile   <- paste0(folder, "US_HEAT", pct, "-out.txt")
 # #datafile <- "../Results/SIMPLEG-2023-10-29/sg1x3x10_v2310-out.txt"
 # folder_der <- "../Data_Derived/20240130/"
-# folder_stats <- "../Results/SIMPLEG-2024-01-30/stat_summary/"
+# folder_stat <- "../Results/SIMPLEG-2024-01-30/stat_summary/"
 
 ### For 2023-10-29 run ###
 # pct <- "" # change when you change 'datafile'
@@ -120,7 +135,7 @@ datafile   <- paste0(folder_results, datafile_version, pct, "-out.txt")
 # datafile   <- paste0(folder, "sg1x3x10_v2310", pct, "-out.txt")
 # #datafile <- "../Results/SIMPLEG-2023-10-29/sg1x3x10_v2310-out.txt"
 # folder_der <- "../Data_Derived/20231029/"
-# folder_stats <- "../Results/SIMPLEG-2024-10-29/stat_summary/"
+# folder_stat <- "../Results/SIMPLEG-2024-10-29/stat_summary/"
 
 # INITIAL PREP & SAVE -----------------------------------------------------------
 # 1: Prep SIMPLE-G Results --------------------
