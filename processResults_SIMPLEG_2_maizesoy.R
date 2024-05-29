@@ -58,6 +58,7 @@ library(rworldmap) # getting simple BR Border
 # Define the model date 
 # NOTE: Assumes the results are downloaded and saved in YYYY-MM-DD format
 date_string <- "2024-03-03"
+date_string_nodash <- gsub("-", "", date_string)
 
 # Set model version & parameter flexibility
 datafile_version <- "sg1x3x10_v2402_US_Heat"
@@ -341,7 +342,8 @@ F_EDA <- function(r_aoi, area_name){
     cat("Folder ", tables_file, "already exists.\n")
   }
   
-  write.csv(table_area, file = paste0(folder_results, "summary_tables/", "table_", area_name, pct, "_021224", ".csv"))
+  write.csv(table_area, file = paste0(folder_results, "summary_tables/", 
+                                      "table_", area_name, pct, "_", date_string_nodash, ".csv"))
   print("Totals for Casc. Effect Graph and for Total Change")
   
   # Print total change values then calculate % Change
@@ -383,6 +385,9 @@ F_EDA <- function(r_aoi, area_name){
 ### RUN 'processResults_SIMPLEG_1.R' FIRST TO CREATE RASTER AND SHAPEFILES ###
 
 load("../Data_Derived/shp_usbr.RData")
+shp_ecoregions <- st_read("../Data_Source/wwf_ecoregions/agg_wwf_terr_ecos.shp")
+shp_countries <- shp_world %>% select(name_long)
+
 # r <- readRDS(file = paste0(folder_der, "r", pct, ".rds"))
 r <- readRDS(file = paste0(folder_der, "r_maizesoy", pct, ".rds"))
 
@@ -501,6 +506,7 @@ F_ggplot_world <- function(df, brks, pal, legend_title, p_title, save_title){
   return(p)
 }
 
+# PICK UP HERE 4/23/24 ---------
 F_ggplot_interval <- function(df, title_text, title_legend, save_title){
 
   # plot 
@@ -510,7 +516,12 @@ F_ggplot_interval <- function(df, title_text, title_legend, save_title){
     geom_spatraster(data = df, maxcell = Inf, aes(fill = cats)) +
     #scale_fill_wiki_d(na.value = "white")
     scale_fill_whitebox_d(palette = "pi_y_g", direction = 1)+
-    theme_bw()+
+    
+    # PICK UP HERE - add outlines  
+    #geom_sf(data = vect(shp_ecoregions), color = "gray60", fill = "transparent", lwd = 0.1)+
+    geom_sf(data = vect(shp_countries), color = "gray60", fill = "transparent", lwd = 0.1)+
+    
+    theme_minimal()+ #was theme_bw
     labs(
       fill = title_legend,
       title = title_text,
@@ -605,8 +616,11 @@ factor <- test3 %>%
   mutate(
     cats =
       cut(rawch_QLAND,
-          breaks = c(-50, -25, -10, -1, -0.1, 0,
-                     0.01, 0.25, 0.5, 1, 2, 5))
+          # breaks = c(-50, -25, -10, -1, -0.1, 0,
+          #            0.01, 0.25, 0.5, 1, 2, 5))
+          breaks = c(-5, -2.5, -1, -0.5, -0.1, 0,
+                     0.01, 0.1, 0.25, 0.5, 1))
+
   )
 
 
@@ -926,10 +940,13 @@ lines(shp_us_mw, lwd = 0.8, lty = 3, col = "darkgray")
 dev.off()
 
 ## 3.3 TidyTerra US Plots ######################
-F_ggplot_world <- function(df, brks, pal, legend_title, p_title, save_title){
+F_ggplot_us <- function(df, brks, pal, legend_title, p_title, save_title){
   
   p <- ggplot()+
     geom_spatraster(data = df, maxcell = Inf)+
+    # use the custom theme 
+    # scale_fill_scico(palette = "bam", direction = 1, na.value = "white",
+    #                  midpoint = 0)+
     scale_fill_whitebox_c(
       #palette = "viridi", direction = 1,
       palette = pal,
@@ -954,7 +971,7 @@ F_ggplot_world <- function(df, brks, pal, legend_title, p_title, save_title){
   return(p)
 }
 
-F_ggplot_interval <- function(df, title_text, title_legend, save_title){
+F_ggplot_us_interval <- function(df, title_text, title_legend, save_title){
   
   # plot 
   #"atlas", "high_relief", "arid", "soft", "muted", 
@@ -963,6 +980,9 @@ F_ggplot_interval <- function(df, title_text, title_legend, save_title){
     geom_spatraster(data = df, maxcell = Inf, aes(fill = cats)) +
     #scale_fill_wiki_d(na.value = "white")
     scale_fill_whitebox_d(palette = "pi_y_g", direction = 1)+
+    
+    geom_sf(data = vect(shp_us), color = "gray60", fill = "transparent", lwd = 0.1)+
+  
     theme_bw()+
     labs(
       fill = title_legend,
@@ -1008,8 +1028,50 @@ terra::plot(r_us %>% subset("new_QLAND")/1000,
 )
 lines(shp_us_mw, lwd = 0.8, lty = 3, col = "darkgray")
 
-
 ### Actual (Raw) Cropland Change #####################################
+
+#### continuous -------
+# with function
+F_ggplot_us(df = r_us %>% subset("rawch_QLAND"),
+               #brks = c(-50, -25, -10, -1, -0.1, 0, 0.01, 0.25, 0.5, 1, 2, 5),
+               brks = waiver(),
+               #pal = "viridi",
+               #pal = "pi_y_g",
+               legend_title = "Area (1000 ha)",
+               p_title = paste("Raw Change in Cropland Area", pct_title),
+               save_title = "z_gg_us_rawch_croplandarea.png")
+
+
+
+# ggsave(plot = p, filename = paste0(folder_fig, "/", save_title),
+#        width = 14, height = 6, dpi = 300)
+
+#### interval ----------
+## DONE ## 
+# example from: https://cloud.r-project.org/web/packages/tidyterra/tidyterra.pdf
+# With discrete values
+test3 <-  r_us %>%
+  subset("rawch_QLAND")
+
+# create df
+factor <- test3 %>%
+  mutate(
+    cats =
+      cut(rawch_QLAND,
+          # breaks = c(-50, -25, -10, -1, -0.1, 0,
+          #            0.01, 0.25, 0.5, 1, 2, 5))
+          breaks = c(-5, -3, -1, -0.1, -0.01, 0,
+                     0.01, 0.1, 0.25, 0.5, 1))
+            )
+
+
+F_ggplot_us_interval(
+  df = factor, 
+  title_text = "Raw Change in Cropland Area",
+  title_legend = "Area (1000 ha)",
+  save_title = "gg_us_rawch_croplandarea.png")
+
+
 ### Post-Sim Crop Production Index #####################################
 ### Actual (Raw) Production Change #####################################
 
