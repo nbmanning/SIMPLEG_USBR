@@ -337,7 +337,7 @@ df_diffpct_melt <- df_diff %>%
   st_drop_geometry()
 
 # melt to change to long
-df_diffpct_melt <- melt(df_diffpct_melt, id.vars = c("year", "state", "name"),
+df_diffpct_melt <- melt(df_diffpct_melt, id.vars = c("year", "state", "name", "fips"),
                       variable.name = "DiffPctVar", value.name = "DiffPct")
 
 # get just the crop name and remove "DiffPct" 
@@ -352,12 +352,15 @@ df_diffpct_melt <- df_diffpct_melt %>%
     
     # add a space between the words and change to title case; e.g. cornYield becomes Corn Yield
     DiffPctVar_t = str_to_title(gsub('([[:upper:]])', ' \\1', DiffPctVar)),
-    DiffPctVar_t = sub("Corn Soy", "CornSoy", DiffPctVar_t)
+    DiffPctVar_t = sub("Corn Soy", "CornSoy", DiffPctVar_t),
+    
+    # make sure DiffPct is numeric
+    DiffPct = as.numeric(DiffPct)
     )
 
 ## 2.2 : Boxplot all columns -------------
 # Plot with all columns 
-ggplot(data = df_diffpct_melt, aes(x=str_to_lower(crop), y=DiffPct)) + 
+ggplot(data = df_diffpct_melt, aes(x=str_to_lower(crop), y=DiffPct)) +
   geom_boxplot(aes(fill=DiffPctVar_t))+
   geom_jitter(alpha = 0.05, aes(color = crop))+
   guides(color = "none")+
@@ -371,8 +374,8 @@ ggplot(data = df_diffpct_melt, aes(x=str_to_lower(crop), y=DiffPct)) +
   theme(axis.title.x = element_blank(),
         axis.text.x = element_text())
 
-# save 
-ggsave("../Figures/shock_eda/box_all_diffpct.png", 
+# save
+ggsave("../Figures/shock_eda/box_all_diffpct.png",
        width = 12, height = 8)
 
 
