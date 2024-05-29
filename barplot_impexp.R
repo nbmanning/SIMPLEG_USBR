@@ -183,3 +183,4 @@ df_impexp <- rbind(df_imp, df_exp)
 
 # save
 save(df_impexp, file = "../Results/SIMPLEG-2023-10-29/imports_exports/df_impexp.RData")
+
