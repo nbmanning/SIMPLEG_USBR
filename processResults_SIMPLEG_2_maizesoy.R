@@ -78,7 +78,7 @@ folder_fig <- paste0(folder_fig, date_string, "/")
 
 
 folder_results <- paste0("../Results/SIMPLEG-", date_string, "/")
-folder_stats <- paste0(folder_results, "stat_summary/")
+folder_stat <- paste0(folder_results, "stat_summary/")
 
 
 ### For 2024-02-12 run ###
@@ -89,7 +89,7 @@ folder_stats <- paste0(folder_results, "stat_summary/")
 # folder_fig <- "../Figures/021224/"
 # datafile   <- paste0(folder, "sg1x3x10_v2401_US_Heat", pct, "-out.txt")
 # folder_der <- "../Data_Derived/20240212/"
-# folder_stats <- paste0(folder, "stat_summary/")
+# folder_stat <- paste0(folder, "stat_summary/")
 
 
 # ### For 2024-01-30 run ###
@@ -102,7 +102,7 @@ folder_stats <- paste0(folder_results, "stat_summary/")
 # datafile   <- paste0(folder, "US_HEAT", pct, "-out.txt")
 # #datafile <- "../Results/SIMPLEG-2023-10-29/sg1x3x10_v2310-out.txt"
 # folder_der <- "../Data_Derived/20240130/"
-# folder_stats <- "../Results/SIMPLEG-2024-01-30/stat_summary/"
+# folder_stat <- "../Results/SIMPLEG-2024-01-30/stat_summary/"
 
 
 ### For 2023-10-29 run ###
@@ -114,7 +114,7 @@ folder_stats <- paste0(folder_results, "stat_summary/")
 # datafile   <- paste0(folder, "sg1x3x10_v2310", pct, "-out.txt")
 # #datafile <- "../Results/SIMPLEG-2023-10-29/sg1x3x10_v2310-out.txt"
 # folder_der <- "../Data_Derived/20231029/"
-# folder_stats <- "../Results/SIMPLEG-2024-10-29/stat_summary/"
+# folder_stat <- "../Results/SIMPLEG-2024-10-29/stat_summary/"
 
 
 # CREATE FUNCTIONS --------------
@@ -1342,19 +1342,20 @@ F_sum <- function(df, layer){
 }
 
 # Function to create df of changes and calculate "PRE" values
+# next: uncomment and filter for _nomaizesoy and _maziesoy
 F_area_stats <- function(df, extent_text){
   # create column of labels for easier recall
   labels <- c(
     "new_cropland_area", 
     "raw_change_cropland_area",
     "new_crop_production", 
-    "raw_change_crop_production"
+    "raw_change_crop_production",
     
-    # "new_soy_area",
-    # "raw_change_soy_area",
-    # 
-    # "new_maize_area",
-    # "raw_change_maize_area"
+    "new_soy_area",
+    "raw_change_soy_area",
+
+    "new_maize_area",
+    "raw_change_maize_area"
     )
   
   # get layers from input df
@@ -1362,12 +1363,12 @@ F_area_stats <- function(df, extent_text){
     F_sum(df, "new_QLAND"),
     F_sum(df, "rawch_QLAND"),
     F_sum(df, "new_QCROP"),
-    F_sum(df, "rawch_QCROP")
+    F_sum(df, "rawch_QCROP"),
     
-    # F_sum(df, "new_SOY"),
-    # F_sum(df, "rawch_SOY")
-    # F_sum(df, "new_MAZ"),
-    # F_sum(df, "rawch_MAZ")
+    F_sum(df, "new_LND_SOY"),
+    F_sum(df, "rawch_SOY"),
+    F_sum(df, "new_LND_MAZ"),
+    F_sum(df, "rawch_MAZ")
     
   )
   
@@ -1377,27 +1378,57 @@ F_area_stats <- function(df, extent_text){
   # pivot wide to create 'pre' data, then pivot long to make tidy
   df2 <- df2 %>% 
     pivot_wider(names_from = "labels", values_from = "values") %>% 
-    mutate(extent = extent_text,
-           pre_cropland_area = new_cropland_area - raw_change_cropland_area,
-           pre_crop_production = new_crop_production - raw_change_crop_production) %>% 
+    mutate(
+      extent = extent_text,
+      pre_cropland_area = new_cropland_area - raw_change_cropland_area,
+      pre_crop_production = new_crop_production - raw_change_crop_production,
+      
+      pre_soy_area = new_soy_area - raw_change_soy_area,
+      pre_maize_area = new_maize_area - raw_change_maize_area
+      ) %>% 
     pivot_longer(cols = -extent, names_to = "labels", values_to = "values")
 }
 
+
 ## 6.1: Get Cropland Area and Crop Production Stats ------
-stat_SG_QLAND_QCROP_US <- F_area_stats(r_us, "US")  
-stat_SG_QLAND_QCROP_BR <- F_area_stats(r_br, "Brazil")  
-stat_SG_QLAND_QCROP_Cerrado <- F_area_stats(r_cerr, "Cerrado")  
+stat_SG_US_maizesoy <- F_area_stats(r_us, "US")  
+stat_SG_BR_maizesoy <- F_area_stats(r_br, "Brazil")  
+stat_SG_Cerrado_maizesoy <- F_area_stats(r_cerr, "Cerrado")  
+
+stat_SG_summary_maizesoy <- rbind(stat_SG_US_maizesoy, stat_SG_BR_maizesoy, stat_SG_Cerrado_maizesoy)
+
+# Filter Out Soy/Maize
+stat_SG_QLAND_QCROP_US <- stat_SG_US_maizesoy %>%  
+  filter(!grepl("soy", labels) & !grepl("maize", labels))
+
+stat_SG_QLAND_QCROP_BR <- stat_SG_BR_maizesoy %>%  
+  filter(!grepl("soy", labels) & !grepl("maize", labels))
+
+stat_SG_QLAND_QCROP_Cerrado <- stat_SG_Cerrado_maizesoy %>%  
+  filter(!grepl("soy", labels) & !grepl("maize", labels))  
 
 stat_SG_summary <- rbind(stat_SG_QLAND_QCROP_US, stat_SG_QLAND_QCROP_BR, stat_SG_QLAND_QCROP_Cerrado)
 
 ## 6.2: Save SIMPLE-G Stats ------- 
+
+## Without Maize or Soy ## 
 save(
   stat_SG_QLAND_QCROP_US, stat_SG_QLAND_QCROP_BR, stat_SG_QLAND_QCROP_Cerrado, stat_SG_summary,
-  file = paste0(folder_stats, "sg_QLAND_QCROP_US_BR_Cerr", pct,".RData")
+  file = paste0(folder_stat, "sg_QLAND_QCROP_US_BR_Cerr", pct,".RData")
 )
 
 write.csv(stat_SG_summary, 
-          file = paste0(folder_stats, "sg", pct, "_stat_summary_US_BR_Cerr.csv"),
+          file = paste0(folder_stat, "sg", pct, "_stat_summary_US_BR_Cerr.csv"),
+          row.names = F)
+
+## With Maize and Soy ## 
+save(
+  stat_SG_US_maizesoy, stat_SG_BR_maizesoy, stat_SG_Cerrado_maizesoy, stat_SG_summary_maizesoy,
+  file = paste0(folder_stat, "sg_maizesoy_US_BR_Cerr", pct,".RData")
+)
+
+write.csv(stat_SG_summary_maizesoy, 
+          file = paste0(folder_stat, "sg", pct, "_stat_summary_maizesoy_US_BR_Cerr.csv"),
           row.names = F)
 
 
