@@ -39,7 +39,8 @@ files_results <- list.dirs(folder_results)
 files_fig <- list.dirs(folder_fig)
 
 # Check if any imp/exp folder exists in the search string folder 
-if (!(any(files_results))) {
+
+if (!(any(grepl(search_string, files_results)))) {
   # If no file name contains the search string, create a folder with that string
   dir.create(paste0(folder_results))
   
@@ -50,7 +51,7 @@ if (!(any(files_results))) {
 
 
 # check for figures folder
-if (!(any(files_fig))) {
+if (!(any(grepl(search_string, files_fig)))) {
   # If no file name contains the search string, create a folder with that string
   dir.create(paste0(folder_fig))
   
@@ -464,7 +465,7 @@ F_calc_totals <- function(data){
 
 test_total <- F_calc_totals(test)
 
-## 7.1 Imports ----------
+## 7.1 Corn & Soy Imports & Exports ----------
 sheets <- names(data_list)
 data_clean <- lapply(X = sheets, FUN = F_clean_sheet, pct = "m")
 names(data_clean) <- names(data_list)
@@ -473,5 +474,3 @@ data_clean <- lapply(X = data_clean, FUN = F_calc_totals)
 rio::export(
   data_clean, 
   file = paste0(folder_results, 'regional_results_clean_', pct_model, '.xlsx'))
-
-## 7.2 Exports ----------
