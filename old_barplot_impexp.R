@@ -1,5 +1,6 @@
 # Title: barplot_impexp.R
-# Purpose: Read import and export data and re-create barplots in R
+# Purpose: (OLD) Read import and export data and re-create barplots in R
+# USE barplot_impexp_maizesoy.R instead!
 
 # Created by: Nick Manning 
 # Created on: Dec 2023
