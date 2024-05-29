@@ -18,6 +18,10 @@ library(sf) # st_intersection and crs
 library(RColorBrewer) # maps 
 
 ## Constants 
+date_string <- "2024-03-03"
+
+# looks like the last date for this attempt was 01-30
+folder_stat <- paste0("../Results/SIMPLEG-", date_string, "/stat_summary/")
 folder_plot <- "../Figures/trans_mapbiomas/"
 folder_source <- "../Data_Source/MapBiomas/"
 folder_derived <- "../Data_Derived/"
@@ -354,7 +358,7 @@ stat_mapb_agg_trans_cerr_fromveg <- agg_cerr_fromveg %>% filter(year(year) == 20
 save(
   stat_mapb_agg_trans_br, stat_mapb_agg_trans_br_fromveg,
   stat_mapb_agg_trans_cerr, stat_mapb_agg_trans_cerr_fromveg,
-  file = "../Results/SIMPLEG-2023-10-29/stat_summary/mapb_agg_land_trans_br_and_cerr.RData")
+  file = paste0(folder_stat, "mapb_agg_land_trans_br_and_cerr.RData"))
 
 
 
