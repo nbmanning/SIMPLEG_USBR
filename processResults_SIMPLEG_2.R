@@ -30,13 +30,10 @@ library(tidyverse)
 library(raster) # use for initial raster stack and basic plotting
 library(terra) # use to wrangle geospatial data and plot
 library(RColorBrewer) # use for adding colorblind-friendly color palettes 
-#library(geobr) # use to load BR & Cerrado extent shapefiles
-#library(tigris) # use to load US and US-MW shapefiles
 library(rasterVis) # use for easy violin plot 
 library(reshape2) # use for melting data to then use ggplot
 library(sf)
 library(tidyterra) # plot using ggplot() instead of base R with 'terra'
-#library(stringr) # use to manipulate result .txt file
 library(ggspatial) # N arrow and Scale Bar w tidyterrra
 library(rworldmap) # getting simple BR Border
 
@@ -123,8 +120,26 @@ F_p_violin <- function(df, area){
   df_new <- df %>% 
     subset(c("new_QLAND", "new_QCROP"))
   names(df_new) <- c("Cropland Area", "CPI")
+
+  # separate each for Maize and Soy
+  df_pct_maizesoy <- df %>% 
+    subset(c("pct_LND_MAZ", "pct_LND_SOY")) 
+  names(df_pct_maizesoy) <- c("Maize", "Soy")
+   
+  df_rawch_maizesoy <- df %>% 
+    subset(c("rawch_LND_MAZ", "rawch_LND_SOY"))
+  names(df_rawch_maizesoy) <- c("Maize", "Soy")
+  
+  df_new_maizesoy <- df %>% 
+    subset(c("new_LND_MAZ", "new_LND_SOY"))
+  names(df_new_maizesoy) <- c("Maize", "Soy")
   
   # plot the boxplots next to one another (e.g. all the % change boxplots in one section)
+  # F_p_violin_save <- function(){  
+  #   png(filename = paste0(folder_plot, str_to_lower(area), pct, "_bw", "_pctchange", "_maizesoy", ".png"))
+  #   plot(p1)
+  #   dev.off()
+  # }
   p1 <- bwplot(df_pct, 
                main = paste(area, "% Change", pct_title),
                ylab = "% Change")
@@ -147,9 +162,37 @@ F_p_violin <- function(df, area){
   plot(p3)
   dev.off()
   
+  # plot the same but for maize and soy now 
+  p4 <- bwplot(df_pct_maizesoy, 
+               main = paste(area, "% Change Maize & Soy", pct_title),
+               ylab = "% Change")
+  p5 <- bwplot(df_rawch_maizesoy, 
+               main = paste(area, "Raw Change Maize & Soy", pct_title),
+               ylab = "Area (ha)")
+  p6 <- bwplot(df_new_maizesoy, 
+               main = paste(area, "Post-Sim Values Maize & Soy", pct_title),
+               ylab = "Area (ha)")
+  
+
+  png(filename = paste0(folder_plot, str_to_lower(area), pct, "_bw", "_pctchange", "_maizesoy", ".png"))
+  plot(p4)
+  dev.off()
+  
+  png(filename = paste0(folder_plot, str_to_lower(area), pct, "_bw", "_pctchange", "_maizesoy", ".png"))
+  plot(p5)
+  dev.off()
+  
+  png(filename = paste0(folder_plot, str_to_lower(area), pct, "_bw", "_rawchange", "_maizesoy", ".png"))
+  plot(p6)
+  dev.off()
+  
   return(p1)
   return(p2)
   return(p3)
+  return(p4)
+  return(p5)
+  return(p6)
+  
 }
 
 
@@ -180,6 +223,7 @@ F_clamp <- function(df, layer_name){
 # Work Flow Functions #
 
 # fxn to incorporate both of these into one function
+### PICK UP HERE ######################################
 F_aoi_prep <- function(shp, area_name){
   
   ## Clip to AOI Extent ##
