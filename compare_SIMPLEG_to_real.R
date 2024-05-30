@@ -22,8 +22,8 @@ library(tidyUSDA)
 folder_source <- "../Data_source/FAOSTAT/"
 
 date_string <- "2024-03-03"
-#folder_stat <- "../Results/SIMPLEG-2023-10-29/stat_summary/"
 folder_stat <- paste0("../Results/SIMPLEG-", date_string, "/stat_summary/")
+folder_impexp <- paste0("../Results/SIMPLEG-", date_string, "/imports_exports/")
 
 # set up pre- and post
 year_pre <- 2010
@@ -246,14 +246,12 @@ stat_usda_prod <- stat_usda_prod %>%
 
 # 2: Imports & Exports ---------------
 
-## (OLD) 2.1: Load from SIMPLE-G ----------
-# from script 'barplot_impexp.r' -- loads df_impexp
-load(file = "../Results/SIMPLEG-2023-10-29/imports_exports/df_impexp.RData")
-stat_SG_impexp <- df_impexp %>% mutate(chg_mmt = chg/1000)
+## 2.1: Load from SIMPLE-G ----------
+# # from script 'barplot_impexp.r' -- loads df_impexp
+# load(file = "../Results/SIMPLEG-2023-10-29/imports_exports/df_impexp.RData")
+# stat_SG_impexp <- df_impexp %>% mutate(chg_mmt = chg/1000)
 
-load(file = "../Results/SIMPLEG-2024-03-03/imports_exports/df_impexp_cornsoy.RData")
-# stat_SG_impexp <- df_impexp_cornsoy %>%
-#   mutate(chg_mmt = chg/1000)
+load(file = paste0(folder_impexp, "df_impexp_cornsoy.RData"))
 
 # get df_impexp_cornsoy to look like df_impexp
 stat_SG_impexp <- df_impexp_cornsoy %>% 
