@@ -21,6 +21,10 @@ library(tidyUSDA)
 ## Constants
 folder_source <- "../Data_source/FAOSTAT/"
 
+date_string <- "2024-03-03"
+#folder_stat <- "../Results/SIMPLEG-2023-10-29/stat_summary/"
+folder_stat <- paste0("../Results/SIMPLEG-", date_string, "/stat_summary/")
+
 # set up pre- and post
 year_pre <- 2010
 year_post <- 2013
@@ -29,7 +33,7 @@ year_post <- 2013
 
 ## NOTE: EACH USER WILL HAVE TO PROVIDE THEIR OWN KEY ##
 
-usda_key = ""
+usda_key = "34BD2DD3-9049-37A1-BC2C-D8A967E25E42"
 
 
 # 1: Real Area & Production (US/BR; FAOSTAT & USDA) ---------
@@ -178,7 +182,7 @@ stat_fao_prod <- prod %>%
 
 ### Source 2: US stats from USDA-NASS -------
 # Production
-# Production -- SOY
+# Production (bu) -- SOY
 source_prod_usda <- getQuickstat(
   key = usda_key,
   program = "SURVEY",
@@ -203,7 +207,7 @@ prod_usda_soy <- source_prod_usda %>%
          extent = "US") %>% 
   dplyr::select(-reference_period_desc)
 
-# Area Harvested -- MAIZE
+# Production (bu) -- MAIZE
 source_prod_usda <- getQuickstat(
   key = usda_key,
   program = "SURVEY",
@@ -242,10 +246,21 @@ stat_usda_prod <- stat_usda_prod %>%
 
 # 2: Imports & Exports ---------------
 
-## 2.1: Load from SIMPLE-G ----------
-# from script 'barplot_impexp.r'
+## (OLD) 2.1: Load from SIMPLE-G ----------
+# from script 'barplot_impexp.r' -- loads df_impexp
 load(file = "../Results/SIMPLEG-2023-10-29/imports_exports/df_impexp.RData")
 stat_SG_impexp <- df_impexp %>% mutate(chg_mmt = chg/1000)
+
+load(file = "../Results/SIMPLEG-2024-03-03/imports_exports/df_impexp_cornsoy.RData")
+# stat_SG_impexp <- df_impexp_cornsoy %>%
+#   mutate(chg_mmt = chg/1000)
+
+# get df_impexp_cornsoy to look like df_impexp
+stat_SG_impexp <- df_impexp_cornsoy %>% 
+  select(!c(variable, modeltype))
+
+# PICK UP HERE: ----------
+
 
 ## 2.2: Real Imports & Exports (FAOSTAT) -----------------------------------------------
 
@@ -386,7 +401,7 @@ fao_impexp <- fao_impexp %>% subset(select = -region)
 
 # calculate sums from crops
 df_sg_impexp <-  stat_SG_impexp %>% 
-  group_by(region_abv, region, type) %>%
+  group_by(region_abv, type) %>% #removed 'region' with updated maize soy script
   summarize(pre = sum(pre),
             post = sum(post)) %>% 
   mutate(chg = post-pre,
@@ -397,7 +412,7 @@ comp_impexp_all <- df_sg_impexp %>%
   left_join(fao_impexp) %>% 
   # remove any mismatches - removes SSA bc missing from crosswalk
   drop_na() %>% 
-  select(region_abv, region, type,
+  select(region_abv,  type, #region,
          pre, pre_fao, post, post_fao,
          chg, chg_fao, chg_mmt, chg_mmt_fao) %>% 
   mutate_if(is.numeric, round, 2)
@@ -406,7 +421,7 @@ stat_comp_impexp <- comp_impexp_all
 
 # get final df's for plotting 
 stat_comp_impexp_plotting <- comp_impexp_all %>% 
-  pivot_longer(cols = -c(region_abv, region, type), 
+  pivot_longer(cols = -c(region_abv, type), 
                names_to = "stat", values_to = "value")
 
 
@@ -540,7 +555,6 @@ stat_sidra_prod_br <- stat_sidra_area_prod_br %>%
 ## 3.2: Cerrado Production & Area Harvested -------
 # get area harvested and production for BR 
 raw_sidra_cerr <- get_sidra(x = 1612, 
-                          variable =  c(214, 216), # 214 = Production, 216 = Area Harvested
                           period = as.character(c(year_pre, year_post)),# list_year_range, #2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021
                           geo = "MicroRegion", # Brazil, State, or Município
                           geo.filter = NULL,
@@ -636,7 +650,9 @@ stat_sidra_prod_cerr <- stat_sidra_area_prod_cerr %>%
 
 
 # 4: Import & Clean MAPB AREA Results -----------
-folder_stat <- "../Results/SIMPLEG-2023-10-29/stat_summary/"
+
+
+# from "aggStats_MapBiomas.R" - need to updated save path
 load(file = paste0(folder_stat, "mapb_agg_land_trans_br_and_cerr.RData"))
 stat_mapb_agg_trans_br
 str(stat_mapb_agg_trans_br)
@@ -656,7 +672,7 @@ stat_mapb_agg_trans_cerr <- F_clean_mapb(stat_mapb_agg_trans_cerr, "Cerrado", "M
 stat_mapb_agg_trans_cerr_fromveg <- F_clean_mapb(stat_mapb_agg_trans_cerr_fromveg, "Cerrado", "MapBiomas_FromVeg")
 
 # 5: Import & Clean SIMPLE-G AREA & PROD Results -----------
-load(file = paste0(folder_stat, "sg_QLAND_QCROP_US_BR_Cerr.RData"))
+load(file = paste0(folder_stat, "sg_QLAND_QCROP_US_BR_Cerr_m.RData"))
 
 stat_SG <- rbind(stat_SG_QLAND_QCROP_BR,
                  stat_SG_QLAND_QCROP_Cerrado,

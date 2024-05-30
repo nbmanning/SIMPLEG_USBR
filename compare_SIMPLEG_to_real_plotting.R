@@ -21,7 +21,10 @@ library(cowplot)
 ## Set Constants ----
 
 ### folders 
-folder_stat <- "../Results/SIMPLEG-2023-10-29/stat_summary/"
+date_string <- "2024-03-03"
+
+#folder_stat <- "../Results/SIMPLEG-2023-10-29/stat_summary/"
+folder_stat <- paste0("../Results/SIMPLEG-", date_string, "/stat_summary/")
 folder_fig <- "../Figures/compare_to_real/"
 
 ### plotting 
@@ -238,4 +241,76 @@ F_plot_compare <- function(df, ag_stat, title){
 }
 
 F_plot_compare(df = stat_clean_area, ag_stat = "area", title = "Cropland Area")
+F_plot_compare <- function(df, ag_stat, title){
+  
+  # first, pivot to make long 
+  df <- df %>%
+    #filter(crop == "total") %>% 
+    filter(year == year_pre | year == year_post) %>% 
+    #filter(extent == "Brazil" | extent == "US") %>% 
+    mutate(
+      timing = case_when(
+        year == year_pre ~ "pre",
+        year == year_post ~ "post"
+      )) %>% 
+    pivot_longer(cols = ag_stat, names_to = "stat", values_to = "value")
+  
+  
+  ##### pre-shock plot
+  df_pre <- df %>% filter(timing == "pre")
+  
+  # plot
+  p_area_pre <- ggplot(df_pre, aes(x = extent, y = value)) +
+    geom_col(aes(fill = source), position = position_dodge(0.8), width = 0.7)+
+    coord_flip()+
+    # scale_fill_manual(values = c(col1, col2),
+    #                   labels=c('SIMPLE-G', 'FAO'))+
+    labs(
+      title = paste("Pre-Shock", title),
+      x="", y=""
+    )
+  
+  ##### post-shock plot
+  df_post <- df %>% filter(timing == "post")
+  
+  # plot
+  (p_area_post <- ggplot(df_post, aes(x = extent, y = value)) +
+      geom_col(aes(fill = source), position = position_dodge(0.8), width = 0.7)+
+      coord_flip()+
+      # scale_fill_manual(values = c(col1, col2),
+      #                   labels=c('SIMPLE-G', 'FAO'))+
+      labs(
+        title = paste("Post-Shock", title),
+        x="", y=""
+      ))
+  
+  
+  # plot imports and exports together
+  p <- plot_grid(p_area_pre + theme(legend.position = "none"), 
+                 p_area_post + theme(legend.position = "none"), 
+                 labels = c("A", "B"),
+                 align = 'vh',
+                 scale = 0.9)
+  
+  # get legend
+  # link: https://wilkelab.org/cowplot/articles/shared_legends.html
+  legend <- get_legend(
+    p_area_post + 
+      guides(color = guide_legend(nrow = 1)) +
+      theme(legend.position = "bottom",
+            legend.title = element_blank())
+  )
+  
+  # add the legend underneath the row we made earlier with 
+  # 10% of the height of one plot (via rel_heights)
+  (p_with_legend <- plot_grid(p, legend, ncol = 1, rel_heights = c(1, .1)))
+  
+  # save 
+  ggsave(filename = paste0(folder_fig, ag_stat, "_comp", ".png"),
+         plot = p_with_legend,
+         width = 12, height = 6)
+  
+  # return() to plot in env
+  return(p_with_legend)
+}
 F_plot_compare(df = stat_clean_prod, ag_stat = "prod", title = "Ag Production")
