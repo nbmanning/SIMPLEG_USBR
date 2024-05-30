@@ -18,7 +18,7 @@
 ## Change colorscheme (right now the 0 isn't centered and the white is unclear if NA or really low value)
 
 # # # # # # # # # # # # # # # # # # # # # # # # 
-
+rm(list = ls())
 getwd()
 
 # 0: Load Libraries & Set Constants ----------------------
