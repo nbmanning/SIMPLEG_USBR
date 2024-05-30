@@ -427,8 +427,8 @@ df_impexp_cornsoy <- rbind(imp_cornsoy, exp_cornsoy)
 df_impexp <- rbind(imp, exp)
 
 # save
-save(df_impexp_cornsoy, file = paste0(files_results, "df_impexp_cornsoy.RData"))
-save(df_impexp, file = paste0(files_results, "df_impexp.RData"))
+save(df_impexp_cornsoy, file = paste0(folder_results, "df_impexp_cornsoy.RData"))
+save(df_impexp, file = paste0(folder_results, "df_impexp.RData"))
 
 
 # 7: Calc Totals --------------------
