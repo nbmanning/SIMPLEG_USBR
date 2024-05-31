@@ -1,71 +1,89 @@
+# Title: US_Drought_shock.R
 
-# Calculate the shock for US-Brazil telecoupling in SIMPLE-G
+# Purpose: Calculate the shock for US-Brazil telecoupling in SIMPLE-G
 
-# This code was developed by Iman Haqiqi ihaqiqi@purdue.edu
+# Initial script by: Iman Haqiqi(ihaqiqi@purdue.edu)
+# Initial date: March 27, 2024
+
+# Edited by: Nick Manning 
+# Initial edit date: May 2024
+
 
 # inputs:
 # --- USDA Causes of Loss, 
 # --- USDA Prevented and Failed Acres
 # --- SIMPLEG coordinates
+
 # outputs:
 # --- y12.har for use in SIMPLEG
 
+# NOTES:
+
+
+
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #  
+
+# 0: Load Libraries & Set Constants -----
+
 # load required libraries for raster analysis
 library(terra)
+library(dplyr)
 
-#---- (1) create a data frame with FIPS and xy coordinates 
-  # US coordinates and FIPS
-  us.xy.file = "data/SIMPLEG_LonLat.csv"
-  tmp = read.csv(us.xy.file, header=T, sep=",")
-  
-  # re-generate coordiantes to ensure decimal accuracy
-  tmp$x = round(tmp$x * 120)/120
-  tmp$y = round(tmp$y * 120)/120
-  
-  #create a rste and plot
-  tmp.ras = rast(tmp, type="xyz")
-  plot(tmp.ras)
-  plot(tmp.ras$nlcd_2011_L82)
-  
-  us.xy = tmp[c("x","y","FIPS", "VCRP_2010", "QLND_2010")]
+# 1: Create a data frame with FIPS and xy coordinates -----------
 
-#---- (2) create a data frame of loss by FIPS 
-  # read the USDA RMA Causes of Loss
-  loss.file = "data/colsom12.txt"
-  loss.dt = read.csv(loss.file, header =F, sep="|")
-  head(loss.dt)
-  
-  #read the column labels
-  loss.id = "data/codes.csv"
-  id = read.csv(loss.id, header =F, sep=",")
-  id
-  
-  names(loss.dt) = id$V1
-  names(loss.dt) 
-  
-  # generate FIPS codes
-  loss.dt$FIPS = loss.dt$State_Code * 1000 + loss.dt$County_Code
-  
-  unique(loss.dt$Cause_Description)
-  
-  loss.df = loss.dt[c("FIPS", "Indemnity_Amount")]
-  
-  loss.aggr = aggregate( . ~ FIPS, data =loss.df, FUN= sum, na.rm=T )
-  head(loss.aggr)
-  dim(loss.aggr)
-  
-  heat.dt = loss.dt[loss.dt$Cause_Description == "Drought" |
+# US coordinates and FIPS
+us.xy.file = "data/SIMPLEG_LonLat.csv"
+tmp = read.csv(us.xy.file, header=T, sep=",")
+
+# re-generate coordinates to ensure decimal accuracy
+tmp$x = round(tmp$x * 120)/120
+tmp$y = round(tmp$y * 120)/120
+
+#create a SpatRaster and plot
+tmp.ras = rast(tmp, type="xyz")
+plot(tmp.ras)
+plot(tmp.ras$nlcd_2011_L82)
+
+us.xy = tmp[c("x","y","FIPS", "VCRP_2010", "QLND_2010")]
+
+# 2: create a data frame of loss by FIPS ----
+# read the USDA RMA Causes of Loss
+loss.file = "data/colsom12.txt"
+loss.dt = read.csv(loss.file, header =F, sep="|")
+head(loss.dt)
+
+#read the column labels
+loss.id = "data/codes.csv"
+id = read.csv(loss.id, header =F, sep=",")
+id
+
+names(loss.dt) = id$V1
+names(loss.dt) 
+
+# generate FIPS codes
+loss.dt$FIPS = loss.dt$State_Code * 1000 + loss.dt$County_Code
+
+unique(loss.dt$Cause_Description)
+
+loss.df = loss.dt[c("FIPS", "Indemnity_Amount")]
+
+loss.aggr = aggregate( . ~ FIPS, data =loss.df, FUN= sum, na.rm=T )
+head(loss.aggr)
+dim(loss.aggr)
+
+heat.dt = loss.dt[loss.dt$Cause_Description == "Drought" |
                     loss.dt$Cause_Description == "Heat"   ,]
-  
-  heat.aggr = aggregate( . ~ FIPS, FUN= sum, na.rm=T, 
-                         data =heat.dt[c("FIPS", "Indemnity_Amount")])
-  names(heat.aggr) = c("FIPS", "Indemnity_Heat")
-  
-  head(heat.aggr)
-  dim(heat.aggr)
+
+heat.aggr = aggregate( . ~ FIPS, FUN= sum, na.rm=T, 
+                       data =heat.dt[c("FIPS", "Indemnity_Amount")])
+names(heat.aggr) = c("FIPS", "Indemnity_Heat")
+
+head(heat.aggr)
+dim(heat.aggr)
 
 
-#---- (3) create a data frame of prevented and failed acres 
+# 3: Create a data frame of prevented and failed acres -----------
+
 # read the prevented and failed acres
 acres.file = "data/PreventedFailed_2012.csv"
 acres.dt = read.csv(acres.file, header =T, sep=",")
@@ -81,7 +99,6 @@ acres.df = acres.dt[c("FIPS", "Planted.Acres" , "Failded.Acres",
                    "Prevented.Acres" , "Not.Planted.Acres", 
                    "Planted.and.Failed.Acres")]
 
-library(dplyr)
 acres.df <- acres.df %>% mutate_all(as.numeric)
 summary(acres.df)
 
@@ -91,9 +108,9 @@ head(acres.aggr)
 dim(acres.aggr)
 
 
-#---- (4) merge data sets and calculate the rates (averages)
-# read the prevented and failed acres
+# 4: merge data sets and calculate the rates (averages) -----------
 
+# read the prevented and failed acres
 fips.df = merge(acres.aggr, loss.aggr, by = "FIPS", all.x=T)
 fips.df = merge(fips.df,    heat.aggr, by = "FIPS", all.x=T)
 
@@ -149,7 +166,7 @@ plot(u$shock,
 plot(w, add=T)
 text(w, "STUSPS", cex=0.7)
 
-# ---- (5) shock fo SIMPLE-G global
+# 5: shock for SIMPLE-G global -----------
 xygID  <- rast("data/grid_id_xyg.tif")
 plot(xygID)
 
@@ -172,19 +189,20 @@ my.df$heat[my.df$heat < -80] = -80
 
 all.equal(my.df$grid_id_xyg, c(1:nGrid))
 
-  v = "y12"
-  print(v)
-  txt <- paste0(nGrid, ' real row_order header "',v,'" longname "US 2012 Drought Shock" ;')
-  
-  txt.file = paste0(v,".txt")
-  
-  write(txt, txt.file)
-  
-  my.var = "heat"
-  
-  write.table(my.df[ , my.var], txt.file, 
-              row.names=F, col.names=F, quote=F, sep=",", dec = ".", append=T)
-  
-  system(paste0("txt2har.exe ", v,".txt ", v,".har"))
+
+v = "y12"
+print(v)
+txt <- paste0(nGrid, ' real row_order header "',v,'" longname "US 2012 Drought Shock" ;')
+
+txt.file = paste0(v,".txt")
+
+write(txt, txt.file)
+
+my.var = "heat"
+
+write.table(my.df[ , my.var], txt.file, 
+            row.names=F, col.names=F, quote=F, sep=",", dec = ".", append=T)
+
+system(paste0("txt2har.exe ", v,".txt ", v,".har"))
 
 
