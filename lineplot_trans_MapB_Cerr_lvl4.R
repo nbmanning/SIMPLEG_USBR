@@ -451,7 +451,7 @@ df_g_specific_fromto_topn <- df_g_specific_fromto %>%
   filter(fromto %in% ls_top) 
 
 # plot
-ggplot(df_g_specific_fromto, aes(x=year, y=total_trans/1000000, color = fromto)) +
+ggplot(df_g_specific_fromto_topn, aes(x=year, y=total_trans/1000000, color = fromto)) +
   geom_line() +
   geom_point(fill = "white", size = 0.8) +
   xlab("")+
