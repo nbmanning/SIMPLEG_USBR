@@ -6,7 +6,7 @@
 # Initial date: March 27, 2024
 
 # Edited by: Nick Manning 
-# Initial edit date: May 2024
+# Last edit date: Aug 2024
 
 
 # inputs:
@@ -28,7 +28,8 @@
 # load required libraries for raster analysis
 library(terra)
 library(dplyr)
-
+library(ggplot2)
+library(RColorBrewer)
 
 # Set folder locations 
 folder_shock <- "../US_Drought_Shock/"
@@ -51,7 +52,7 @@ plot(tmp.ras$nlcd_2011_L82)
 # select the relevant variables; CRP & the amount of cropland in 2010
 us.xy <- tmp[c("x","y","FIPS", "VCRP_2010", "QLND_2010")]
 
-# 2: create a data frame of loss by FIPS ----
+# 2: Create a data frame of loss by FIPS ----
 # read the USDA RMA Causes of Loss
 loss.file <- paste0(folder_shock, "colsom12.txt")
 loss.dt <- read.csv(loss.file, header =F, sep="|")
@@ -113,7 +114,7 @@ head(acres.aggr)
 dim(acres.aggr)
 
 
-# 4: merge data sets and calculate the rates (averages) -----------
+# 4: Merge data sets and calculate the rates (averages) -----------
 
 # read the prevented and failed acres
 fips.df <- merge(acres.aggr, loss.aggr, by = "FIPS", all.x=T)
@@ -169,11 +170,40 @@ plot(u$shock,
      #legend.width=2, # legend.width is not a graphical parameter
      pax=list(side=1:4,retro=T),
      plg=list(title="(percentage loss)\n", x= "bottom", horiz=T))
-
 plot(w, add=T)
 text(w, "STUSPS", cex=0.7)
 
-# 5: shock for SIMPLE-G global -----------
+
+# 5: Plot Shock using tidyterra ---------
+
+# Define breaks and colors using RColorBrewer
+breaks <- c(0, 5, 10, 50, 99)
+#colors <- c("#fecc5c", "#fd8d3c", "#f03b20", "#bd0026")
+colors <- brewer.pal(n = length(breaks) - 1, name = "YlOrRd")
+
+# Cut the 'value' column into categories based on the breaks
+# Necessary as it is continuous at the moment
+u_cut <- u %>%
+  mutate(category = cut(shock, breaks = breaks, include.lowest = TRUE))
+
+# plot
+ggplot()+
+  geom_spatraster(data = u_cut %>% subset("category"), aes(fill = category))+
+  scale_fill_manual(values = colors, name = "Percent Loss", na.value = "white") +
+  geom_spatvector(data = w, fill = NA)+
+  #geom_spatvector_text(data = w, aes(label = STUSPS))+
+  theme_void() +
+  theme(axis.title = element_blank(), 
+        axis.text = element_blank(), 
+        axis.ticks = element_blank(),
+        legend.position = "bottom") +
+  guides(fill = guide_legend(direction = "horizontal"))
+
+# save
+ggsave("../Figures/SIMPLEG_Shock.png",
+       height = 10, width = 15, dpi = 300)
+
+# 6: Create Shock File for SIMPLE-G global -----------
 xygID  <- rast(paste0(folder_shock, "grid_id_xyg.tif"))
 plot(xygID)
 
