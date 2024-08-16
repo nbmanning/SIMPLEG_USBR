@@ -60,7 +60,7 @@ if (!(any(grepl(date_string, files_fig)))) {
   cat("A folder with the string", date_string, "in its name already exists.\n")
 }
 
-# 0: Import Source Data ----------
+# 0: Import Regional Results from SIMPLE-G ----------
 # Load in data as xlsx (diff from previous)
 source_path <- paste0(files_results, "regional_results.xlsx")
 data_list <- import_list(source_path)
@@ -475,3 +475,16 @@ data_clean <- lapply(X = data_clean, FUN = F_calc_totals)
 rio::export(
   data_clean, 
   file = paste0(folder_results, 'regional_results_clean_', pct_model, '.xlsx'))
+
+# EXTRA -----------
+
+# # For the Sankey Diagram, we can import this file and filter to just US, Brazil, and World Stats
+# 
+# # Import all sheets into a list
+# data_clean_df <- import_list(paste0(folder_results, 'regional_results_clean_', pct_model, '.xlsx'), rbind = TRUE)
+# 
+# # filter to only US, BR, World
+# df_usbr <- data_clean_df %>% 
+#   select(-c("_file")) %>% 
+#   filter(region_abv %in% c("US", "BRA")) %>%  #c("US", "BRA", "Total")
+#   arrange(region_abv, type)
