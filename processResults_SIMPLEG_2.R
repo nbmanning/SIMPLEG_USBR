@@ -1,3 +1,10 @@
+
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+### USING processResults_SIMPLEG_2_maizesoy.R AS OUR WORKING SCRIPT ### 
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+
+## THIS SCRIPT HASN'T BEEN UPDATED WITH THE MARCH 2023 RESULTS OR NEW FOLDER FORMAT (e.g. 2024-03-03 instead of 021224)
+
 # Title: processResults_SIMPLEG.R
 # Purpose: Read and plot SIMPLE-G results from text format across US, World, BR, and Cerrado
 
