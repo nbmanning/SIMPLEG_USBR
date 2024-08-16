@@ -6,7 +6,7 @@
 
 # Edited by: Nick Manning 
 # Initial edit date: May 2023
-# Last edited: Jan 2024
+# Last edited: Aug 2024
 
 # REQUIRES:
 ## SIMPLE-G Result files as '.txt' from 'processResults_SIMPLEG_1.R'
@@ -42,7 +42,7 @@ library(reshape2) # use for melting data to then use ggplot
 library(sf)
 library(tidyterra) # plot using ggplot() instead of base R with 'terra'
 library(ggspatial) # N arrow and Scale Bar w tidyterrra
-library(rworldmap) # getting simple BR Border
+#library(rworldmap) # getting simple BR Border
 
 ## Constants ##
 
@@ -63,8 +63,9 @@ date_string_nodash <- gsub("-", "", date_string)
 # Set model version & parameter flexibility
 datafile_version <- "sg1x3x10_v2402_US_Heat"
 pct <- "_m" # change when you change 'datafile'
-pct_title <- " - Med" # for plotting, either " - High" or " - Low" or "" or "- Med"
 
+#pct_title <- " - Med" # for plotting, either " - High" or " - Low" or "" or "- Med"
+pct_title <- "" # note: changed 8/16 by setting -med to nothing, as it is the default
 
 ## same for each model run ##
 # create vars to house results
@@ -282,6 +283,7 @@ F_aoi_prep <- function(shp, area_name){
   # Crop Specific
   F_count_invalid(r_aoi, "new_LND_MAZ")
   r_aoi_new_maize <- F_clamp(r_aoi, "new_LND_MAZ")
+  
   # 
   F_count_invalid(r_aoi, "new_LND_SOY")
   r_aoi_new_soy <- F_clamp(r_aoi, "new_LND_SOY")
@@ -318,10 +320,12 @@ F_aoi_prep <- function(shp, area_name){
 # fxn to calculate total % Change
 F_calc_pct_change <- function(final, raw_ch){
   
+  # we don't have initial, so we calculate it here
   initial = final - raw_ch
   
+  # then we calculate percent change (results are in %)
   pct_change = ((final - initial)/initial)*100
-  print(paste("% Change is: ", pct_change))
+  print(paste("% Change is: ", pct_change, "%"))
 }
 
 
@@ -347,15 +351,22 @@ F_EDA <- function(r_aoi, area_name){
   print("Totals for Casc. Effect Graph and for Total Change")
   
   # Print total change values then calculate % Change
+  cat("\n\nTotal Land Change (1000 ha)\n\n")
   print(global(r_aoi$new_QLAND, fun = "sum", na.rm = T))
   print(global(r_aoi$rawch_QLAND, fun = "sum", na.rm = T))
+  
+  # Calc % change by grabbing the total (sum) values and running the % change function
   F_calc_pct_change(
     final = (global(r_aoi$new_QLAND, fun = "sum", na.rm = T))[[1]],
     raw_ch = (global(r_aoi$rawch_QLAND, fun = "sum", na.rm = T))[[1]]
   )
   
+  # print the total change in crop production
+  cat("\n\nTotal Production Change (1000 tons CE)\n\n")
   print(global(r_aoi$rawch_QCROP, fun = "sum", na.rm = T))
   
+  # print the total changes in crop production for maize
+  cat("\n\n Maize Results\n\n")
   print(global(r_aoi$new_LND_MAZ, fun = "sum", na.rm = T))
   print(global(r_aoi$rawch_MAZ, fun = "sum", na.rm = T))
   F_calc_pct_change(
@@ -363,12 +374,16 @@ F_EDA <- function(r_aoi, area_name){
     raw_ch = (global(r_aoi$rawch_MAZ, fun = "sum", na.rm = T))[[1]]
   )
   
+  
+  # print the total changes in crop production for soy  
+  cat("\n\n Soy Results\n\n")
   print(global(r_aoi$new_LND_SOY, fun = "sum", na.rm = T))
   print(global(r_aoi$rawch_SOY, fun = "sum", na.rm = T))
   F_calc_pct_change(
     final = (global(r_aoi$new_LND_SOY, fun = "sum", na.rm = T))[[1]],
     raw_ch = (global(r_aoi$rawch_SOY, fun = "sum", na.rm = T))[[1]]
   )
+  
   # Call EDA fxn to get and save violin plots 
   F_p_violin(r_aoi, area_name)
   
@@ -379,14 +394,13 @@ F_EDA <- function(r_aoi, area_name){
               )
 }
 
-
 # 1: Load SHP & SIMPLE-G Raster -----------------------------------------------------------
 
 ### RUN 'processResults_SIMPLEG_1.R' FIRST TO CREATE RASTER AND SHAPEFILES ###
 
 load("../Data_Derived/shp_usbr.RData")
 shp_ecoregions <- st_read("../Data_Source/wwf_ecoregions/agg_wwf_terr_ecos.shp")
-shp_countries <- shp_world %>% select(name_long)
+shp_countries <- shp_world %>% dplyr::select(name_long)
 
 # r <- readRDS(file = paste0(folder_der, "r", pct, ".rds"))
 r <- readRDS(file = paste0(folder_der, "r_maizesoy", pct, ".rds"))
@@ -468,7 +482,7 @@ terra::plot(r, axes = F)
 # Call fxn to clip, count, and clamp data 
 r_row <- F_aoi_prep(shp = shp_world, area_name = "World")
 
-# call fxn to create EDA plots of the clipped data 
+# call fxn to create EDA plots and generate stats of the clipped data 
 F_EDA(r_aoi = r_row, area_name = "World")
 
 
@@ -506,7 +520,6 @@ F_ggplot_world <- function(df, brks, pal, legend_title, p_title, save_title){
   return(p)
 }
 
-# PICK UP HERE 4/23/24 ---------
 F_ggplot_interval <- function(df, title_text, title_legend, save_title){
 
   # plot 
@@ -517,7 +530,6 @@ F_ggplot_interval <- function(df, title_text, title_legend, save_title){
     #scale_fill_wiki_d(na.value = "white")
     scale_fill_whitebox_d(palette = "pi_y_g", direction = 1)+
     
-    # PICK UP HERE - add outlines  
     #geom_sf(data = vect(shp_ecoregions), color = "gray60", fill = "transparent", lwd = 0.1)+
     geom_sf(data = vect(shp_countries), color = "gray60", fill = "transparent", lwd = 0.1)+
     
@@ -574,7 +586,7 @@ F_ggplot_world(df = r_row %>% subset("new_QLAND"),
                brks = waiver(),
                pal = "gn_yl", 
                legend_title = "Area (1000 ha)",
-               p_title = paste("Post-Sim Cropland Area", pct_title),
+               p_title = paste("Simulated Cropland Area per Grid Cell", pct_title),
                save_title = "gg_world_croplandarea.png")
 
 ### Actual (Raw) Change in Cropland Area ####################
@@ -717,14 +729,14 @@ F_ggplot_world(df = r_row %>% subset("new_LND_SOY"),
 
 ## Continuous ##
 
-F_ggplot_world(
-  df = r_row %>% subset("rawch_SOY"),
-  brks = waiver(),
-  pal = "gn_yl", 
-  legend_title = "Tons CE",
-  p_title = paste("Post-Sim Soy Area", pct_title),
-  save_title = "gg_world_soy_rawch_croparea_cont.png"
-)
+# F_ggplot_world(
+#   df = r_row %>% subset("rawch_SOY"),
+#   brks = waiver(),
+#   pal = "gn_yl", 
+#   legend_title = "Tons CE",
+#   p_title = paste("Post-Sim Soy Area", pct_title),
+#   save_title = "gg_world_soy_rawch_croparea_cont.png"
+# )
 
 ## Interval ##
 test3 <-  r_row %>%
@@ -735,9 +747,10 @@ factor <- test3 %>%
   mutate(
     cats =
       cut(
-        rawch_SOY,
-        breaks = c(-10, -5, -3, -1, -0.1, 0, 0.01, 0.1, .2, .3, .5),
-      )
+        rawch_SOY*1000,
+        #breaks = c(-10, -5, -3, -1, -0.1, -0.01, -0.001, 0.001, 0.1, .2, .3, .5),
+        breaks = c(-10000, -5000, -3000, -1000, -100, -10, -1, 1, 100, 200, 300, 500),
+        )
   )
 
 F_ggplot_interval(
