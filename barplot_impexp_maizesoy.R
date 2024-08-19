@@ -478,13 +478,33 @@ rio::export(
 
 # EXTRA -----------
 
-# # For the Sankey Diagram, we can import this file and filter to just US, Brazil, and World Stats
-# 
-# # Import all sheets into a list
-# data_clean_df <- import_list(paste0(folder_results, 'regional_results_clean_', pct_model, '.xlsx'), rbind = TRUE)
-# 
-# # filter to only US, BR, World
-# df_usbr <- data_clean_df %>% 
-#   select(-c("_file")) %>% 
-#   filter(region_abv %in% c("US", "BRA")) %>%  #c("US", "BRA", "Total")
-#   arrange(region_abv, type)
+# For the Sankey Diagram, we can import this file and filter to just US, Brazil, and World Stats
+
+# Import all sheets into a list
+data_clean_df <- import_list(paste0(folder_results, 'regional_results_clean_', pct_model, '.xlsx'), rbind = TRUE)
+
+# filter to only US, BR, World
+df_usbr <- data_clean_df %>%
+  select(-c("_file")) %>%
+  filter(region_abv %in% c("US", "BRA")) %>%  #c("US", "BRA", "Total")
+  arrange(region_abv, type)
+
+## Calculate Regional Stats -----
+
+t <- df_usbr %>% 
+  filter(region_abv == "US") %>% 
+  filter(variable == "Soy Production" | variable == "Corn Production") %>%
+  select(region_abv, pre, post)
+
+# calculate manually to check
+sum(t$post) - sum(t$pre)
+( (sum(t$post) - sum(t$pre)) / sum(t$pre) ) * 100
+
+# calculate cornsoy with function
+t_sum <- df_usbr %>% 
+  # get to just the country name and the type (i.e. Corn Production = Production and Soy Production = Production)
+  group_by(region_abv, type) %>% 
+  # get total cornsoy and the total percent change 
+  summarize(cornsoy = sum(chg),
+            cornsoy_pct = ((sum(post) - sum(pre)) / sum(pre)) * 100)
+  
