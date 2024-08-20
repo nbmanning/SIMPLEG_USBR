@@ -127,6 +127,10 @@ folder_stat <- paste0(folder_results, "stat_summary/")
 ## 3) F_aoi_prep: Prep the AOI Rasters by using the Count and Clamp Functions
 ## 4) F_EDA: Save the Summary tables and use the Violin Plot fxn to create violin plots
 
+size_title = 2.0
+size_labels = 1.5
+size_axis_nums = 1.0
+
 # fxn to Create and Save Violin Plots and Basic Histograms 
 F_p_violin <- function(df, area){
   
@@ -165,15 +169,41 @@ F_p_violin <- function(df, area){
   #   plot(p1)
   #   dev.off()
   # }
+  
+  # p1 <- bwplot(df_pct, 
+  #              main = paste(area, "% Change", pct_title),
+  #              ylab = "% Change")
+  # p2 <- bwplot(df_rawch, 
+  #              main = paste(area, "Raw Change", pct_title),
+  #              ylab = "Area (ha) or kg CE")
+  # p3 <- bwplot(df_new, 
+  #              main = paste(area, "Post-Sim Values", pct_title),
+  #              ylab = "Area (ha) or kg CE")
+
+    
   p1 <- bwplot(df_pct, 
-               main = paste(area, "% Change", pct_title),
-               ylab = "% Change")
+               main = list(paste(area, "% Change", pct_title), cex = size_title),
+               ylab = list("% Change", cex = size_labels),
+               scales=list(
+                 x = list(rot=45, cex = size_labels),
+                 y = list(cex = size_axis_nums))
+  )
+  
   p2 <- bwplot(df_rawch, 
-               main = paste(area, "Raw Change", pct_title),
-               ylab = "Area (ha) or kg CE")
+               main = list(paste(area, "Raw Change", pct_title), cex = size_title),
+               ylab = list("Area (kha) or 1000 tons CE", cex = size_labels),
+               scales=list(
+                 x = list(rot=45, cex = size_labels),
+                 y = list(cex = size_axis_nums))
+  )
+  
   p3 <- bwplot(df_new, 
-               main = paste(area, "Post-Sim Values", pct_title),
-               ylab = "Area (ha) or kg CE")
+               main = list(paste(area, "Simulated Total Values", pct_title), cex = size_title),
+               ylab = list("Area (kha) or 1000 tons CE", cex = size_labels),
+               scales=list(
+                 x = list(rot=45, cex = size_labels),
+                 y = list(cex = size_axis_nums))
+  )
   
   png(filename = paste0(folder_fig, str_to_lower(area), pct, "_bw", "_pctchange", ".png"))
   plot(p1)
@@ -209,14 +239,35 @@ F_p_violin <- function(df, area){
   #          y = list(cex = 1.2))
   # )
   p4 <- bwplot(df_pct_maizesoy, 
-               main = paste(area, "% Change Maize & Soy", pct_title),
-               ylab = "% Change")
+               main = list(paste(area, "% Change Maize & Soy", pct_title), cex = size_title),
+               ylab = list("% Change", cex = size_labels),
+               scales=list(
+                          x = list(rot=45, cex = size_labels),
+                          y = list(cex = size_axis_nums))
+                 )
+  
   p5 <- bwplot(df_rawch_maizesoy, 
-               main = paste(area, "Raw Change Maize & Soy", pct_title),
-               ylab = "Area (ha)")
+               main = list(paste(area, "Raw Change Maize & Soy", pct_title), cex = size_title),
+               ylab = list("Area (1000 ha)", cex = size_labels),
+               scales=list(
+                 x = list(rot=45, cex = size_labels),
+                 y = list(cex = size_axis_nums))
+  )
+  
   p6 <- bwplot(df_new_maizesoy, 
-               main = paste(area, "Post-Sim Values Maize & Soy", pct_title),
-               ylab = "Area (ha)")
+               main = list(paste(area, "Simulated Total Area", pct_title), cex = size_title),
+               ylab = list("Area (1000 ha)", cex = size_labels),
+               scales=list(
+                 x = list(rot=45, cex = size_labels),
+                 y = list(cex = size_axis_nums))
+  )
+  
+  # p5 <- bwplot(df_rawch_maizesoy, 
+  #              main = list(paste(area, "Raw Change Maize & Soy", pct_title), cex = size_title),
+  #              ylab = "Area (ha)")
+  # p6 <- bwplot(df_new_maizesoy, 
+  #              main = list(paste(area, "Post-Sim Values Maize & Soy", pct_title),cex = size_title),
+  #              ylab = "Area (ha)")
   
 
   png(filename = paste0(folder_fig, str_to_lower(area), pct, "_bw", "_pctchange", "_maizesoy", ".png"))
@@ -1210,11 +1261,13 @@ F_ggplot_brcerr <- function(df, area, brks, pal, legend_title, p_title, save_tit
       legend.title = element_text(size = 14),
       legend.text = element_text(size = 10))+
     # add Cerado Outline
-    geom_sf(data = shp_cerr, color = "black", fill = "transparent", lwd = 0.5)+
-    #geom_sf(data = shp_cerr_states, color = "black", fill = "transparent", lwd = 0.2)#+
+    geom_sf(data = shp_cerr_states, color = "gray70", fill = "transparent", lwd = 0.2)+
+    #geom_sf(data = shp_br_states, color = "gray70", fill = "transparent", lwd = 0.1)+
+    
+    geom_sf(data = shp_cerr, color = "black", fill = "transparent", lwd = 0.3)#+
   
   # add BR outline
-  geom_sf(data = shp_br_border, color = "black", fill = "transparent", size = 2)#+
+  #geom_sf(data = shp_br_border, color = "gray20", fill = "transparent", lwd = 0.4)#+
     
   
   # set conditional width 7 height (FUTURE)
