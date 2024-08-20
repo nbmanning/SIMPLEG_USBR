@@ -1,4 +1,4 @@
-# Title: processResults_SIMPLEG.R
+# Title: processResults_SIMPLEG_2_maizesoy.R
 # Purpose: Read and plot SIMPLE-G results from text format across US, World, BR, and Cerrado
 
 # Initial SIMPLE-G script by: Iman Haqiqi
@@ -200,7 +200,14 @@ F_p_violin <- function(df, area){
     subset(c("new_LND_MAZ", "new_LND_SOY"))
   names(df_new_maizesoy) <- c("Maize", "Soy")
   
-  # plot the same but for maize and soy now 
+  # plot the same but for maize and soy now - PICK UP HERE
+  # bwplot(df2, 
+  #        main = list(paste("Cerrado", "% Change Maize & Soy", ""), cex = 2.0),
+  #        ylab = list("% Change", cex = 1.5),
+  #        scales=list(
+  #          x=list(rot=45, cex=1.5),
+  #          y = list(cex = 1.2))
+  # )
   p4 <- bwplot(df_pct_maizesoy, 
                main = paste(area, "% Change Maize & Soy", pct_title),
                ylab = "% Change")
@@ -488,8 +495,6 @@ F_EDA(r_aoi = r_row, area_name = "World")
 
 ## 3.1 World Results with 'tidyterra' -------
 
-library(tidyterra)
-
 ## FUNCTION ##
 #"atlas", "high_relief", "arid", "soft", "muted", "purple", "viridi", "gn_yl", "pi_y_g", "bl_yl_rd", "deep"
 F_ggplot_world <- function(df, brks, pal, legend_title, p_title, save_title){
@@ -771,7 +776,6 @@ r_us <- F_aoi_prep(shp = shp_us, area_name = "US")
 # call fxn to create EDA plots of the clipped data 
 F_EDA(r_aoi = r_us, area_name = "US")
 
-
 ## 3.2 Plot Best US Map ---------
 
 ### Create mycolors ###
@@ -962,19 +966,21 @@ F_ggplot_us <- function(df, brks, pal, legend_title, p_title, save_title){
     #                  midpoint = 0)+
     scale_fill_whitebox_c(
       #palette = "viridi", direction = 1,
-      palette = pal,
+      palette = pal, direction = -1,
       breaks = brks
     )+
+    geom_sf(data = vect(shp_us), color = "white", fill = "transparent", lwd = 0.5)+
+    
     labs(
       fill = legend_title,
       title = p_title
     )+
-    theme_minimal() +
+    theme_bw() +
     theme(
       # set plot size and center it 
       plot.title = element_text(size = 16, hjust = 0.5),
       # put legend in the bottom right 
-      legend.position = c(0.15, 0.2),
+      #legend.position = c(0.15, 0.2),
       legend.title = element_text(size = 14),
       legend.text = element_text(size = 10))
   
@@ -992,7 +998,7 @@ F_ggplot_us_interval <- function(df, title_text, title_legend, save_title){
   p <- ggplot() +
     geom_spatraster(data = df, maxcell = Inf, aes(fill = cats)) +
     #scale_fill_wiki_d(na.value = "white")
-    scale_fill_whitebox_d(palette = "pi_y_g", direction = 1)+
+    scale_fill_whitebox_d(palette = "pi_y_g", direction = 1, drop = F)+
     
     geom_sf(data = vect(shp_us), color = "gray60", fill = "transparent", lwd = 0.1)+
   
@@ -1041,7 +1047,7 @@ terra::plot(r_us %>% subset("new_QLAND")/1000,
 )
 lines(shp_us_mw, lwd = 0.8, lty = 3, col = "darkgray")
 
-### Actual (Raw) Cropland Change #####################################
+### **Actual (Raw) Cropland Change #####################################
 
 #### continuous -------
 # with function
@@ -1059,7 +1065,7 @@ F_ggplot_us(df = r_us %>% subset("rawch_QLAND"),
 # ggsave(plot = p, filename = paste0(folder_fig, "/", save_title),
 #        width = 14, height = 6, dpi = 300)
 
-#### interval ----------
+#### **interval ----------
 ## DONE ## 
 # example from: https://cloud.r-project.org/web/packages/tidyterra/tidyterra.pdf
 # With discrete values
@@ -1071,11 +1077,12 @@ factor <- test3 %>%
   mutate(
     cats =
       cut(rawch_QLAND,
-          # breaks = c(-50, -25, -10, -1, -0.1, 0,
-          #            0.01, 0.25, 0.5, 1, 2, 5))
-          breaks = c(-5, -3, -1, -0.1, -0.01, 0,
-                     0.01, 0.1, 0.25, 0.5, 1))
-            )
+          # breaks = c(-5, -3, -1, -0.1, -0.01, 0,
+          #            0.01, 0.1, 0.25, 0.5, 1))
+          breaks = c(-5, -3, -1, -0.1, -0.01,
+                     0.01, 0.25, 0.5, 1, 2))
+    
+  )
 
 
 F_ggplot_us_interval(
@@ -1085,18 +1092,87 @@ F_ggplot_us_interval(
   save_title = "gg_us_rawch_croplandarea.png")
 
 
-### Post-Sim Crop Production Index #####################################
 ### Actual (Raw) Production Change #####################################
+F_ggplot_us(df = r_us %>% subset("rawch_QCROP"),
+            #brks = c(-50, -25, -10, -1, -0.1, 0, 0.01, 0.25, 0.5, 1, 2, 5),
+            brks = waiver(),
+            #pal = "viridi",
+            #pal = "pi_y_g",
+            pal = "high_relief",
+            legend_title = "CPI (1000 Ton CE)",
+            p_title = paste("Raw Change in Cropland Prod", pct_title),
+            save_title = "z_gg_us_rawch_prod.png")
 
-### MAIZE MAPS #####################################
+## Interval ##
+test3 <-  r_us %>%
+  subset("rawch_QCROP")
 
-#### Post-Sim Cropland #####################################
-#### Actual (Raw) Cropland Change #####################################
+# create df
+factor <- test3 %>%
+  mutate(
+    cats =
+      cut(rawch_QCROP,
+          # breaks = c(-50, -25, -10, -1, -0.1, 0,
+          #            0.01, 0.25, 0.5, 1, 2, 5))
+          breaks = c(-30, -20, -10, -1, -0.01,
+                     0.01, 1, 2, 3, 4))
+  )
 
-### SOY MAPS #####################################
 
-#### Post-Sim Cropland #####################################
-#### Actual (Raw) Cropland Change #####################################
+F_ggplot_us_interval(
+  df = factor, 
+  title_text = "Raw Change in Crop Prod",
+  title_legend = "CPI (1000 Ton CE)",
+  save_title = "gg_us_rawch_cropprod.png")
+
+### FUTURE: Maize & Soy Facet so they keep the same legend ####
+### MAIZE: Actual (Raw) Cropland Change #####################################
+us_maize_breaks <- round(seq(minmax(r_us$rawch_MAZ)[1], minmax(r_us$rawch_MAZ)[2], length.out = 5), 2)
+
+
+F_ggplot_us(df = r_us %>% subset("rawch_MAZ"),
+            #brks = c(-50, -25, -10, -1, -0.1, 0, 0.01, 0.25, 0.5, 1, 2, 5),
+            brks = us_maize_breaks,
+            #pal = "viridi",
+            #pal = "pi_y_g",
+            pal = "high_relief",
+            legend_title = "Area (1000 ha)",
+            p_title = paste("Raw Change in Maize Area", pct_title),
+            save_title = "z_gg_us_maize_rawch.png")
+
+## Interval ##
+test3 <-  r_us %>%
+  subset("rawch_MAZ")
+
+# create df
+factor <- test3 %>%
+  mutate(
+    cats =
+      cut(rawch_MAZ,
+          # breaks = c(-50, -25, -10, -1, -0.1, 0,
+          #            0.01, 0.25, 0.5, 1, 2, 5))
+          breaks = c(-2, -1.5, -1, -0.5, -0.01, 0,
+                     0.01, 0.1, 1, 2))
+  )
+
+
+F_ggplot_us_interval(
+  df = factor, 
+  title_text = "Raw Change in Maize Area",
+  title_legend = "Area (1000 ha)",
+  save_title = "z_gg_us_maize_rawch_int.png")
+
+### SOY: Actual (Raw) Cropland Change #####################################
+F_ggplot_us(df = r_us %>% subset("rawch_SOY"),
+            #brks = c(-50, -25, -10, -1, -0.1, 0, 0.01, 0.25, 0.5, 1, 2, 5),
+            brks = us_maize_breaks,
+            #pal = "viridi",
+            #pal = "pi_y_g",
+            pal = "high_relief",
+            legend_title = "Area (1000 ha)",
+            p_title = paste("Raw Change in Soy Area", pct_title),
+            save_title = "z_gg_us_soy_rawch.png")
+
 
 # 4: Brazil Results ----------------------------
 
@@ -1134,11 +1210,11 @@ F_ggplot_brcerr <- function(df, area, brks, pal, legend_title, p_title, save_tit
       legend.title = element_text(size = 14),
       legend.text = element_text(size = 10))+
     # add Cerado Outline
-    #geom_sf(data = shp_cerr, color = "orange", fill = "transparent", lwd = 0.3)#+
-    geom_sf(data = shp_cerr_states, color = "black", fill = "transparent", lwd = 0.5)#+
+    geom_sf(data = shp_cerr, color = "black", fill = "transparent", lwd = 0.5)+
+    #geom_sf(data = shp_cerr_states, color = "black", fill = "transparent", lwd = 0.2)#+
   
   # add BR outline
-  #geom_sf(data = shp_br_border, color = "black", fill = "transparent", size = 2)+
+  geom_sf(data = shp_br_border, color = "black", fill = "transparent", size = 2)#+
     
   
   # set conditional width 7 height (FUTURE)
@@ -1160,52 +1236,33 @@ F_ggplot_brcerr <- function(df, area, brks, pal, legend_title, p_title, save_tit
 
 ### Post-Sim Cropland #####################################
 
-# TidyTerra #
-F_ggplot_brcerr(df = r_br %>% subset("new_QLAND"),
-            brks = waiver(), area = "Brazil",
-            pal = "gn_yl", 
-            legend_title = "Area (1000 ha)",
-            p_title = paste("Post-Sim BR Cropland Area", pct_title),
-            save_title = "gg_br_croplandarea.png")
-
 ### Actual (Raw) Cropland Change #####################################
 F_ggplot_brcerr(df = r_br %>% subset("rawch_QLAND"),
             brks = waiver(), area = "Brazil",
             pal = "gn_yl", 
             legend_title = "Area (1000 ha)",
-            p_title = paste("Raw Change in BR Cropland Area", pct_title),
+            p_title = paste("Change in BR Cropland Area", pct_title),
             save_title = "gg_br_rawch_croplandarea.png")
 
-### Post-Sim Crop Production Index #####################################
-F_ggplot_brcerr(df = r_br %>% subset("new_QLAND"),
-            brks = waiver(), area = "Brazil",
-            pal = "gn_yl", 
-            legend_title = "1000 Tons CE",
-            p_title = paste("Post-Sim Change in BR Crop Production", pct_title),
-            save_title = "gg_br_cropproduction.png")
+### Percent Cropland Change #####################################
+F_ggplot_brcerr(df = r_br %>% subset("pct_QLAND"),
+                brks = waiver(), area = "Brazil",
+                pal = "gn_yl", 
+                legend_title = "% Change",
+                p_title = paste("% Change in BR Cropland Area", pct_title),
+                save_title = "gg_br_pctch_croplandarea.png")
+
 
 ### Actual (Raw) Production Change #####################################
-F_ggplot_brcerr(df = r_br %>% subset("rawch_QLAND"),
+F_ggplot_brcerr(df = r_br %>% subset("rawch_QCROP"),
             brks = waiver(),area = "Brazil",
             pal = "gn_yl", 
             legend_title = "1000 Tons CE",
-            p_title = paste("Post-Sim Change in BR Crop Production", pct_title),
+            p_title = paste("Change in BR Crop Production", pct_title),
             save_title = "gg_br_cropproduction.png")
 
-### MAIZE MAPS #####################################
 
-#### Post-Sim Maize Area ####################
-
-F_ggplot_brcerr(
-  df = r_br %>% subset("new_LND_MAZ"),
-  area = "Brazil",
-  brks = waiver(),
-  pal = "gn_yl", 
-  legend_title = "Area (ha)",
-  p_title = paste("Post-Sim Maize Area", pct_title),
-  save_title = "gg_br_maize_croparea.png")
-
-#### Actual (Raw) Change in Cropland Area ####################
+### MAIZE: Actual (Raw) Change in Cropland Area ####################
 F_ggplot_brcerr(
   df = r_br %>% subset("rawch_MAZ"),
   area = "Brazil",
@@ -1216,21 +1273,7 @@ F_ggplot_brcerr(
   save_title = "gg_br_maize_rawch_croparea_cont.png"
 )
 
-
-### SOY MAPS #####################################
-
-#### Post-Sim Soy Land #####################################
-F_ggplot_brcerr(
-  df = r_br %>% subset("new_LND_SOY"),
-  area = "Brazil",
-  brks = waiver(),
-  pal = "gn_yl", 
-  legend_title = "Area (ha)",
-  p_title = paste("Post-Sim Soy Area", pct_title),
-  save_title = "gg_br_soy_croparea.png")
-
-
-#### Actual (Raw) Cropland Change #####################################
+### SOY: Actual (Raw) Cropland Change #####################################
 F_ggplot_brcerr(
   df = r_br %>% subset("rawch_SOY"),
   area = "Brazil",
@@ -1505,13 +1548,13 @@ terra::plot(r_row_US0 %>% subset("new_QLAND")/1000,
 
 
 ### Actual (Raw) Change in Cropland Area ###
-terra::plot(r_row_US0 %>% subset("rawch_QLAND")/1000,
+terra::plot(r_row_US0 %>% subset("rawch_QLAND"),
             type = "interval",
             #breaks = c(-50000, -25000, -10000, -1000, -100, 0, 1, 10, 100, 500, 1000),
             breaks = c(0, 0.001, 0.01, 0.1, 0.5, 1, 2, 5, 10, 20),
-            col = mycolors,
+            #col = mycolors,
             #breaks = c(-50, -25, -10, -1, -0.1, 0, 0.01, 0.1, 0.25, 0.5, 1),
-            #col = brewer.pal(n = 11, name = "RdBu"),
+            col = brewer.pal(n = 11, name = "YlGn"),
             
             main = paste("Raw Change in Cropland Area", pct_title),
             plg=list( # parameters for drawing legend
@@ -2378,3 +2421,17 @@ F_EDA_cerr_new_map(r_cerr_new_qcrop, "Post-Sim Values of Crop Index")
 
 # 7: Useful Snippets ----------
 #r_us_pct_qland@ptr[["names"]][[1]]
+
+# test ------
+df2 <- r_cerr %>% 
+  subset(c("new_LND_MAZ", "new_LND_SOY"))
+names(df2) <- c("Maize", "Soy")
+
+# plot the same but for maize and soy now 
+rasterVis::bwplot(df2, 
+       main = list(paste("Cerrado", "% Change Maize & Soy", ""), cex = 2.0),
+       ylab = list("% Change", cex = 1.5),
+       scales=list(
+         x=list(rot=45, cex=1.5),
+         y = list(cex = 1.2))
+)
