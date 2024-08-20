@@ -286,17 +286,17 @@ saveRDS(r_maizesoy, file = paste0(folder_der, "r_maizesoy", pct, ".rds"))
 # 
 # ## Load Cerrado Outline ##
 # # get Brazil States outline
-# shp_cerr_states <- read_state(
+# shp_br_states <- read_state(
 #   year = 2019,
 #   simplified = T)
 # 
 # # filter to Cerrado States
-# shp_cerr_states <- shp_cerr_states %>%
+# shp_cerr_states <- shp_br_states %>%
 #   dplyr::filter(abbrev_state %in% c("TO","MA","PI","BA","MG",
 #                                     "SP","MS","MT","GO","DF"))
 # 
 # # # Save Shapefiles ------
-# save(shp_br, shp_br_border,
+# save(shp_br, shp_br_border, shp_br_states
 #      shp_cerr, shp_cerr_states,
 #      shp_us, shp_us_mw,
 #      shp_world,
