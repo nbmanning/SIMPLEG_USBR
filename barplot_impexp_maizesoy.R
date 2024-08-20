@@ -489,6 +489,11 @@ df_usbr <- data_clean_df %>%
   filter(region_abv %in% c("US", "BRA")) %>%  #c("US", "BRA", "Total")
   arrange(region_abv, type)
 
+df_total <- data_clean_df %>%
+  select(-c("_file")) %>%
+  filter(region_abv == "Total") #c("US", "BRA", "Total")
+
+
 ## Calculate Regional Stats -----
 
 t <- df_usbr %>% 
@@ -508,3 +513,17 @@ t_sum <- df_usbr %>%
   summarize(cornsoy = sum(chg),
             cornsoy_pct = ((sum(post) - sum(pre)) / sum(pre)) * 100)
   
+t_sum_total <- df_usbr %>% 
+  # get to just the country name and the type (i.e. Corn Production = Production and Soy Production = Production)
+  group_by(type) %>% 
+  # get total cornsoy and the total percent change 
+  summarize(cornsoy = sum(chg),
+            cornsoy_pct = ((sum(post) - sum(pre)) / sum(pre)) * 100)
+
+t_sum_impexp_nous <- impexp_cornsoy_nous %>% 
+  # get to just the country name and the type (i.e. Corn Production = Production and Soy Production = Production)
+  group_by(variable) %>% 
+  #group_by(type) %>% 
+  # get total cornsoy and the total percent change 
+  summarize(cornsoy = sum(chg),
+            cornsoy_pct = ((sum(post) - sum(pre)) / sum(pre)) * 100)
