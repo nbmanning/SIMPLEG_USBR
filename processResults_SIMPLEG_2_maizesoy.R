@@ -686,7 +686,7 @@ factor <- test3 %>%
       cut(rawch_QLAND,
           # breaks = c(-50, -25, -10, -1, -0.1, 0,
           #            0.01, 0.25, 0.5, 1, 2, 5))
-          breaks = c(-5, -2.5, -1, -0.5, -0.1, 0,
+          breaks = c(-5, -2.5, -1, -0.5, -0.01,
                      0.01, 0.1, 0.25, 0.5, 1))
 
   )
@@ -855,10 +855,6 @@ terra::plot(r_us %>% subset("new_QLAND"),
             )
 )
 lines(shp_us_mw, lwd = 0.8, lty = 3, col = "darkgray")
-
-# PICK UP HERE ##############
-# next task is to use use tidyterra function from world to try and plot US. 
-## for Post-Sim, use continuous, for change, maybe use interval? 
 
 
 ### Actual (Raw) Change in Cropland Area ####################
@@ -1375,7 +1371,7 @@ F_ggplot_brcerr(
 
 ### Post-Sim Crop Production Index #####################################
 F_ggplot_brcerr(
-  df = r_cerr %>% subset("new_QLAND"),
+  df = r_cerr %>% subset("new_QCROP"),
   area = "Cerrado",
   brks = waiver(),
   pal = "gn_yl", 
