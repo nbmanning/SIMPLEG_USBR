@@ -90,8 +90,8 @@ load(file = paste0(folder_derived, "mapb_col8_clean_long.Rdata"))
 ## 1.4: Filter ---------
 # filter to only "Temporary Crops" & From-To's that do not stay the same
 df <- df %>% 
-  filter(to_level_3 == "Temporary Crops") %>%
-  filter(to_level_3 != from_level_3)
+  filter(to_level_4 == "Soy Beans") %>%
+  filter(to_level_4 != from_level_4)
 
 # 2: Get Muni Codes within Cerrado ---------
 
