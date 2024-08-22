@@ -125,7 +125,7 @@ head(fips.df)
 #fips.df$crop.acres <- fips.df$Planted.and.Failed.Acres + fips.df$Not.Planted.Acres
 fips.df$crop.acres <- fips.df$Planted.and.Failed.Acres 
 
-fips.df$IndemAcre <- fips.df$Indemnity_Amount / fips.df$crop.acres
+fips.df$IndemAcre <- fips.df$Indemnity_Amount / fips.df$crop.acres # makes this $/acre; NEEDS A CONVERSION FROM ACRE TO HA SINCE QLND IS IN HA
 fips.df$HeatAcre  <- fips.df$Indemnity_Heat   / fips.df$crop.acres
 
 #  merge datasets
@@ -143,7 +143,7 @@ s
 plot(s)
 
 # calculate the loss in % - max out shock at 99%
-s$shock <- (1000/100)*(s$IndemAcre * s$QLND_2010) /s$VCRP_2010
+s$shock <- (1000/100)*(s$IndemAcre * s$QLND_2010) /s$VCRP_2010 # IndemAcre is in $/acre; QLND is in kha; VCRP is $
 s$shock[s$shock >= 99] = 99
 
 s$heat <- 10*(s$HeatAcre * s$QLND_2010) /s$VCRP_2010
@@ -184,7 +184,7 @@ colors <- brewer.pal(n = length(breaks) - 1, name = "YlOrRd")
 # Cut the 'value' column into categories based on the breaks
 # Necessary as it is continuous at the moment
 u_cut <- u %>%
-  mutate(category = cut(shock, breaks = breaks, include.lowest = TRUE))
+  mutate(category = cut(heat, breaks = breaks, include.lowest = TRUE))
 
 # plot
 ggplot()+
