@@ -1049,7 +1049,7 @@ F_ggplot_us_interval <- function(df, title_text, title_legend, save_title){
     
     geom_sf(data = vect(shp_us), color = "gray60", fill = "transparent", lwd = 0.1)+
   
-    theme_bw()+
+    theme_minimal()+
     labs(
       fill = title_legend,
       title = title_text,
@@ -1064,12 +1064,13 @@ F_ggplot_us_interval <- function(df, title_text, title_legend, save_title){
           hjust = 0.5, 
           size = 22
         ),
-      legend.title = element_text(size = 18),
-      legend.text = element_text(size = 12)
+      legend.title = element_text(size = 12),
+      legend.position = c(0.9, 0.25),
+      legend.text = element_text(size = 11)
     )  
   
   ggsave(plot = p, filename = paste0(folder_fig, "/", save_title),
-         width = 14, height = 6, dpi = 300)
+         width = 18, height = 8, dpi = 300)
   
   return(p)
   
