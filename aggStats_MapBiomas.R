@@ -224,7 +224,7 @@ shp_brmuni <- shp_code_muni_br %>%
   mutate(year = year(year)) %>% 
   filter(year >= 2012 & year <= 2017)
 
-F_facet(shp_brmuni, aoi = "Brazil", class = "From All Classes to Temporary Crops", file_name = "br_allagg.png")
+F_facet(shp_brmuni, aoi = "Brazil", class = "From All Classes to Soybean", file_name = "br_allagg.png")
 
 
 ### from veg ---------
@@ -236,7 +236,7 @@ shp_brmuni_fromveg <- shp_code_muni_br %>%
   filter(year >= 2012 & year <= 2017)
 
 # plot
-F_facet(shp_brmuni_fromveg, aoi = "Brazil", class = "From Relevant Vegetation Classes to Temporary Crops", file_name = "br_fromveg.png")
+F_facet(shp_brmuni_fromveg, aoi = "Brazil", class = "From Relevant Vegetation Classes to Soybean", file_name = "br_fromveg.png")
 
 ## 3.3 line plots --------
 
@@ -267,11 +267,11 @@ F_line<-function(data, aoi, class, file_name){
 }
 
 ### all agg ------
-F_line(data = agg_br, aoi = "Brazil", class = "From All Classes to Temporary Crops", 
+F_line(data = agg_br, aoi = "Brazil", class = "From All Classes to Soybean", 
        file_name = "line_br_allagg.png")
 
 ### from veg -----
-F_line(data = agg_br_fromveg, aoi = "Brazil", class = "From Relevant Vegetation Classes to Temporary Crops", 
+F_line(data = agg_br_fromveg, aoi = "Brazil", class = "From Relevant Vegetation Classes to Soybean", 
        file_name = "line_br_fromveg.png")
 
 
@@ -323,7 +323,7 @@ shp_cerrmuni <- shp_code_muni_in_cerr %>%
   mutate(year = year(year)) %>% 
   filter(year >= 2012 & year <= 2017)
 
-F_facet(shp_cerrmuni, aoi = "Cerrado", class = "From All Classes to Temporary Crops", file_name = "cerr_allagg.png")
+F_facet(shp_cerrmuni, aoi = "Cerrado", class = "From All Classes to Soybean", file_name = "cerr_allagg.png")
 
 ### from veg ---------
 # make shape -- from veg 
@@ -334,16 +334,16 @@ shp_cerrmuni_fromveg <- shp_code_muni_in_cerr %>%
   filter(year >= 2012 & year <= 2017)
 
 # plot
-F_facet(shp_cerrmuni_fromveg, aoi = "Cerrado", class = "From Relevant Vegetation Classes to Temporary Crops", file_name = "cerr_fromveg.png")
+F_facet(shp_cerrmuni_fromveg, aoi = "Cerrado", class = "From Relevant Vegetation Classes to Soybean", file_name = "cerr_fromveg.png")
 
 ## 4.3 line plots --------
 ### all agg ------
 # quick line plots 
-F_line(data = agg_cerr, aoi = "Cerrado", class = "From All Classes to Temporary Crops", 
+F_line(data = agg_cerr, aoi = "Cerrado", class = "From All Classes to Soybean", 
        file_name = "line_cerr_allagg.png")
 
 ### from veg -----
-F_line(data = agg_cerr_fromveg, aoi = "Cerrado", class = "From Relevant Vegetation Classes to Temporary Crops", 
+F_line(data = agg_cerr_fromveg, aoi = "Cerrado", class = "From Relevant Vegetation Classes to Soybean", 
        file_name = "line_cerr_fromveg.png")
 
 
@@ -361,8 +361,54 @@ save(
   file = paste0(folder_stat, "mapb_agg_land_trans_br_and_cerr.RData"))
 
 
+# 6: Line Plots with from-to ----------
+classes_few <- c("Temporary Crops", "Forest Formation", "Mosaic of Agriculture and Pasture", 
+                 "Pasture", "Savanna Formation", "Grassland")
 
+df_g_to_soy_cerr <- df_cerr %>% 
+  aggregate(ha ~ year + biome + from_level_3 + to_level_4, sum) %>% 
+  mutate(year = as.Date(paste(year, 1, 1), '%Y %m %d'))
 
+df_g_cerr <- filter(df_g_to_soy_cerr, from_level_3 %in% classes_few)
+
+# plot with a few classes remove
+ggplot(df_g_cerr, aes(x=year, y=ha/1000000, color = from_level_3)) +
+  geom_line() + 
+  #geom_point() +
+  xlab("")+
+  scale_x_date(date_labels = "%m-%Y")+
+  labs(title = "From X to Soybean",
+       ylab = "Hectares Transitioned from Previous Year")+
+  geom_vline(xintercept = as.Date("2012-01-01"), color = "red",
+             linetype="dotted", linewidth=0.5)
+
+# fancier for manuscript
+ggplot(df_g_cerr, aes(x=year, y=ha/1000000, color = from_level_3)) +
+  geom_line() +
+  geom_point(fill = "white", size = 1.2) +
+  xlab("")+
+  scale_x_date(date_labels = "%Y")+
+  labs(
+    #title = paste("Top", length(ls_top), "Transition Classes"),
+    #title = "From X to Soybean",
+    y = "Land Change from Previous Year (Mha)",
+    color = "From-To Transitions"
+  )+
+  geom_vline(xintercept = as.Date("2012-01-01"), color = "red",
+             linetype="dotted", linewidth=0.5)+
+  theme_bw()+
+  theme(
+    legend.title = element_blank(),
+    legend.text = element_text(size = 16),
+    legend.position = "bottom",
+    axis.title.y = element_text(size = 12),
+    plot.title = element_text(size = 17, hjust = 0.5),
+    #plot.subtitle = element_text(size = 12, hjust = 0.5)
+  )
+
+# save 
+ggsave(paste("../Figures/trans_mapbiomas/cerr_to_soybean.png"), 
+       width = 14, height = 7)
 
 # END ####################################################################################
 
