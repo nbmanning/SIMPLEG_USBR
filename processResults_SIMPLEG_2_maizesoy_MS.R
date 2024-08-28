@@ -4,22 +4,18 @@
 # Initial date: Aug 23, 2024
 # Last edited: Aug 2024
 
+# NOTES ------------------------------------- 
 # REQUIRES:
-## SIMPLE-G Result files as '.txt' from 'processResults_SIMPLEG_1.R'
-## RUN processResults_SIMPLEG_1.R
-## RUN aggStats_Mapbiomas.R
+## RUN processResults_SIMPLEG_1.R to get the r_maizesoy.Rdata and shp_usbr.RData files for Section 2
+## RUN aggStats_Mapbiomas.R to get mapb_col8_clean_long.Rdata for Section 8
+## 'regional_results.xlsx' from SIMPLE-G output files for Section 1
 
-
-# NOTES:
+# FOLDER STRUCTURE:
 ## Create the following folders in your local 'Results' directory:
 ### 'raster' which houses the results as rasters to pull into a GIS
 ### 'summary_tables' which houses a table with the stats for each area (min, mean, median, 1st & 3rd Quartiles, max, and NA's)
 ### 'stat_summary' which houses the raw values for changes in cropland area and production as an R data file to bring into another script   
 
-# Next Steps -----
-## Add spatial code for US, Brazil, Cerrado
-## Add summary statistics code
-## Run to make sure everything works without clamp code
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
 
@@ -27,10 +23,12 @@
 rm(list = ls())
 
 ## Libraries -----
+# imp-exp plots
 library(tidyverse)
 library(rio)
 library(cowplot)
 
+# SIMPLE-G maps 
 library(raster) # use for initial raster stack and basic plotting
 library(terra) # use to wrangle geospatial data and plot
 library(RColorBrewer) # use for adding colorblind-friendly color palettes 
@@ -39,7 +37,6 @@ library(reshape2) # use for melting data to then use ggplot
 library(sf)
 library(tidyterra) # plot using ggplot() instead of base R with 'terra'
 library(ggspatial) # N arrow and Scale Bar w tidyterrra
-#library(rworldmap) # getting simple BR Border
 
 
 ## Constants ------
@@ -124,6 +121,8 @@ if (!(any(grepl(date_string, files_fig)))) {
 }
 
 # 0: Functions ------------------------------------------------------------------------
+
+# list functions used multiple times here
 
 ## 0.1: ImpExp Functions --------
 
@@ -960,17 +959,8 @@ df <- df %>%
 # Read all municipalities in the country at a given year 
 shp_muni <- read_municipality(code_muni="all", year=2018)
 
-# Load Cerrado shapefile
-# shp_br_cerr <- read_biomes(
-#   year = 2019,
-#   simplified = F,
-#   showProgress = T
-# ) %>% dplyr::filter(name_biome == "Cerrado")
-
-shp_br_cerr <- shp_cerr
-
 # get municipalities that are at all within the Cerrado
-shp_muni_in_cerr <- st_intersection(shp_muni, shp_br_cerr)
+shp_muni_in_cerr <- st_intersection(shp_muni, shp_cerr)
 
 # get just the codes column and keep as shapefile
 shp_code_muni_in_cerr <- shp_muni_in_cerr %>% select(code_muni)
