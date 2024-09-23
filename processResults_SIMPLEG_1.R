@@ -44,7 +44,7 @@ library(rworldmap) # getting simple BR Border
 
 # new code #
 # Define the string to search for in file names
-search_string <- "2024-03-03"
+search_string <- "2024-09-15"
 
 # create vars to house results 
 folder_der <- "../Data_Derived/"
@@ -77,7 +77,7 @@ if (!(any(grepl(search_string, files_fig)))) {
 
 
 ### For 2024-03-03 run ###
-datafile_version <- "sg1x3x10_v2402_US_Heat"
+datafile_version <- "sg1x3x10_v2409_US_Heat"
 pct <- "_m" # change when you change 'datafile'
 pct_title <- " - Med" # for plotting, either " - High" or " - Low" or "" or "- Med"
 
