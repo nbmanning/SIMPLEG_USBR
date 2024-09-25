@@ -47,7 +47,7 @@ crop <- "soy" # either maize, soy, or sm (Soy+Maize)
 layer_choice <- "rawch_SOY"
 
 # Create Biodiversity plotting folder 
-folder_fig_biodiv <- paste0("../Figures/", date_string, "/biodiversity/")
+folder_fig_biodiv <- paste0(folder_fig, "/biodiversity/")
 files_fig_impexp <- list.dirs(folder_fig_biodiv)
 
 # do the same but specifically for imp/exp folder
@@ -71,7 +71,7 @@ if (!(any(grepl(date_string, files_fig_impexp)))) {
 ## Clean WWF Shapefile - need to run this once to fix broken boundaries ##
 
 # ## WWF Ecoregions ##
-# raw_eco <- st_read("../Data_Source/wwf_ecoregions/wwf_terr_ecos.shp")
+raw_eco <- st_read("../Data_Source/wwf_ecoregions/wwf_terr_ecos.shp")
 # 
 # # get names -- future plan is to merge with 'eco' for easy identification
 # raw_eco_info <- raw_eco %>% 
@@ -113,9 +113,7 @@ eco <- st_read("../Data_Source/wwf_ecoregions/agg_wwf_terr_ecos_fixed_ecocode.sh
 # load Raster - Maize+Soy - World
 r_ms_w <- readRDS(file = paste0(folder_der, "r", pct, "_World", ".rds"))
 
-names(r_ms_w)
-
-# plot to test this out 
+# uncomment and plot one layer 
 # terra::plot(r_ms_w$new_QLAND, main = "Post-Sim Cropland Area Per Grid Cell")
 # terra::plot(r_ms_w[[layer_choice]]*1000, 
 #             main = paste(str_to_title(crop), "Change in Area (ha) Per Grid Cell"))
@@ -133,14 +131,25 @@ crs(r_ms_w) <- crs(sv_eco)
 rawch_s <- r_ms_w %>% subset("rawch_SOY")
 
 # Convert to ha from kha by multiplying by 1000 before zonal stats
-rawch_s_eco <- rawch_s*1000
+rawch_s_eco <- rawch_s*1000*10000
 
 # Calculate zonal sum per ecoregion
-rawch_s_eco <- terra::zonal(rawch_s_eco, sv_eco, fun = sum, na.rm = T, as.raster = T)
+rawch_s_eco <- terra::zonal(rawch_s_eco, sv_eco, fun = sum, as.raster = T, na.rm = T)
+rawch_s_eco_notRaster <- terra::zonal(rawch_s_eco, sv_eco, fun = sum, na.rm = T, wide = T)
 
-# multiply by 1000 to go from kha to ha
-#rawch_s_eco <- rawch_s_eco*1000
+## TEST ##
 
+# this works but is sketchy -- it assumes the order is the same for sv and rawch_s_eco
+sv <- sv_eco
+sv$ID <- 1:nrow(sv) 
+sv_df <- as.data.frame(sv)
+
+# returns a df with an ID and sum - this is where the assumption is 
+extracted <- terra::extract(rawch_s_eco, sv, na.rm = T, fun = sum)
+
+result_df <- merge(extracted, sv_df[, c("ID", "eco_code")], by = "ID")
+
+## ## ##
 ## 1.3: Plot ----------------------
 
 ## Quick Terra Plots ##
@@ -152,29 +161,31 @@ rawch_s_eco <- terra::zonal(rawch_s_eco, sv_eco, fun = sum, na.rm = T, as.raster
 ## ggplot ##
 # ggplot()+
 #   geom_spatraster(data = rawch_s_eco, maxcell = Inf)+
-#   
+# 
 #   # add scico palette to split the colors at 0
-#   scale_fill_scico(palette = "bam", 
-#                    direction = 1, 
+#   scale_fill_scico(palette = "bam",
+#                    direction = 1,
 #                    na.value = "white",
 #                    midpoint = 0)+
 #   labs(
 #     fill = "Area (ha)",
-#     title = paste("Post-Sim Soybean Change", pct_title)
+#     title = paste("Post-Sim Soybean Change"
+#                   #, pct_title
+#                   )
 #   )+
 #   theme_minimal() +
 #   theme(
-#     # set plot size and center it 
+#     # set plot size and center it
 #     plot.title = element_text(size = 16, hjust = 0.5),
-#     # put legend in the bottom right 
+#     # put legend in the bottom right
 #     legend.position = c(0.15, 0.2),
 #     legend.title = element_text(size = 14),
 #     legend.text = element_text(size = 10))+
-#   # add the ecoregion outlines 
+#   # add the ecoregion outlines
 #   geom_sf(data = sv_eco, fill = "transparent", color = "gray40", lwd = 0.2)
 # 
-# # save plot 
-# ggsave(filename = paste0(folder_fig, "/", "test_gg_eco_rawch_soy.png"),
+# # save plot
+# ggsave(filename = paste0(folder_fig_biodiv, "/", "gg_eco_rawch_soy.png"),
 #        width = 14, height = 6, dpi = 300)
 
 # 2: Calculate Biodiversity from CFs -----
@@ -195,21 +206,16 @@ cf_global <- rio::import("../Data_Source/CFs/Chaudhary2015_SI3_CFsEcoregions_Ann
                          which = "Trans_marginal_global",
                          skip = 3)
 
+
+
 # remove "Plants" Column from regional for these reasons:
 ## match with Global
 ## Error Bars much too large
 ## follow Chai et al., 2024
 cf_regional <- cf_regional %>% select(-contains("Plants"))
 
-# save world averages for the future 
-#cf_reg_avg <- cf_regional %>% filter(eco_code== "World average")
-#cf_global_avg <- cf_ %>% filter(eco_code== "World average")
 
 ## 2.1 Data Prep ----
-# GOAL: Get Raw Change and Characterization Factors in the same df based on eco_codes
-
-# for future: might be able to use the stacked rasters and then calculate all kinds of stuff. For now, land transformation to soy is fine! 
-
 # make the SpatRaster of change per ecoregion into a SpatVector
 sv_rawch_s_eco <- as.polygons(rawch_s_eco, 
                        trunc = F, # if T, changes values to integers
@@ -228,16 +234,20 @@ df_rawch_s_eco <- as.data.frame(sv_rawch_s_ecocodes)
 df_rawch_s_eco_reg <- left_join(df_rawch_s_eco, cf_regional)
 df_rawch_s_eco_global <- left_join(df_rawch_s_eco, cf_global)
 
+# new approach using extract()
+df_rawch_s_eco_reg <- left_join(cf_regional, result_df)
+df_rawch_s_eco_global <- left_join(cf_global, result_df)
+
 ## 2.2: Set Functions -----
 # first function to clean data
-F_clean <- function(df){
+F_clean_calc <- function(df){
 
   df <- df %>% 
     # remove any faulty eco_codes that don't match the XXYYYY pattern of X = Capital Letter and Y = Digit 
-    filter(grepl("^[A-Z]{2}[0-9]{4}", eco_code)) %>% # loses 79 regions - use !grepl to see which ones
+    filter(grepl("^[A-Z]{2}[0-9]{4}", eco_code)) #%>% # loses 79 regions - use !grepl to see which ones
     
     # convert from ha to square meters (m2, m^2)
-    mutate(rawch_SOY = rawch_SOY*10000)
+    # mutate(rawch_SOY = rawch_SOY*10000)
   
   # multiply each of the characterization factors (e.g. regional loss per m2 of transformation) by rawch_SOY (m2 land transformed from some other class to soybean)
   df <- df %>% 
@@ -384,23 +394,19 @@ F_plot <- function(df, scale){
 ## Regional Extinctions -----
 
 # clean 
-test_df1 <- F_clean(df_rawch_s_eco_reg)
+df_reg <- F_clean_calc(df_rawch_s_eco_reg)
 
 # clean for plots 
-test_df2 <- F_clean_forplots(test_df1)
+df_reg_sum <- F_clean_forplots(df_reg)
 
 # Plotting 
-F_plot(test_df2, "Regional")
-
-# FUTURE: 
-# Re-Merge w SV_Eco to plot 
-# sv_reg_calc <- merge(sv_eco, test_df1)
+F_plot(df_reg_sum, "Regional")
 
 
 ## Global Extinctions ---------
 
 # clean 
-df_global <- F_clean(df_rawch_s_eco_global)
+df_global <- F_clean_calc(df_rawch_s_eco_global)
 
 # clean for plots 
 df_global_sum <- F_clean_forplots(df_global)
@@ -411,7 +417,56 @@ F_plot(df_global_sum, "Global")
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+# Test --------
+test <- left_join(df_reg, raw_eco)
+head(df_reg)
 
+# Future -----------
+
+## Re-Merge w SV_Eco to plot sp. change per ecoregion map -------- 
+df_reg_agg <- df_rawch_s_eco_reg %>% 
+  select(rawch_SOY, eco_code, 
+         contains("Median")
+         #TaxaAggregated_AnnualCrops_Median
+         )
+  #select(rawch_SOY, eco_code, contains("Median"))
+
+df_reg_agg2 <- F_clean_calc(df_reg_agg)
+str(df_reg_agg2)
+
+sv_reg_calc <- merge(sv_eco, df_reg_agg2)
+sv_reg_calc <- sv_reg_calc %>% 
+  rename(
+    #Impact = TaxaAggregated_AnnualCrops_Median
+    Impact = Birds_AnnualCrops_Median
+    )
+
+# ggplot ##
+ggplot()+
+  geom_spatvector(data = sv_reg_calc, aes(fill = Impact))+
+
+  # add scico palette to split the colors at 0
+  # scale_fill_scico(palette = "bam",
+  #                  direction = 1,
+  #                  na.value = "white",
+  #                  midpoint = 0)+
+  labs(
+    fill = "Impact (species*years)",
+    title = "Biodiversity Impact per Ecoregion")+
+  theme_minimal() +
+  theme(
+    # set plot size and center it
+    plot.title = element_text(size = 16, hjust = 0.5),
+    # put legend in the bottom right
+    legend.position = c(0.15, 0.2),
+    legend.title = element_text(size = 14),
+    legend.text = element_text(size = 10))+
+  # add the ecoregion outlines
+  geom_sf(data = sv_eco, fill = "transparent", color = "gray40", lwd = 0.2)
+
+# save plot
+ggsave(filename = paste0(folder_fig_biodiv, "/", "gg_reg_impact.png"),
+       width = 14, height = 6, dpi = 300)
 
 # Graveyard -------
 
@@ -581,7 +636,7 @@ F_ggplot_world <- function(df, shp, brks, pal, legend_title, p_title, save_title
   #geom_spatvector(data = sv_eco, lwd = 0.2)#+
   
   
-  ggsave(plot = p, filename = paste0(folder_fig, "/", save_title),
+  ggsave(plot = p, filename = paste0(folder_fig_biodiv, "/", save_title),
          width = 14, height = 6, dpi = 300)
   
   return(p)
