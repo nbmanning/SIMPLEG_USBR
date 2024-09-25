@@ -24,6 +24,7 @@ library(terra)
 library(sf)
 library(tidyterra)
 library(scico)
+library(treemap)
 
 # Calc. Biodiversity Impacts from CFs 
 library(rio)
@@ -44,6 +45,20 @@ pct <- "_m" # either "_l" , "_m" , or "_h"
 pct_title <- " - Med"
 crop <- "soy" # either maize, soy, or sm (Soy+Maize)
 layer_choice <- "rawch_SOY"
+
+# Create Biodiversity plotting folder 
+folder_fig_biodiv <- paste0("../Figures/", date_string, "/biodiversity/")
+files_fig_impexp <- list.dirs(folder_fig_biodiv)
+
+# do the same but specifically for imp/exp folder
+if (!(any(grepl(date_string, files_fig_impexp)))) {
+  # If no file name contains the search string, create a folder with that string
+  dir.create(paste0(folder_fig_biodiv))
+  
+  cat("Biodiversity Folder", date_string, "created.\n")
+} else {
+  cat("A Biodiversity figures folder with the string", date_string, "in its name already exists.\n")
+}
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
 
@@ -176,14 +191,21 @@ cf_regional <- rio::import("../Data_Source/CFs/Chaudhary2015_SI3_CFsEcoregions_A
                            which = "Trans_marginal_regional", 
                            skip = 3)
 
-# remove "Plants" Column
-# cf_regional1 <- cf_regional %>% select(-contains("Plants"))
-
 cf_global <- rio::import("../Data_Source/CFs/Chaudhary2015_SI3_CFsEcoregions_AnnualCrops.xlsx",
-                      which = "Trans_marginal_global",
-                      skip = 3)
+                         which = "Trans_marginal_global",
+                         skip = 3)
 
-## Data Prep ----
+# remove "Plants" Column from regional for these reasons:
+## match with Global
+## Error Bars much too large
+## follow Chai et al., 2024
+cf_regional <- cf_regional %>% select(-contains("Plants"))
+
+# save world averages for the future 
+#cf_reg_avg <- cf_regional %>% filter(eco_code== "World average")
+#cf_global_avg <- cf_ %>% filter(eco_code== "World average")
+
+## 2.1 Data Prep ----
 # GOAL: Get Raw Change and Characterization Factors in the same df based on eco_codes
 
 # for future: might be able to use the stacked rasters and then calculate all kinds of stuff. For now, land transformation to soy is fine! 
@@ -206,124 +228,194 @@ df_rawch_s_eco <- as.data.frame(sv_rawch_s_ecocodes)
 df_rawch_s_eco_reg <- left_join(df_rawch_s_eco, cf_regional)
 df_rawch_s_eco_global <- left_join(df_rawch_s_eco, cf_global)
 
+## 2.2: Set Functions -----
+# first function to clean data
+F_clean <- function(df){
+
+  df <- df %>% 
+    # remove any faulty eco_codes that don't match the XXYYYY pattern of X = Capital Letter and Y = Digit 
+    filter(grepl("^[A-Z]{2}[0-9]{4}", eco_code)) %>% # loses 79 regions - use !grepl to see which ones
+    
+    # convert from ha to square meters (m2, m^2)
+    mutate(rawch_SOY = rawch_SOY*10000)
+  
+  # multiply each of the characterization factors (e.g. regional loss per m2 of transformation) by rawch_SOY (m2 land transformed from some other class to soybean)
+  df <- df %>% 
+    # Convert "NaN" strings to NA
+    mutate(across(contains("AnnualCrops"), ~ na_if(., "NaN"))) %>%  
+    # Convert CF columns from character to numeric
+    mutate(across(contains("AnnualCrops"), as.numeric)) %>%
+    # multiply the characterization factor by the new m2 of soybean (transformation)
+    mutate(across(contains("AnnualCrops"), ~ . * rawch_SOY))
+  
+  # since we can't have negative extinctions, set everything under 0 to NA
+  df <- df %>% 
+    mutate(across(contains("AnnualCrops"), ~ replace(., .<0, 0)))
+}
+
+
+
+# set 2nd function to clean and prep for plots 
+F_clean_forplots <- function(df){
+  
+  # take the df from the last cleaning function and...
+  df2 <- df %>% 
+    
+    # remove eco code
+    select(-eco_code) %>% 
+    
+    # remove NA's
+    na.omit() %>% 
+    
+    # summarize total changes by taking their sum
+    summarise(across(everything(), list(sum))) %>% 
+    
+    # remove Rawch_soy
+    select(-c(rawch_SOY_1, contains("TaxaAggregated"))) %>%
+    
+    # make long for plotting
+    pivot_longer(
+      cols = contains("AnnualCrops"),
+      names_to = "Taxa",
+      values_to = "Loss"
+    ) %>% 
+    
+    # remove the extra details in the column names and split into error columns 
+    mutate(Taxa = gsub("_1", "", Taxa)) %>%
+    mutate(Taxa = gsub("_AnnualCrops", "", Taxa)) %>% 
+    separate(Taxa, into = c("Taxa", "CI"), sep = "_") %>% 
+    pivot_wider(names_from = CI, values_from = Loss) %>% 
+    
+    # Calculate error (difference between Median and l95/u95)
+    mutate(
+      error_low = Median - lower95,   # Difference between Median and lower95
+      error_high = upper95 - Median   # Difference between upper95 and Median
+    )
+  
+  return(df2)
+
+}
+
+## Plotting Fxn's
+
+F_plot <- function(df, scale){
+  
+  
+  # set conditional variable based on regional or global
+  if(scale == "Regional"){
+    s = "reg"
+  }
+  
+  else{
+    s = "global"
+    }
+  
+  #### Treemap ###
+  png(filename = paste0(
+    paste0(folder_fig_biodiv, s, "_treemap", ".png")),
+    width = 21, height = 12, units = "in", res = 300
+    )
+
+  treemap(df,
+          index="Taxa",
+          vSize="Median",
+          type="index"
+  )
+  
+  dev.off()
+  
+  #### Barplot ###
+  ggplot(df, aes(x=Taxa, y=Median)) + 
+    geom_bar(stat = "identity") +
+    coord_flip()+
+    geom_errorbar(aes(
+      x=Taxa, 
+      ymin = error_low, 
+      ymax=error_high
+      ), 
+      width=0.4, colour="orange", alpha=0.9, linewidth=1.3)
+  
+  # save
+  ggsave(
+    filename = paste0(folder_fig_biodiv, 
+                      s, "_barplot", ".png"),
+    dpi = 300, width = 12, height = 8)
+  
+  #### Doughnut ###
+  # Compute percentages
+  df$fraction = df$Median / sum(df$Median)
+  
+  # Compute the cumulative percentages (top of each rectangle)
+  df$ymax = cumsum(df$fraction)
+  
+  # Compute the bottom of each rectangle
+  df$ymin = c(0, head(df$ymax, n=-1))
+  
+  # Compute label position
+  df$labelPosition <- (df$ymax + df$ymin) / 2
+  
+  # Compute a good label
+  df$label <- paste0(
+    df$Taxa, 
+    #"\n value: ", 
+    "\n",
+    round(df$Median)
+  )
+  
+  # Make the plot
+  ggplot(df, aes(ymax=ymax, ymin=ymin, xmax=4, xmin=3, fill=Taxa)) +
+    geom_rect() +
+    geom_label( x=3.5, aes(y=labelPosition, label=label), size=6) +
+    #scale_fill_brewer(palette=4) +
+    coord_polar(theta="y") + # Try to remove that to understand how the chart is built initially
+    xlim(c(2, 4))+ # Try to remove that to see how to make a pie chart
+    theme_void() #+
+    #theme(legend.position = "none") +
+    
+  
+  # save
+  ggsave(
+    filename = paste0(folder_fig_biodiv, 
+                      s, "_doughnut", ".png"),
+    dpi = 300, width = 8, height = 8)
+}
+
+
 ## Regional Extinctions -----
 
-# make the names easier to keep up with
-df_reg <- df_rawch_s_eco_reg
+# clean 
+test_df1 <- F_clean(df_rawch_s_eco_reg)
 
+# clean for plots 
+test_df2 <- F_clean_forplots(test_df1)
 
-# remove any faulty eco_codes that don't match the XXYYYY pattern of X = Capital Letter and Y = Digit 
-df_reg <- df_reg %>% 
-  filter(grepl("^[A-Z]{2}[0-9]{4}", eco_code)) %>% # loses 79 regions - use !grepl to see which ones
-  
-  # convert from ha to square meters (m2, m^2)
-  mutate(rawch_SOY = rawch_SOY*10000)
-  
+# Plotting 
+F_plot(test_df2, "Regional")
 
-# multiply each of the characterization factors (e.g. regional loss per m2 of transformation) by rawch_SOY (m2 land transformed from some other class to soybean)
-df_reg_calc_ci <- df_reg %>% 
-  # Convert "NaN" strings to NA
-  mutate(across(contains("AnnualCrops"), ~ na_if(., "NaN"))) %>%  
-  # Convert CF columns from character to numeric
-  mutate(across(contains("AnnualCrops"), as.numeric)) %>%
-  # multiply the characterization factor by the new m2 of soybean (transformation)
-  mutate(across(contains("AnnualCrops"), ~ . * rawch_SOY))
-
-str(df_reg_calc_ci)
-
-# since we can't have negative extinctions, set everything under 0 to NA
-df_reg_calc_ci_na <- df_reg_calc_ci %>% 
-  mutate(across(contains("AnnualCrops"), ~ replace(., .<0, 0)))
-
+# FUTURE: 
 # Re-Merge w SV_Eco to plot 
-sv_reg_calc <- merge(sv_eco, df_reg_calc_ci_na)
-
-# freezes -- try when I have more time. also, use continuous or interval, since it's biased towards one or two extreme polygons
-# ggplot()+
-#   geom_spatvector(data = sv_reg_calc, aes(fill = "rawch_SOY"))
-
-# terra::plot(sv_reg_calc, "Mammals_AnnualCrops_Median")
-
-### Aggregated Regional Change --------
-# test 1: using the World Average code
-cf_avg <- cf_regional %>% filter(eco_code== "World average")
-
-# test 2: using the sum of all change
-df_regional_sum_ci <- #df_reg_calc %>% 
-  
-  df_reg_calc_ci_na %>% 
-  
-  # remove eco code
-  select(-eco_code) %>% 
-  
-  # remove NA's
-  na.omit() %>% 
-  
-  # summarize total changes by taking their sum
-  summarise(across(everything(), list(sum))) %>% 
-  
-  # remove Rawch_soy
-  select(-c(rawch_SOY_1, contains("TaxaAggregated"))) %>%
-  
-  # make long for plotting
-  pivot_longer(
-    cols = contains("AnnualCrops"),
-    names_to = "Taxa",
-    values_to = "Loss"
-  ) %>% 
-  
-  # remove the extra details in the column names and split into error columns 
-  mutate(Taxa = gsub("_1", "", Taxa)) %>%
-  mutate(Taxa = gsub("_AnnualCrops", "", Taxa)) %>% 
-  separate(Taxa, into = c("Taxa", "CI"), sep = "_") %>% 
-  pivot_wider(names_from = CI, values_from = Loss) %>% 
-  
-  # Calculate error (difference between Median and l95/u95)
-  mutate(
-    error_low = Median - lower95,   # Difference between Median and lower95
-    error_high = upper95 - Median   # Difference between upper95 and Median
-  )
-
-#### Regional Plotting #############
-# Pie Charts suck, so we opted for a couple different visualizations
-
-### Treemap ###
-library(treemap)
-# test <- df_regional_sum %>% 
-#   mutate(Loss = abs(Loss))
-
-# treemap
-treemap(df_regional_sum_ci,
-        index="Taxa",
-        vSize="Median",
-        type="index"
-)
-
-#### Barplot ###
-ggplot(df_regional_sum_ci, aes(x=Taxa, y=Median)) + 
-  geom_bar(stat = "identity") +
-  coord_flip()+
-  geom_errorbar( aes(x=Taxa, ymin = error_low, ymax=error_high), width=0.4, colour="orange", alpha=0.9, linewidth=1.3)
+# sv_reg_calc <- merge(sv_eco, test_df1)
 
 
-### Doughnut ###
-# Compute percentages
-df_regional_sum_ci$fraction = df_regional_sum_ci$Median / sum(df_regional_sum_ci$Median)
+## Global Extinctions ---------
 
-# Compute the cumulative percentages (top of each rectangle)
-df_regional_sum_ci$ymax = cumsum(df_regional_sum_ci$fraction)
+# clean 
+df_global <- F_clean(df_rawch_s_eco_global)
 
-# Compute the bottom of each rectangle
-df_regional_sum_ci$ymin = c(0, head(df_regional_sum_ci$ymax, n=-1))
+# clean for plots 
+df_global_sum <- F_clean_forplots(df_global)
 
-# Make the plot
-ggplot(df_regional_sum_ci, aes(ymax=ymax, ymin=ymin, xmax=4, xmin=3, fill=Taxa)) +
-  geom_rect() +
-  coord_polar(theta="y") + # Try to remove that to understand how the chart is built initially
-  xlim(c(2, 4))+ # Try to remove that to see how to make a pie chart
-  theme_void()
+# Plotting 
+F_plot(df_global_sum, "Global")
 
 
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+
+
+# Graveyard -------
+
+## Interactive plot with plotly --------
 
 ### interactive bar plot ###
 # Create an interactive barplot with error bars using plotly
@@ -341,148 +433,6 @@ ggplot(df_regional_sum_ci, aes(ymax=ymax, ymin=ymin, xmax=4, xmin=3, fill=Taxa))
 # 
 # # Show the plot
 # plot
-
-## Global Extinctions ---------
-
-# make the names easier to keep up with
-df_global <- df_rawch_s_eco_global
-
-
-# remove any faulty eco_codes that don't match the XXYYYY pattern of X = Capital Letter and Y = Digit 
-df_global <- df_global %>% 
-  filter(grepl("^[A-Z]{2}[0-9]{4}", eco_code)) %>% # loses 79 regions - use !grepl to see which ones
-  
-  # convert from ha to square meters (m2, m^2)
-  mutate(rawch_SOY = rawch_SOY*10000)
-
-
-# multiply each of the characterization factors (e.g. global loss per m2 of transformation) by rawch_SOY (m2 land transformed from some other class to soybean)
-df_global_calc_ci <- df_global %>% 
-  # Convert "NaN" strings to NA
-  mutate(across(contains("AnnualCrops"), ~ na_if(., "NaN"))) %>%  
-  # Convert CF columns from character to numeric
-  mutate(across(contains("AnnualCrops"), as.numeric)) %>%
-  # multiply the characterization factor by the new m2 of soybean (transformation)
-  mutate(across(contains("AnnualCrops"), ~ . * rawch_SOY))
-
-str(df_global_calc_ci)
-
-# since we can't have negative extinctions, set everything under 0 to NA
-df_global_calc_ci_na <- df_global_calc_ci %>% 
-  mutate(across(contains("AnnualCrops"), ~ replace(., .<0, 0)))
-
-# Re-Merge w SV_Eco to plot 
-sv_global_calc <- merge(sv_eco, df_global_calc_ci_na)
-
-# freezes -- try when I have more time. also, use continuous or interval, since it's biased towards one or two extreme polygons
-# ggplot()+
-#   geom_spatvector(data = sv_global_calc, aes(fill = "rawch_SOY"))
-
-# terra::plot(sv_global_calc, "Mammals_AnnualCrops_Median")
-
-### Aggregated global Change --------
-# test 1: using the World Average code
-cf_avg_global <- cf_global %>% filter(eco_code== "World average")
-
-# test 2: using the sum of all change
-df_global_sum_ci <- #df_global_calc %>% 
-  
-  df_global_calc_ci_na %>% 
-  
-  # remove eco code
-  select(-eco_code) %>% 
-  
-  # remove NA's
-  na.omit() %>% 
-  
-  # summarize total changes by taking their sum
-  summarise(across(everything(), list(sum))) %>% 
-  
-  # remove Rawch_soy
-  select(-c(rawch_SOY_1, contains("TaxaAggregated"))) %>%
-  
-  # make long for plotting
-  pivot_longer(
-    cols = contains("AnnualCrops"),
-    names_to = "Taxa",
-    values_to = "Loss"
-  ) %>% 
-  
-  # remove the extra details in the column names and split into error columns 
-  mutate(Taxa = gsub("_1", "", Taxa)) %>%
-  mutate(Taxa = gsub("_AnnualCrops", "", Taxa)) %>% 
-  separate(Taxa, into = c("Taxa", "CI"), sep = "_") %>% 
-  pivot_wider(names_from = CI, values_from = Loss) %>% 
-  
-  # Calculate error (difference between Median and l95/u95)
-  mutate(
-    error_low = Median - lower95,   # Difference between Median and lower95
-    error_high = upper95 - Median   # Difference between upper95 and Median
-  )
-
-#### Global Plotting #############
-# Pie Charts suck, so we opted for a couple different visualizations
-
-### Treemap ###
-library(treemap)
-# test <- df_global_sum_ci %>% 
-#   mutate(Loss = abs(Median))
-
-# treemap
-treemap(df_global_sum_ci,
-        index="Taxa",
-        vSize="Median",
-        type="index"
-)
-
-#### Barplot ###
-ggplot(df_global_sum_ci, aes(x=Taxa, y=Median)) + 
-  geom_bar(stat = "identity") +
-  coord_flip()+
-  geom_errorbar( aes(x=Taxa, ymin = lower95, ymax=upper95), width=0.4, colour="orange", alpha=0.9, linewidth=1.3)
-
-
-### Doughnut ###
-# Compute percentages
-df_global_sum_ci$fraction = df_global_sum_ci$Median / sum(df_global_sum_ci$Median)
-
-# Compute the cumulative percentages (top of each rectangle)
-df_global_sum_ci$ymax = cumsum(df_global_sum_ci$fraction)
-
-# Compute the bottom of each rectangle
-df_global_sum_ci$ymin = c(0, head(df_global_sum_ci$ymax, n=-1))
-
-# Make the plot
-ggplot(df_global_sum_ci, aes(ymax=ymax, ymin=ymin, xmax=4, xmin=3, fill=Taxa)) +
-  geom_rect() +
-  coord_polar(theta="y") + # Try to remove that to understand how the chart is built initially
-  xlim(c(2, 4))+ # Try to remove that to see how to make a pie chart
-  theme_void()
-
-
-
-### interactive bar plot ###
-# # Create an interactive barplot with error bars using plotly
-# library(plotly)
-# plot <- plot_ly(df_global_sum_ci, 
-#                 x = ~Taxa, 
-#                 y = ~Median, 
-#                 type = 'bar', 
-#                 error_y = ~list(type = 'data', 
-#                                 array = error_high,   # Upper error (upper95 - Median)
-#                                 arrayminus = error_low)) %>%  # Lower error (Median - lower95)
-#   layout(title = "Interactive Barplot with Error Bars",
-#          xaxis = list(title = "Taxa"),
-#          yaxis = list(title = "Loss"))
-# 
-# # Show the plot
-# plot
-
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
-
-
-# Graveyard -------
 
 ## Plotting with tmap --------
 
