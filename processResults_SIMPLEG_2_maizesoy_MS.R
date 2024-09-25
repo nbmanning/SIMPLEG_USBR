@@ -24,9 +24,11 @@ rm(list = ls())
 
 ## Libraries -----
 # imp-exp plots
-library(tidyverse)
+#library(tidyverse)
 library(rio)
 library(cowplot)
+library(dplyr)
+library(stringr)
 
 # SIMPLE-G maps 
 library(raster) # use for initial raster stack and basic plotting
@@ -51,11 +53,11 @@ library(ggspatial) # N arrow and Scale Bar w tidyterrra
 ### Loading & Saving ###
 # Define the model date 
 # NOTE: Assumes the results are downloaded and saved in YYYY-MM-DD format
-date_string <- "2024-03-03"
+date_string <- "2024-09-15"
 date_string_nodash <- gsub("-", "", date_string)
 
 # Set model version & parameter flexibility
-datafile_version <- "sg1x3x10_v2402_US_Heat"
+datafile_version <- "sg1x3x10_v2409_US_Heat"
 pct <- "_m" # change when you change 'datafile'
 pct_model <- "m" # for the imp/exp cleaning
 
@@ -104,7 +106,7 @@ if (!(any(grepl(date_string, files_results_impexp)))) {
   # If no file name contains the search string, create a folder with that string
   dir.create(paste0(folder_results_impexp))
   
-  cat("Results Folder", date_string, "created.\n")
+  cat("Imp/Exp Results Folder", date_string, "created.\n")
 } else {
   cat("An Imp/Exp results folder with the string", date_string, "in its name already exists.\n")
 }
@@ -598,6 +600,8 @@ names(r) <- c(
 # make a quick plot of the global results
 # terra::plot(r, axes = F)
 
+
+
 # Call fxn to clip and prep data 
 r_row <- F_aoi_prep(shp = shp_world, area_name = "World")
 
@@ -928,11 +932,12 @@ stat_SG_summary_maizesoy <- rbind(stat_SG_US_maizesoy, stat_SG_BR_maizesoy, stat
 
 # save
 write.csv(stat_SG_summary_maizesoy, 
-          file = paste0(folder_stat, "sg", pct, "_stat_summary_maizesoy_US_BR_Cerr.csv"),
+          file = paste0(
+            folder_stat, "sg", pct, "_stat_summary_maizesoy_US_BR_Cerr_", date_string_nodash, ".csv"),
           row.names = F)
 
-# 8: Transition Results -----
-# set relevant vegetation class categories 
+# 8: Transition Results: Doesn't Change with new Model Runs -----
+# set relevant vegetation class categories
 list_from_lv3 <- c("Forest Formation", "Savanna Formation", "Wetland",
                    "Grassland", "Pasture", "Forest Plantation",
                    "Mosaic of Agriculture and Pasture",
@@ -945,7 +950,7 @@ list_from_lv3 <- c("Forest Formation", "Savanna Formation", "Wetland",
 load(file = paste0(folder_der, "mapb_col8_clean_long.Rdata"))
 
 # filter Mapbiomas data to only focus on transitions to "Soybeans" & From-To's that do not stay the same
-df <- df %>% 
+df <- df %>%
   filter(to_level_4 == "Soy Beans") %>%
   filter(to_level_4 != from_level_4)
 
@@ -953,44 +958,44 @@ df <- df %>%
 
 ### 8.1.1: Prep Spatial Data ---------
 
-# NOTE: Municipality & Cerrado Shapefiles come from 'geobr' package 
+# NOTE: Municipality & Cerrado Shapefiles come from 'geobr' package
 
-# Load municipality shapefile 
-# Read all municipalities in the country at a given year 
+# Load municipality shapefile
+# Read all municipalities in the country at a given year
 shp_muni <- read_municipality(code_muni="all", year=2018)
 
 # get municipalities that are at all within the Cerrado
 shp_muni_in_cerr <- st_intersection(shp_muni, shp_cerr)
 
 # get just the codes column and keep as shapefile
-shp_code_muni_in_cerr <- shp_muni_in_cerr %>% select(code_muni)
+shp_code_muni_in_cerr <- shp_muni_in_cerr %>%  dplyr::select(code_muni)
 
 # get territory codes for municipalities in intersection as numeric
 muni_codes_cerr <- shp_muni_in_cerr$code_muni
 
 # filter to only municipalities in Cerrado
-df_cerr <- df %>% 
-  filter(geocode %in% muni_codes_cerr) %>% 
+df_cerr <- df %>%
+  filter(geocode %in% muni_codes_cerr) %>%
   filter(biome == "Cerrado")
 
 ### 8.1.2: Aggregate -------
 
 # get aggregate sum of the entire Cerrado for stats
-agg_cerr <- df_cerr %>% 
-  aggregate(ha ~ year, sum) %>% 
+agg_cerr <- df_cerr %>%
+  aggregate(ha ~ year, sum) %>%
   mutate(year = as.Date(paste(year, 1, 1), '%Y %m %d'))
 
 # get agg sum of certain 'from' classes for mapping
 agg_cerrmuni_fromveg <- df_cerr %>%
-  filter(from_level_3 %in% list_from_lv3) %>% 
-  aggregate(ha ~ year + geocode, sum) %>% 
+  filter(from_level_3 %in% list_from_lv3) %>%
+  aggregate(ha ~ year + geocode, sum) %>%
   mutate(year = as.Date(paste(year, 1, 1), '%Y %m %d'))
 
-# make shape -- from veg 
-shp_cerrmuni_fromveg <- shp_code_muni_in_cerr %>% 
+# make shape -- from veg
+shp_cerrmuni_fromveg <- shp_code_muni_in_cerr %>%
   left_join(agg_cerrmuni_fromveg,
-            join_by(code_muni == geocode)) %>% 
-  mutate(year = year(year)) %>% 
+            join_by(code_muni == geocode)) %>%
+  mutate(year = year(year)) %>%
   filter(year >= 2012 & year <= 2017)
 
 ### 8.1.3: Plot Facet Map -------
@@ -1002,30 +1007,30 @@ F_facet<-function(data, aoi, class, file_name){
     facet_wrap("year")+
     coord_sf()+
     theme_minimal()+
-    
+
     labs(
       title = paste("Land Transition Across", aoi),
       subtitle = paste(class),
       fill = "Transition (ha)")+
-    
+
     theme(
       plot.title = element_text(hjust = 0.5),
       plot.subtitle = element_text(hjust = 0.5)
     )
-  
+
   # save
   ggsave(filename = paste0(folder_fig, file_name),
          plot = p,
          width = 8, height = 8,
          dpi = 300)
-  
+
   return(p)
 }
 
 # Run Fxn
-F_facet(shp_cerrmuni_fromveg, 
-        aoi = "Cerrado", 
-        class = "From Relevant Vegetation Classes to Soybean", 
+F_facet(shp_cerrmuni_fromveg,
+        aoi = "Cerrado",
+        class = "From Relevant Vegetation Classes to Soybean",
         file_name = "cerr_fromveg.png")
 
 
@@ -1035,12 +1040,12 @@ print(agg_cerr %>% filter(year(year) >= 2013 & year(year) <= 2015))
 
 ## 8.2: Plot Line Plot of Cerrado Transition ------
 
-# filter to only include the relevant classes 
-classes_few <- c("Temporary Crops", "Forest Formation", "Mosaic of Agriculture and Pasture", 
+# filter to only include the relevant classes
+classes_few <- c("Temporary Crops", "Forest Formation", "Mosaic of Agriculture and Pasture",
                  "Pasture", "Savanna Formation", "Grassland")
 
-df_cerr <- df_cerr %>% 
-  aggregate(ha ~ year + biome + from_level_3 + to_level_4, sum) %>% 
+df_cerr <- df_cerr %>%
+  aggregate(ha ~ year + biome + from_level_3 + to_level_4, sum) %>%
   mutate(year = as.Date(paste(year, 1, 1), '%Y %m %d'))
 
 df_cerr <- filter(df_cerr, from_level_3 %in% classes_few)
@@ -1069,8 +1074,8 @@ ggplot(df_cerr, aes(x=year, y=ha/1000000, color = from_level_3)) +
     plot.title = element_text(size = 17, hjust = 0.5)
   )
 
-# save 
-ggsave(paste("../Figures/trans_mapbiomas/cerr_to_soybean.png"), 
+# save
+ggsave(paste("../Figures/trans_mapbiomas/cerr_to_soybean.png"),
        width = 14, height = 7)
 
 
