@@ -600,31 +600,6 @@ names(r) <- c(
 # make a quick plot of the global results
 # terra::plot(r, axes = F)
 
-### TEST ###
-t_area <- vect(ext(shp_world))
-crs(t_area) <- crs(shp_world)
-
-crs(t_area)
-
-t_r <- r
-crs(t_r) <- crs(shp_world)
-
-# crop and masking to just the extent of interest
-t_r_aoi <- terra::crop(t_r, t_area, mask = T) 
-t_r_aoi <- mask(t_r_aoi, shp)
-
-F_EDA(r_aoi = t_r_aoi, area_name = "TestCRSWorld")
-
-
-# Compare this to the regular here (no CRS)
-
-# Call fxn to clip and prep data 
-r_row <- F_aoi_prep(shp = shp_world, area_name = "World")
-
-# call fxn to create EDA plots and generate stats of the clipped data 
-F_EDA(r_aoi = r_row, area_name = "World")
-### ### ### 
-
 # Call fxn to clip and prep data 
 r_row <- F_aoi_prep(shp = shp_world, area_name = "World")
 
