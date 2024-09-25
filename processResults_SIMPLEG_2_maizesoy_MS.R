@@ -303,8 +303,16 @@ F_aoi_prep <- function(shp, area_name){
   # get extent as terra object for plotting
   ext_area <- vect(ext(shp))
   
+  # set CRS of extent spatial vector
+  crs(ext_area) <- crs(shp)
+  
+  # change so r (results raster) becomes the CRS of our shapefile 
+  # we made a new variable her to not change the global r variable in our environment
+  r_func <- r
+  crs(r_func) <- crs(ext_area)
+  
   # crop and masking to just the extent of interest
-  r_aoi <- terra::crop(r, ext_area, mask = T) 
+  r_aoi <- terra::crop(r_func, ext_area, mask = T) 
   r_aoi <- mask(r_aoi, shp)
   
   ## NICK: Not sure if we need any of this since we aren't clamping anymore - this other section just re-orders the layers
@@ -599,6 +607,8 @@ names(r) <- c(
 ## 4.1: World EDA -----
 # make a quick plot of the global results
 # terra::plot(r, axes = F)
+
+ 
 
 # Call fxn to clip and prep data 
 r_row <- F_aoi_prep(shp = shp_world, area_name = "World")
