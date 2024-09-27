@@ -11,10 +11,11 @@
 
 # REQUIRES:
 ## SIMPLE-G Result files as 'SpatRasters' from 'processResults_SIMPLEG_2.R'
-
+## WWF Ecoregions shapefile (from https://www.worldwildlife.org/publications/terrestrial-ecoregions-of-the-world)
 
 # NEXT ------
-## Clean and convert to Jupyter Notebook
+## Clean -- DONE
+## Convert to Jupyter Notebook
 ## Add results from new (2024-09-15) model run to Working2 Draft along with new methods
 
 # # # # # # # # # # # # # # # # # # # # # # # # 
@@ -71,38 +72,38 @@ if (!(any(grepl(date_string, files_fig_impexp)))) {
 
 ## 1.1: Load Shapefiles ------
 
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
-
-## Clean WWF Shapefile - need to run this once to fix broken boundaries ##
+## Clean WWF Shapefile  ##
+## Uncomment (Highlight then Ctrl + C) to run ##
+## ONLY NEED TO RUN THIS ONCE TO FIX BROKEN BOUNDARIES ## 
 
 # ## WWF Ecoregions ##
-raw_eco <- st_read("../Data_Source/wwf_ecoregions/wwf_terr_ecos.shp")
-# 
+# raw_eco <- st_read("../Data_Source/wwf_ecoregions/wwf_terr_ecos.shp")
+#
 # # get names -- future plan is to merge with 'eco' for easy identification
-# raw_eco_info <- raw_eco %>% 
-#   st_drop_geometry() %>% 
-#   select(ECO_NAME, REALM, BIOME, eco_code) %>% 
+# raw_eco_info <- raw_eco %>%
+#   st_drop_geometry() %>%
+#   select(ECO_NAME, REALM, BIOME, eco_code) %>%
 #   distinct()
 # 
 # ##
 # # Annoying error - "Error in wk_handle.wk_wkb(wkb, s2_geography_writer(oriented = oriented,  : Loop 15 is not valid: Edge 0 has duplicate vertex with edge 4
-# # check the number of problem polygons 
+# # check the number of problem polygons
 # table(sf::st_is_valid(raw_eco))
 # 
 # # see if only removing the problem polygon would work
 # raw_eco[!sf::st_is_valid(raw_eco),]
 # 
-# # remove polygon by only including valid boundaries 
+# # remove polygon by only including valid boundaries
 # eco <- sf::st_make_valid(raw_eco)
 # ##
 # 
 # # Do a union to keep all of the ecoregions with the same unique eco ID
-# eco <- eco %>% 
-#   group_by(eco_code) %>% 
+# eco <- eco %>%
+#   group_by(eco_code) %>%
 #   summarise() # union
-
-# # plot - can't plot with eco_code bc they're all unique. 
-# ggplot(data = eco) + 
+# 
+# # plot - can't plot with eco_code bc they're all unique.
+# ggplot(data = eco) +
 #   geom_sf(aes(fill = eco_code), show.legend = F)
 # 
 # # save
@@ -115,14 +116,9 @@ eco <- st_read("../Data_Source/wwf_ecoregions/agg_wwf_terr_ecos_fixed_ecocode.sh
 
 
 ### Load SIMPLE-G -------------
+
 # load Raster - Maize+Soy - World
 r_ms_w <- readRDS(file = paste0(folder_der, "r", pct, "_World", ".rds"))
-
-# uncomment and plot one layer 
-# terra::plot(r_ms_w$new_QLAND, main = "Post-Sim Cropland Area Per Grid Cell")
-# terra::plot(r_ms_w[[layer_choice]]*1000, 
-#             main = paste(str_to_title(crop), "Change in Area (ha) Per Grid Cell"))
-
 
 ## 1.2: Zonal Stat Agg to Ecoregion ----------------------
 
@@ -132,38 +128,39 @@ sv_eco <- terra::vect(eco)
 # set CRS to the same as the Source SpatVector 
 crs(r_ms_w) <- crs(sv_eco)
 
-# Calculate Zonal Stats for soy - sum of the raw change (i.e. transformation) to soy per ecoregion
+# get just the soy layer
 rawch_s <- r_ms_w %>% subset("rawch_SOY")
 
-# Convert to ha from kha by multiplying by 1000 before zonal stats
+# Convert from kha to ha (*1000) then from ha to m2 (*10000) before zonal stats
 rawch_s_eco <- rawch_s*1000*10000
 
-# Calculate zonal sum per ecoregion
-rawch_s_eco <- terra::zonal(rawch_s_eco, sv_eco, fun = sum, as.raster = T, na.rm = T)
-rawch_s_eco_notRaster <- terra::zonal(rawch_s_eco, sv_eco, fun = sum, na.rm = T, wide = T)
 
-## TEST ##
+# Calculate Zonal Stats for soy - sum of the raw change (i.e. transformation) to soy per ecoregion
+## we use extract() with "sum" since we are looking for spatraster values in a spatvector ##
 
-# this works but is sketchy -- it assumes the order is the same for sv and rawch_s_eco
-sv <- sv_eco
-sv$ID <- 1:nrow(sv) 
-sv_df <- as.data.frame(sv)
+# set an ID column to get a pseudo-ID for each ecoregion
+sv_eco$ID <- 1:nrow(sv_eco) 
 
-# returns a df with an ID and sum - this is where the assumption is 
-extracted <- terra::extract(rawch_s_eco, sv, na.rm = T, fun = sum)
+# get pseudo-ID and values as a DF for using as a key later 
+df_sv_eco <- as.data.frame(sv_eco)
 
-result_df <- merge(extracted, sv_df[, c("ID", "eco_code")], by = "ID")
+# returns a df with an ID (ecoregion) and sum - this is where the assumption is 
+df_rawch_ecoreg <- terra::extract(rawch_s_eco, sv_eco, na.rm = T, fun = sum)
 
-## ## ##
+# merge by ID with the previous df
+df_rawch_ecoreg <- merge(df_rawch_ecoreg, df_sv_eco[, c("ID", "eco_code")], by = "ID")
+
+
 ## 1.3: Plot ----------------------
 
 ## Quick Terra Plots ##
+## Uncomment to run ##
 
 # plot some zonal stats with eco outline  
-# terra::plot(rawch_s_eco$rawch_SOY , main = "Sum of SIMPLE-G Soy Change in Area per Ecoregion")
+# terra::plot(rawch_s_eco$rawch_SOY , main = "Sum of SIMPLE-G Soy Change in Area (m2) per Ecoregion")
 # plot(sv_eco, add = T, lwd = 0.1)
 
-## ggplot ##
+# ## ggplot ##
 # ggplot()+
 #   geom_spatraster(data = rawch_s_eco, maxcell = Inf)+
 # 
@@ -173,7 +170,7 @@ result_df <- merge(extracted, sv_df[, c("ID", "eco_code")], by = "ID")
 #                    na.value = "white",
 #                    midpoint = 0)+
 #   labs(
-#     fill = "Area (ha)",
+#     fill = "Area (m^2)",
 #     title = paste("Post-Sim Soybean Change"
 #                   #, pct_title
 #                   )
@@ -190,7 +187,7 @@ result_df <- merge(extracted, sv_df[, c("ID", "eco_code")], by = "ID")
 #   geom_sf(data = sv_eco, fill = "transparent", color = "gray40", lwd = 0.2)
 # 
 # # save plot
-# ggsave(filename = paste0(folder_fig_biodiv, "/", "gg_eco_rawch_soy.png"),
+# ggsave(filename = paste0(folder_fig_biodiv, "/", "gg_eco_rawch_soy_cont.png"),
 #        width = 14, height = 6, dpi = 300)
 
 # 2: Calculate Biodiversity from CFs -----
@@ -219,41 +216,29 @@ cf_global <- rio::import("../Data_Source/CFs/Chaudhary2015_SI3_CFsEcoregions_Ann
 ## follow Chai et al., 2024
 cf_regional <- cf_regional %>% select(-contains("Plants"))
 
+# join with the data on Soybean Change (m2) per ecoregion
+df_rawch_s_eco_reg <- left_join(cf_regional, df_rawch_ecoreg)
+df_rawch_s_eco_global <- left_join(cf_global, df_rawch_ecoreg)
 
-## 2.1 Data Prep ----
-# make the SpatRaster of change per ecoregion into a SpatVector
-sv_rawch_s_eco <- as.polygons(rawch_s_eco, 
-                       trunc = F, # if T, changes values to integers
-                       dissolve = T, # if F, bad stuff happens
-                       values = T, # keep values as a spatial attribute of each polygon
-                       na.rm = F # keep NA values
-                       )
 
-# intersect the soy change SpatVector with the SpatVector containing the eco_codes
-sv_rawch_s_ecocodes <- intersect(sv_rawch_s_eco, sv_eco)
-
-# Since we only are interested in how MANY hectares (or m2) converted we have, and we already have the eco_codes, we can turn this into a data frame, which will make the process run a lot smoother
-df_rawch_s_eco <- as.data.frame(sv_rawch_s_ecocodes)
-
-# now we can join the df with our df of regional/global characterization factors
-df_rawch_s_eco_reg <- left_join(df_rawch_s_eco, cf_regional)
-df_rawch_s_eco_global <- left_join(df_rawch_s_eco, cf_global)
+## 2.1 Functions ----
 
 # new approach using extract()
-df_rawch_s_eco_reg <- left_join(cf_regional, result_df)
-df_rawch_s_eco_global <- left_join(cf_global, result_df)
 
-## 2.2: Set Functions -----
 # first function to clean data
 F_clean_calc <- function(df){
 
   df <- df %>% 
     # remove any faulty eco_codes that don't match the XXYYYY pattern of X = Capital Letter and Y = Digit 
-    filter(grepl("^[A-Z]{2}[0-9]{4}", eco_code)) #%>% # loses 79 regions - use !grepl to see which ones
+    filter(grepl("^[A-Z]{2}[0-9]{4}", eco_code)) %>% # NOTE: use !grepl outside of fxn to see which regions get lost
+    # remove "ID" column
+    select(-ID)
+
+  # Clean raw change column by setting any NA's to 0
+  df <- df %>% 
+    # Convert NA to 0
+    mutate(rawch_SOY = replace_na(rawch_SOY, 0))
     
-    # convert from ha to square meters (m2, m^2)
-    # mutate(rawch_SOY = rawch_SOY*10000)
-  
   # multiply each of the characterization factors (e.g. regional loss per m2 of transformation) by rawch_SOY (m2 land transformed from some other class to soybean)
   df <- df %>% 
     # Convert "NaN" strings to NA
@@ -422,16 +407,17 @@ F_plot(df_global_sum, "Global")
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+
 # Test --------
-test <- left_join(df_reg, raw_eco)
-head(df_reg)
+
 
 # Future -----------
-
+# PICK UP HERE --------
 ## Re-Merge w SV_Eco to plot sp. change per ecoregion map -------- 
 df_reg_agg <- df_rawch_s_eco_reg %>% 
-  select(rawch_SOY, eco_code, 
-         contains("Median")
+  select(rawch_SOY, eco_code, ID, 
+         contains("Median"),
+         -TaxaAggregated_AnnualCrops_Median
          #TaxaAggregated_AnnualCrops_Median
          )
   #select(rawch_SOY, eco_code, contains("Median"))
@@ -440,11 +426,13 @@ df_reg_agg2 <- F_clean_calc(df_reg_agg)
 str(df_reg_agg2)
 
 sv_reg_calc <- merge(sv_eco, df_reg_agg2)
-sv_reg_calc <- sv_reg_calc %>% 
-  rename(
-    #Impact = TaxaAggregated_AnnualCrops_Median
-    Impact = Birds_AnnualCrops_Median
-    )
+
+# sv_reg_calc <- sv_reg_calc %>% 
+#   rename(
+#     Impact = Birds_AnnualCrops_Median
+#     )
+
+
 
 # ggplot ##
 ggplot()+
@@ -467,7 +455,7 @@ ggplot()+
     legend.title = element_text(size = 14),
     legend.text = element_text(size = 10))+
   # add the ecoregion outlines
-  geom_sf(data = sv_eco, fill = "transparent", color = "gray40", lwd = 0.2)
+  geom_sf(data = sv_eco, fill = "transparent", color = "white", lwd = 0.1)
 
 # save plot
 ggsave(filename = paste0(folder_fig_biodiv, "/", "gg_reg_impact.png"),
