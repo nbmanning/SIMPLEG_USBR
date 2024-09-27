@@ -431,7 +431,124 @@ sv_reg_calc <- merge(sv_eco, df_reg_agg2)
 #   rename(
 #     Impact = Birds_AnnualCrops_Median
 #     )
+### TEST ###
+# reclassify data into breaks
+library(classInt)
+library(RColorBrewer)
+# set number of breaks and type
 
+# get spatial vector from either glo
+# inputs 
+plot_df <- df_reg_agg
+scale <- "Regional"
+breaks_n <- 7
+breaks_type <- "fisher"
+
+# loop over layer
+layer <- "Mammals_AnnualCrops_Median"
+
+F_map <- function(layer_choice, plot_sv, scale, breaks_n, breaks_type){
+  #layer_taxa <- names(sv_reg_calc)[str_detect(names(sv_reg_calc), taxa)]
+  taxa <- sub("_.*", "", layer_choice)
+  
+  # set colors 
+  colors <- brewer.pal(n = breaks_n, name = "YlGnBu")  # Adjust the palette name as needed
+  
+  # get layer values
+  attribute_data  <- plot_sv %>% 
+    values() %>% 
+    pull(!!sym(layer_choice)) %>% 
+    round(digits = 0)
+  
+  # Calculate breaks 
+  breaks <- classIntervals(attribute_data, n = breaks_n, style = breaks_type)
+  type_breaks <- breaks$brks
+  
+  # Classify the attribute based on Jenks breaks
+  cut_data <- cut(attribute_data, breaks = type_breaks, include.lowest = TRUE, labels = FALSE)
+  
+  # Add the classified data back to the SpatVector
+  plot_sv$cut_data <- cut_data
+  
+  # Create labels for the Jenks breaks
+  cut_labels <- paste0("[", round(type_breaks[-length(type_breaks)], 0), 
+                       ", ", round(type_breaks[-1], 0), "]")
+  
+  ## ggplot ## 
+  ggplot()+
+    geom_spatvector(data = plot_sv, aes(fill = factor(cut_data)))+
+    scale_fill_manual(values = colors, 
+                      name = str_to_title(breaks_type) , 
+                      labels = cut_labels)+
+    labs(
+      fill = "Impact (species*years)",
+      title = paste0(scale, " Biodiversity Impact per Ecoregion (",taxa,")"))+
+    theme_minimal() +
+    theme(
+      # set plot title size and center it
+      plot.title = element_text(size = 16, hjust = 0.5),
+      # put legend in the bottom right
+      legend.position = c(0.15, 0.2),
+      legend.title = element_text(size = 14),
+      legend.text = element_text(size = 10))
+  
+  # save plot
+  ggsave(filename = paste0(folder_fig_biodiv, "/", "gg_",
+                           str_to_lower(scale),
+                           "_impact_",
+                           str_to_lower(taxa),
+                           ".png"),
+         width = 14, height = 6, dpi = 300)
+  
+}
+
+# get spatial vector from either global or regional
+df_reg_agg2 <- F_clean_calc(df_reg_agg)
+sv_reg_calc <- merge(sv_eco, df_reg_agg2)
+
+# get list of columns / attributes for the things we want to map
+sv_names <- names(sv_reg_calc)[str_detect(names(sv_reg_calc), "AnnualCrops")]
+
+# if I did this right, this should loop over each layer in sv_reg_calc and 
+# make a map of the impact per taxa
+
+# regional ###
+for (layer_name in sv_names) {
+  F_map(
+    plot_sv = sv_reg_calc, 
+    layer_choice = layer_name, 
+    scale = "Regional", 
+    breaks_n = 7, 
+    breaks_type = "fisher"
+  )
+  }
+
+# global ###
+# get spatial vector from either global or regional
+df_global_agg <- df_rawch_s_eco_global %>% 
+  select(rawch_SOY, eco_code, ID, 
+         contains("Median"),
+         -TaxaAggregated_AnnualCrops_Median
+         #TaxaAggregated_AnnualCrops_Median
+  )
+df_global_agg2 <- F_clean_calc(df_global_agg)
+sv_global_calc <- merge(sv_eco, df_global_agg2)
+
+
+for (layer_name in sv_names) {
+  F_map(
+    plot_sv = sv_global_calc, 
+    layer_choice = layer_name, 
+    scale = "Global", 
+    breaks_n = 7, 
+    breaks_type = "fisher"
+  )
+}
+
+### ### ###
+
+# WORKS! NOW CLEAN IT!!! 
+# ALSO: Add Hard-Coded Legends instead of Fisher so we can compare between maps
 
 
 # ggplot ##
@@ -457,9 +574,12 @@ ggplot()+
   # add the ecoregion outlines
   geom_sf(data = sv_eco, fill = "transparent", color = "white", lwd = 0.1)
 
+
 # save plot
 ggsave(filename = paste0(folder_fig_biodiv, "/", "gg_reg_impact.png"),
        width = 14, height = 6, dpi = 300)
+
+
 
 # Graveyard -------
 
