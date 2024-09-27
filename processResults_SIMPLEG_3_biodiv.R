@@ -12,6 +12,11 @@
 # REQUIRES:
 ## SIMPLE-G Result files as 'SpatRasters' from 'processResults_SIMPLEG_2.R'
 
+
+# NEXT ------
+## Clean and convert to Jupyter Notebook
+## Add results from new (2024-09-15) model run to Working2 Draft along with new methods
+
 # # # # # # # # # # # # # # # # # # # # # # # # 
 rm(list = ls())
 getwd()
