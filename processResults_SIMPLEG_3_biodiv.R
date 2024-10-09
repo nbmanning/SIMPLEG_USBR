@@ -288,7 +288,7 @@ F_clean_forplots <- function(df){
     
     # Calculate error (difference between Median and l95/u95)
     mutate(
-      error_low = Median - lower95,   # Difference between Median and lower95
+      error_low = pmax(0, Median - lower95),   # Difference between Median and lower95, return 0 if negative
       error_high = upper95 - Median   # Difference between upper95 and Median
     )
   
@@ -297,6 +297,11 @@ F_clean_forplots <- function(df){
 }
 
 ## Plotting Fxn's
+# create custom color scheme for the bar and doughnut plots
+custom_colors <- c("Reptiles" = "#C77CFF",  # violet
+                   "Mammals" = "#00BFC4",  # darkcyan
+                   "Birds" = "#7CAE00",  # yellowgreen
+                   "Amphibians" = "#F8766D")  # lightcoral "#F8766D"
 
 F_plot <- function(df, scale){
   
@@ -325,15 +330,27 @@ F_plot <- function(df, scale){
   dev.off()
   
   #### Barplot ###
-  ggplot(df, aes(x=Taxa, y=Median)) + 
-    geom_bar(stat = "identity") +
+  ggplot(df, aes(x=Taxa, y=Median, fill = Taxa)) + 
+    geom_bar(stat = "identity")+ #fill = "gray20") +
+    # flip axes
     coord_flip()+
+    # add errorbar
     geom_errorbar(aes(
-      x=Taxa, 
+      x = Taxa, 
       ymin = error_low, 
-      ymax=error_high
-      ), 
-      width=0.4, colour="orange", alpha=0.9, linewidth=1.3)
+      ymax = error_high
+    ), 
+    width=0.4, colour="gray20", alpha=0.9, linewidth=0.5)+
+    theme_minimal()+
+    # add custom colors 
+    scale_fill_manual(values = custom_colors) +
+    theme(
+      axis.text = element_text(size = 16),
+      axis.title = element_blank(),
+      legend.position = "bottom",
+      legend.title = element_blank(),
+      legend.text = element_text(size = 18)
+    )  
   
   # save
   ggsave(
@@ -366,11 +383,12 @@ F_plot <- function(df, scale){
   ggplot(df, aes(ymax=ymax, ymin=ymin, xmax=4, xmin=3, fill=Taxa)) +
     geom_rect() +
     geom_label( x=3.5, aes(y=labelPosition, label=label), size=6) +
+    scale_fill_manual(values = custom_colors)+ 
     #scale_fill_brewer(palette=4) +
     coord_polar(theta="y") + # Try to remove that to understand how the chart is built initially
     xlim(c(2, 4))+ # Try to remove that to see how to make a pie chart
-    theme_void() #+
-    #theme(legend.position = "none") +
+    theme_void() +
+    theme(legend.position = "none") #+
     
   
   # save
@@ -388,6 +406,7 @@ df_reg <- F_clean_calc(df_rawch_s_eco_reg)
 
 # clean for plots 
 df_reg_sum <- F_clean_forplots(df_reg)
+
 
 # Plotting 
 F_plot(df_reg_sum, "Regional")
