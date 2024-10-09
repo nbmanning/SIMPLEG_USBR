@@ -29,6 +29,7 @@ library(rio)
 library(cowplot)
 library(dplyr)
 library(stringr)
+library(ggplot2)
 
 # SIMPLE-G maps 
 library(raster) # use for initial raster stack and basic plotting
@@ -626,7 +627,7 @@ F_ggplot_interval <- function(df, title_text, title_legend, save_title){
     scale_fill_whitebox_d(palette = "pi_y_g", direction = 1)+
     
     #geom_sf(data = vect(shp_ecoregions), color = "gray60", fill = "transparent", lwd = 0.1)+
-    geom_sf(data = vect(shp_countries), color = "gray60", fill = "transparent", lwd = 0.1)+
+    geom_sf(data = vect(shp_countries), color = "gray30", fill = "transparent", lwd = 0.2)+
     
     theme_minimal()+ 
     labs(
@@ -674,7 +675,7 @@ factor <- test3 %>%
 # run function to create plot
 F_ggplot_interval(
   df = factor, 
-  title_text = "Raw Change in Cropland Area",
+  title_text = "", #"Raw Change in Cropland Area",
   title_legend = "Area (1000 ha)",
   save_title = "gg_world_rawch_croplandarea.png")
 
@@ -700,7 +701,8 @@ F_ggplot_us_interval <- function(df, title_text, title_legend, save_title){
     #scale_fill_wiki_d(na.value = "white")
     scale_fill_whitebox_d(palette = "pi_y_g", direction = 1, drop = F)+
     
-    geom_sf(data = vect(shp_us), color = "gray60", fill = "transparent", lwd = 0.1)+
+    geom_sf(data = vect(shp_us), color = "gray30", fill = "transparent", lwd = 0.2)+
+    coord_sf(crs = "EPSG:2163")+ # Robinson
     
     theme_minimal()+
     labs(
@@ -750,7 +752,7 @@ F_ggplot_us_interval(
   df = factor, 
   title_text = "Raw Change in Cropland Area",
   title_legend = "Area (1000 ha)",
-  save_title = "gg_us_rawch_croplandarea.png")
+  save_title = "gg_us_rawch_croplandarea_2163.png")
 
 
 
@@ -795,6 +797,8 @@ F_ggplot_brcerr <- function(df, area, brks, pal, legend_title, p_title, save_tit
       legend.title = element_text(size = 14),
       legend.text = element_text(size = 10))#+
     
+    
+    
     # option to plot all the states containing any Cerrado biome
     #geom_sf(data = shp_cerr_states, color = "gray70", fill = "transparent", lwd = 0.2)+
     
@@ -818,7 +822,7 @@ F_ggplot_brcerr <- function(df, area, brks, pal, legend_title, p_title, save_tit
       # option to plot all the states containing any Cerrado biome
       geom_sf(data = shp_cerr_states, color = "gray70", fill = "transparent", lwd = 0.2)+
       # option to plot the outline of the Cerrado
-      geom_sf(data = shp_cerr, color = "black", fill = "transparent", lwd = 0.3)#+
+      geom_sf(data = shp_cerr, color = "black", fill = "transparent", lwd = 0.3)
   }
     
   else{
@@ -860,7 +864,8 @@ F_EDA(r_aoi = r_cerr, area_name = "Cerrado")
 
 
 ## 6.2: Cerrado Plot -------
-F_ggplot_brcerr(
+## NOTE: Cerrado is slightly different as a scale bar and N arrow are very helpful here
+p2 <- F_ggplot_brcerr(
   df = r_cerr %>% subset("rawch_QLAND"),
   area = "Cerrado",
   brks = waiver(),
@@ -868,6 +873,21 @@ F_ggplot_brcerr(
   legend_title = "Area (kha)",
   p_title = paste("Raw Change in Cerrado Cropland Area", pct_title),
   save_title = "gg_cerr_rawch_croplandarea.png")
+
+# call variable to save base map
+p2
+
+# Add scale bar and N arrow manually 
+library(ggspatial)
+p2 <- p2 +       
+  annotation_scale(location = "br", width_hint = 0.4) +  # Scale bar at the bottom right
+  annotation_north_arrow(location = "br", which_north = "true",  # North arrow at the bottom right
+                         pad_x = unit(0.1, "in"), pad_y = unit(0.3, "in"),
+                         style = north_arrow_minimal())
+
+p2
+ggsave(plot = p2, filename = paste0(folder_fig, "/", "gg_cerr_rawch_croplandarea_nscale.png"),
+       width = 12, height = 8, dpi = 300)
 
 # 7: Maize/Soy Summary Statistics --------
 
