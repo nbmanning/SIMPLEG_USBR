@@ -76,7 +76,7 @@ if (!(any(grepl(search_string, files_fig)))) {
 }
 
 
-### For 2024-03-03 run ###
+### For 2024-03-03 & 2024-09-15 runs ###
 datafile_version <- "sg1x3x10_v2409_US_Heat"
 pct <- "_m" # change when you change 'datafile'
 pct_title <- " - Med" # for plotting, either " - High" or " - Low" or "" or "- Med"
