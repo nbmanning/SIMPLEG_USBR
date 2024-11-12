@@ -481,6 +481,7 @@ exp$chg_mmt <- (exp$chg)/1000
 
 # exclude us
 exp_nous <- exp %>% filter(region_abv != "US")
+print(paste("Total Change in Exports (Excluding US): ", sum(exp_nous$chg_mmt)))
 
 ### 1.2.2 Imports ----------
 # Get Imports  
@@ -499,7 +500,6 @@ imp$chg_mmt <- (imp$chg)/1000
 
 # exclude us
 imp_nous <- imp %>% filter(region_abv != "US")
-
 
 ## 1.3: Vertical Barplots ------
 
@@ -535,6 +535,26 @@ col_pos <- "blue"
 ggsave(paste0(folder_fig, "bar_impexp.png"),
        p,
        width = 12, height = 6)
+
+## 1.4: Print Results for MS (excluding US) ------
+
+# Total Imp/Exp
+print(paste("Total Change in Exports (Excluding US): ", sum(exp_nous$chg_mmt)))
+print(paste("Total Change in Imports (Excluding US): ", sum(imp_nous$chg_mmt)))
+
+# Soy Imp/Exp
+print(paste("Total Change in Soy Exports (Excluding US): ", 
+            sum(exp_soy[!(exp_soy$region_abv %in% "US"),]$chg_mmt)))
+print(paste("Total Change in Soy Imports (Excluding US): ", 
+            sum(imp_soy[!(imp_soy$region_abv %in% "US"),]$chg_mmt)))
+
+
+# Corn Imp/Exp
+print(paste("Total Change in Corn Exports (Excluding US): ", 
+            sum(exp_corn[!(exp_corn$region_abv %in% "US"),]$chg_mmt)))
+print(paste("Total Change in Corn Imports (Excluding US): ", 
+            sum(imp_corn[!(imp_corn$region_abv %in% "US"),]$chg_mmt)))
+
 
 # 2: Load Shapefiles & SIMPLE-G Raster ------------------------------------------------------------------------
 
