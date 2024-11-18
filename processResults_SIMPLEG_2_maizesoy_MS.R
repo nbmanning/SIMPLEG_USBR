@@ -461,7 +461,8 @@ F_EDA <- function(r_aoi, area_name){
 # pct_model <- "m"
 
 # Load in data as xlsx (diff from previous) 
-source_path <- paste0(files_results_impexp, "regional_results.xlsx")
+# NOTE: Changed code here so there's no need to manually move 'regional_results.xlsx' from download folder to imports_exports
+source_path <- paste0(folder_results, "regional_results.xlsx")
 data_list <- import_list(source_path)
 
 ### 1.2.1: Exports -------
