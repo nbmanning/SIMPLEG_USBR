@@ -482,7 +482,7 @@ exp$chg_mmt <- (exp$chg)/1000
 
 # exclude us
 exp_nous <- exp %>% filter(region_abv != "US")
-print(paste("Total Change in Exports (Excluding US): ", sum(exp_nous$chg_mmt)))
+#print(paste("Total Change in Exports (Mmt) (Excluding US): ", sum(exp_nous$chg_mmt)))
 
 ### 1.2.2 Imports ----------
 # Get Imports  
@@ -540,8 +540,8 @@ ggsave(paste0(folder_fig, "bar_impexp.png"),
 ## 1.4: Print Results for MS (excluding US) ------
 
 # Total Imp/Exp
-print(paste("Total Change in Exports (Excluding US): ", sum(exp_nous$chg_mmt)))
-print(paste("Total Change in Imports (Excluding US): ", sum(imp_nous$chg_mmt)))
+print(paste("Total Change in Exports (Mmt) (Excluding US): ", sum(exp_nous$chg_mmt)))
+print(paste("Total Change in Imports (Mmt) (Excluding US): ", sum(imp_nous$chg_mmt)))
 
 # Soy Imp/Exp
 print(paste("Total Change in Soy Exports (Excluding US): ", 
