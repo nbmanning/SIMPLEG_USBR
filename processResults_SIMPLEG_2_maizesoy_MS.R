@@ -54,11 +54,11 @@ library(ggspatial) # N arrow and Scale Bar w tidyterrra
 ### Loading & Saving ###
 # Define the model date 
 # NOTE: Assumes the results are downloaded and saved in YYYY-MM-DD format
-date_string <- "2024-09-15"
+date_string <- "2024-11-15"
 date_string_nodash <- gsub("-", "", date_string)
 
 # Set model version & parameter flexibility
-datafile_version <- "sg1x3x10_v2409_US_Heat"
+datafile_version <- "sg1x3x10_v2411_US_Heat"
 pct <- "_m" # change when you change 'datafile'
 pct_model <- "m" # for the imp/exp cleaning
 
@@ -460,7 +460,7 @@ F_EDA <- function(r_aoi, area_name){
 # reset model variable here if you want to re-run with different amounts 
 # pct_model <- "m"
 
-# Load in data as xlsx (diff from previous)
+# Load in data as xlsx (diff from previous) 
 source_path <- paste0(files_results_impexp, "regional_results.xlsx")
 data_list <- import_list(source_path)
 
