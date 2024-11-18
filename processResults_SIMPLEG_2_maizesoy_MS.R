@@ -538,23 +538,84 @@ ggsave(paste0(folder_fig, "bar_impexp.png"),
        width = 12, height = 6)
 
 ## 1.4: Print Results for MS (excluding US) ------
+# US Reductions in Corn/SoyExports 
+print(paste("Total Change in US Soy Exports (Mmt) (Excluding US): ", exp_soy$chg_mmt[exp_soy$region_abv == "US"]))
+print(paste("Total Change in US Corn Exports (Mmt) (Excluding US): ", exp_corn$chg_mmt[exp_corn$region_abv == "US"]))
+exp_soy$chg_mmt[exp_soy$region_abv == "US"] + exp_corn$chg_mmt[exp_corn$region_abv == "US"]
 
-# Total Imp/Exp
+
+# Total Exp
 print(paste("Total Change in Exports (Mmt) (Excluding US): ", sum(exp_nous$chg_mmt)))
-print(paste("Total Change in Imports (Mmt) (Excluding US): ", sum(imp_nous$chg_mmt)))
-
-# Soy Imp/Exp
+# Soy/Corn Exp
 print(paste("Total Change in Soy Exports (Excluding US): ", 
             sum(exp_soy[!(exp_soy$region_abv %in% "US"),]$chg_mmt)))
-print(paste("Total Change in Soy Imports (Excluding US): ", 
-            sum(imp_soy[!(imp_soy$region_abv %in% "US"),]$chg_mmt)))
-
-
-# Corn Imp/Exp
 print(paste("Total Change in Corn Exports (Excluding US): ", 
             sum(exp_corn[!(exp_corn$region_abv %in% "US"),]$chg_mmt)))
+
+
+# Total Imp
+print(paste("Total Change in Imports (Mmt) (Excluding US): ", sum(imp_nous$chg_mmt)))
+# Soy/Corn Imp
+print(paste("Total Change in Soy Imports (Excluding US): ", 
+            sum(imp_soy[!(imp_soy$region_abv %in% "US"),]$chg_mmt)))
 print(paste("Total Change in Corn Imports (Excluding US): ", 
             sum(imp_corn[!(imp_corn$region_abv %in% "US"),]$chg_mmt)))
+
+# US Reductions in Corn/SoyExports 
+print(paste("Total Change in US Soy Imports (Mmt) (US Only): ", imp_soy$chg_mmt[imp_soy$region_abv == "US"]))
+print(paste("Total Change in US Corn Imports (Mmt) (US Only): ", imp_corn$chg_mmt[imp_corn$region_abv == "US"]))
+
+imp_soy$chg_mmt[imp_soy$region_abv == "US"] + imp_corn$chg_mmt[imp_corn$region_abv == "US"]
+
+## 1.5: Create Clean Results Sheet for Casc Effects Plot ----
+# clean data by running through each sheet with the above function 
+sheets <- names(data_list)
+data_clean <- lapply(X = sheets, FUN = F_clean_sheet, pct = "m")
+names(data_clean) <- names(data_list)
+data_clean <- lapply(X = data_clean, FUN = F_calc_totals)
+
+# Function for summarizing data - sums for .. and mean for ..
+F_calc_totals <- function(data){
+  ## add row for total changes ##
+  # Calculate sum for columns A and B, and mean for column C
+  summarised_data <- data %>%
+    summarise(
+      pre = sum(pre),
+      post = sum(post),
+    ) 
+  
+  # get character values from the dataset   
+  summarised_data <- summarised_data %>% 
+    mutate(
+      # ca
+      pct_chg = ((post-pre)/pre)*100,
+      chg = post-pre,
+      chg_mmt = chg/1000,
+      
+      region_abv = "Total",
+      variable = data$variable[1],
+      crop = data$crop[1],
+      type = data$type[1],
+      modeltype = data$modeltype[1]
+    )
+  
+  
+  # Add a row at the bottom with the total values
+  data <- summarised_data %>%
+    bind_rows(data, .)
+  
+  return(data)
+}
+
+# save clean sheet 
+rio::export(
+  data_clean, 
+  file = paste0(folder_results, 'regional_results_clean_', pct_model, '.xlsx'))
+
+
+### 1.5.1 Global Price Changes ----
+mean(data_clean$`Soy Exp Price index`$pct_chg)
+mean(data_clean$`Corn Exp Price index`$pct_chg)
 
 
 # 2: Load Shapefiles & SIMPLE-G Raster ------------------------------------------------------------------------
