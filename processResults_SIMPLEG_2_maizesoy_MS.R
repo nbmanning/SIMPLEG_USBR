@@ -911,7 +911,7 @@ ggsave(plot = p2, filename = paste0(folder_fig, "/", "gg_cerr_rawch_croplandarea
        width = 12, height = 8, dpi = 300)
 
 # 7: Maize/Soy Summary Statistics --------
-
+## 7.1: Sum of total changes for CSV ----
 # Fxn to get the total changes
 F_sum <- function(df, layer){
   test2 <- df %>% subset(layer)
@@ -984,6 +984,35 @@ write.csv(stat_SG_summary_maizesoy,
           file = paste0(
             folder_stat, "sg", pct, "_stat_summary_maizesoy_US_BR_Cerr_", date_string_nodash, ".csv"),
           row.names = F)
+
+## 7.2: Changes calculated for MS Abstract -------
+
+### t1 ----
+# Text:  Mean area of corn and soy land expansion per grid-cell in the Cerrado (32.2 ha) was ~1.6 times higher than in Brazil as a whole (24.2 ha).
+t_c1 <- as.numeric(terra::global(r_cerr$rawch_QLAND, fun = "mean", na.rm = T))
+t_br1 <- as.numeric(terra::global(r_br$rawch_QLAND, fun = "mean", na.rm = T))
+
+t_comp1 <- t_c1 / t_br1
+
+t_c1 / t_br1
+
+paste0("Mean area of corn and soy land expansion per grid-cell in the Cerrado, (",
+      round(t_c1*1000, 1), 
+      " ha) was", 
+      round(t_comp1, 2), 
+      " times higher than in Brazil as a whole (", 
+      round(t_br1*1000, 1),
+      " ha).")
+
+### t2 ----
+# We found, on average, that a 1 ha decrease in the amount of cropland dedicated to soybean in the US leads to a 0.20 increase in Cerrado soybean cropland. 
+t_c2 <- as.numeric(global(r_cerr$rawch_SOY, fun = "sum", na.rm = T))
+t_us2 <- as.numeric(global(r_us$rawch_SOY, fun = "sum", na.rm = T))
+t_comp2 <- t_c2 / t_us2
+
+paste0("We found, on average, that a 1 ha decrease in the amount of cropland dedicated to soybean in the US leads to a ",
+       format(round(t_comp2*-1, 2), nsmall = 2),  
+       " ha increase in Cerrado soybean cropland.")
 
 # 8: Transition Results: Doesn't Change with new Model Runs -----
 # set relevant vegetation class categories
