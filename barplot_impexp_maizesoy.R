@@ -7,6 +7,7 @@
 
 # REQUIRES:
 ## SIMPLE-G Result file as '.xlsx' 
+## You have to manually copy/paste this into the 'imports_exports' folder for some reason 
 
 # 0: Load Libraries & Set Constants ---- 
 rm(list = ls())
@@ -21,7 +22,7 @@ library(rio)
 ## Files ##
 getwd()
 
-date_string <- "2024-03-03"
+date_string <- "2024-11-15"
 
 folder_results <- paste0("../Results/SIMPLEG-", date_string, "/imports_exports/")
 
