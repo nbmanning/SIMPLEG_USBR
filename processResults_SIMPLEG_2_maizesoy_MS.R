@@ -377,8 +377,10 @@ F_calc_pct_change <- function(final, raw_ch){
 # Fxn to get summary of data, call the violin fxn, and plot a basic map
 F_EDA <- function(r_aoi, area_name){  
   # get and save a summary table
-  table_area <- summary(r_aoi, size = 1000000000) # set size to not use a sample
+  table_area <- summary(r_aoi, size = Inf) # set size to not use a sample
   print(table_area)
+  
+  table_area_10e6 <- summary(r_aoi*1000000, size = Inf) 
   
   # set variable for file path
   tables_file <- paste0(folder_results, "summary_tables/")
@@ -395,6 +397,10 @@ F_EDA <- function(r_aoi, area_name){
   # actually create the table as a CSV
   write.csv(table_area, file = paste0(folder_results, "summary_tables/", 
                                       "table_", area_name, pct, "_", date_string_nodash, ".csv"))
+  
+  # actually create the table as a CSV
+  write.csv(table_area_10e6, file = paste0(folder_results, "summary_tables/", 
+                                      "table_", area_name, pct, "_10e6_",  date_string_nodash, ".csv"))
   
   print("Totals for Casc. Effect Graph and for Total Change")
   
@@ -568,11 +574,6 @@ print(paste("Total Change in US Corn Imports (Mmt) (US Only): ", imp_corn$chg_mm
 imp_soy$chg_mmt[imp_soy$region_abv == "US"] + imp_corn$chg_mmt[imp_corn$region_abv == "US"]
 
 ## 1.5: Create Clean Results Sheet for Casc Effects Plot ----
-# clean data by running through each sheet with the above function 
-sheets <- names(data_list)
-data_clean <- lapply(X = sheets, FUN = F_clean_sheet, pct = "m")
-names(data_clean) <- names(data_list)
-data_clean <- lapply(X = data_clean, FUN = F_calc_totals)
 
 # Function for summarizing data - sums for .. and mean for ..
 F_calc_totals <- function(data){
@@ -607,6 +608,12 @@ F_calc_totals <- function(data){
   return(data)
 }
 
+# clean data by running through each sheet with the above function 
+sheets <- names(data_list)
+data_clean <- lapply(X = sheets, FUN = F_clean_sheet, pct = "m")
+names(data_clean) <- names(data_list)
+data_clean <- lapply(X = data_clean, FUN = F_calc_totals)
+
 # save clean sheet 
 rio::export(
   data_clean, 
@@ -614,8 +621,8 @@ rio::export(
 
 
 ### 1.5.1 Global Price Changes ----
-mean(data_clean$`Soy Exp Price index`$pct_chg)
-mean(data_clean$`Corn Exp Price index`$pct_chg)
+paste("Global Soy Price Change: ", mean(data_clean$`Soy Exp Price index`$pct_chg))
+paste("Global Corn Price Change: ", mean(data_clean$`Corn Exp Price index`$pct_chg))
 
 
 # 2: Load Shapefiles & SIMPLE-G Raster ------------------------------------------------------------------------
@@ -761,6 +768,20 @@ F_ggplot_interval(
   title_legend = "Area (1000 ha)",
   save_title = "gg_world_rawch_croplandarea.png")
 
+## 4.3: World Results w/o US ------
+# get extent as terra object for plotting
+us_vect <- vect(shp_us)
+
+# set CRS of extent spatial vector
+crs(us_vect) <- crs(r)
+
+## 
+r_no_us <- mask(r, us_vect, inverse = T)
+summary(r_no_us*1000000, size = Inf)
+summary(r*1000000, size = Inf)
+
+plot(r_no_us$rawch_QLAND)
+F_EDA(r_aoi = r_no_us, area_name = "World - No US")
 
 # 4: US Results ------------------------------------------------------------------------
 
@@ -837,6 +858,59 @@ F_ggplot_us_interval(
   save_title = "gg_us_rawch_croplandarea_2163.png")
 
 
+## 4.3 US Prod Plot for SI ------
+test3 <-  r_us %>%
+  subset("rawch_QCROP")
+
+# create df
+factor <- test3 %>%
+  mutate(
+    cats =
+      cut(rawch_QCROP,
+          breaks = c(-10, -5, -1, -0.1, -0.01,
+                     0.01, 0.5, 1, 2, 3))
+          # uncomment to match breaks with cropland expansion
+          # breaks = c(-5, -3, -1, -0.1, -0.01,
+          #            0.01, 0.25, 0.5, 1, 2))
+  )
+
+# run Fxn
+F_ggplot_us_interval(
+  df = factor, 
+  title_text = "Raw Change in Crop Production",
+  title_legend = "Prod. (tons CE)",
+  save_title = "gg_us_rawch_cropprod_2163.png")
+
+
+
+## 4.4: US Corn+Soy Changes (regional_results.xlsx) ----
+
+### prod -----
+ms_us_prod_pre <- data_clean$`Soy Production`$pre[data_clean$`Soy Production`$region_abv == "US"] + 
+  data_clean$`Corn Production`$pre[data_clean$`Corn Production`$region_abv == "US"]
+
+ms_us_prod_post <- data_clean$`Soy Production`$post[data_clean$`Soy Production`$region_abv == "US"] + 
+  data_clean$`Corn Production`$post[data_clean$`Corn Production`$region_abv == "US"]
+
+(ms_us_prod_pct_chg <- (ms_us_prod_post - ms_us_prod_pre) / ms_us_prod_pre)  
+
+### area -----
+ms_us_area_pre <- data_clean$`Soy Area`$pre[data_clean$`Soy Area`$region_abv == "US"] + 
+  data_clean$`Corn Area`$pre[data_clean$`Corn Area`$region_abv == "US"]
+
+ms_us_area_post <- data_clean$`Soy Area`$post[data_clean$`Soy Area`$region_abv == "US"] + 
+  data_clean$`Corn Area`$post[data_clean$`Corn Area`$region_abv == "US"]
+
+(ms_us_area_raw_chg <- ms_us_area_post - ms_us_area_pre)  
+
+### exports -------
+ms_us_exp_pre <- data_clean$`Soy Exp`$pre[data_clean$`Soy Exp`$region_abv == "US"] + 
+  data_clean$`Corn Exp`$pre[data_clean$`Corn Exp`$region_abv == "US"]
+
+ms_us_exp_post <- data_clean$`Soy Exp`$post[data_clean$`Soy Exp`$region_abv == "US"] + 
+  data_clean$`Corn Exp`$post[data_clean$`Corn Exp`$region_abv == "US"]
+
+ms_us_exp_pct_chg <- (ms_us_exp_post - ms_us_exp_pre) / ms_us_exp_pre  
 
 
 # 5: Brazil Results --------
@@ -902,7 +976,7 @@ F_ggplot_brcerr <- function(df, area, brks, pal, legend_title, p_title, save_tit
     # add outlines based on the AOI
     p <- p + 
       # option to plot all the states containing any Cerrado biome
-      geom_sf(data = shp_cerr_states, color = "gray70", fill = "transparent", lwd = 0.2)+
+      geom_sf(data = shp_cerr_states, color = "gray70", fill = "transparent", lwd = 0.2)+ 
       # option to plot the outline of the Cerrado
       geom_sf(data = shp_cerr, color = "black", fill = "transparent", lwd = 0.3)
   }
@@ -933,6 +1007,16 @@ F_ggplot_brcerr(df = r_br %>% subset("rawch_QLAND"),
                 legend_title = "Area (kha)",
                 p_title = paste("Change in BR Cropland Area", pct_title),
                 save_title = "gg_br_rawch_croplandarea.png")
+
+## 5.4 BR Prod Plot for SI -----
+F_ggplot_brcerr(df = r_br %>% subset("rawch_QCROP"),
+                brks = waiver(), 
+                area = "Brazil",
+                pal = "gn_yl", 
+                legend_title = "Prod. (tons CE)",
+                p_title = paste("Change in BR Crop Production", pct_title),
+                save_title = "gg_br_rawch_cropprod.png")
+
 
 
 # 6: Cerrado Results ----------
@@ -969,6 +1053,31 @@ p2 <- p2 +
 
 p2
 ggsave(plot = p2, filename = paste0(folder_fig, "/", "gg_cerr_rawch_croplandarea_nscale.png"),
+       width = 12, height = 8, dpi = 300)
+
+## 6.3 Cerrado Prod Plot fo SI --------
+p3 <- F_ggplot_brcerr(
+  df = r_cerr %>% subset("rawch_QCROP"),
+  area = "Cerrado",
+  brks = waiver(),
+  pal = "gn_yl", 
+  legend_title = "Production (tons CE)",
+  p_title = paste("Raw Change in Cerrado Crop Production Index", pct_title),
+  save_title = "gg_cerr_rawch_cropprod.png")
+
+# call variable to save base map
+p3
+
+# Add scale bar and N arrow manually 
+library(ggspatial)
+p3 <- p3 +       
+  annotation_scale(location = "br", width_hint = 0.4) +  # Scale bar at the bottom right
+  annotation_north_arrow(location = "br", which_north = "true",  # North arrow at the bottom right
+                         pad_x = unit(0.1, "in"), pad_y = unit(0.3, "in"),
+                         style = north_arrow_minimal())
+
+p3
+ggsave(plot = p3, filename = paste0(folder_fig, "/", "gg_cerr_rawch_cropprod_nscale.png"),
        width = 12, height = 8, dpi = 300)
 
 # 7: Maize/Soy Summary Statistics --------
@@ -1066,14 +1175,40 @@ paste0("Mean area of corn and soy land expansion per grid-cell in the Cerrado, (
       " ha).")
 
 ### t2 ----
+
+## SOY ## 
 # We found, on average, that a 1 ha decrease in the amount of cropland dedicated to soybean in the US leads to a 0.20 increase in Cerrado soybean cropland. 
-t_c2 <- as.numeric(global(r_cerr$rawch_SOY, fun = "sum", na.rm = T))
-t_us2 <- as.numeric(global(r_us$rawch_SOY, fun = "sum", na.rm = T))
-t_comp2 <- t_c2 / t_us2
+t_s_c2 <- as.numeric(global(r_cerr$rawch_SOY, fun = "sum", na.rm = T))
+t_s_us2 <- as.numeric(global(r_us$rawch_SOY, fun = "sum", na.rm = T))
+t_s_comp2 <- t_s_c2 / t_s_us2
 
 paste0("We found, on average, that a 1 ha decrease in the amount of cropland dedicated to soybean in the US leads to a ",
-       format(round(t_comp2*-1, 2), nsmall = 2),  
+       format(round(t_s_comp2*-1, 2), nsmall = 2),  
        " ha increase in Cerrado soybean cropland.")
+
+t_s_br2 <- as.numeric(global(r_br$rawch_SOY, fun = "sum", na.rm = T))
+t_s_comp2_usbr <- t_s_br2 / t_s_us2
+
+paste0("We found, on average, that a 1 ha decrease in the amount of cropland dedicated to soybean in the US leads to a ",
+       format(round(t_s_comp2_usbr*-1, 2), nsmall = 2),  
+       " ha increase in Brazil soybean cropland.")
+
+
+## C+S ##
+t_c2 <- as.numeric(global(r_cerr$rawch_QLAND, fun = "sum", na.rm = T))
+t_us2 <- as.numeric(global(r_us$rawch_QLAND, fun = "sum", na.rm = T))
+t_comp2 <- t_c2 / t_us2
+
+paste0("We found, on average, that a 1 ha decrease in the amount of cropland in the US leads to a ",
+       format(round(t_comp2*-1, 2), nsmall = 2),  
+       " ha increase in Cerradocropland.")
+
+t_br2 <- as.numeric(global(r_br$rawch_QLAND, fun = "sum", na.rm = T))
+t_comp2_usbr <- t_br2 / t_us2
+
+paste0("We found, on average, that a 1 ha decrease in the amount of cropland in the US leads to a ",
+       format(round(t_comp2_usbr*-1, 2), nsmall = 2),  
+       " ha increase in Brazil cropland.")
 
 # 8: Transition Results: Doesn't Change with new Model Runs -----
 # set relevant vegetation class categories
