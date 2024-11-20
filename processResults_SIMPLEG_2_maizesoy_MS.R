@@ -30,6 +30,7 @@ library(cowplot)
 library(dplyr)
 library(stringr)
 library(ggplot2)
+library(stringr)
 
 # SIMPLE-G maps 
 library(raster) # use for initial raster stack and basic plotting
@@ -389,17 +390,19 @@ F_clean_summary_tables <- function(area_name, pct){
     separate_wider_delim(new_QLAND, delim = ":", names = c("stat", "new_QLAND"), too_few = "align_start") %>%
     # remove everything before the colon (including the colon)
     mutate(across(where(is.character), ~ str_replace(., "^.*?:", ""))) %>% 
+    
+    # remove everything before the colon (including the colon)
+    mutate(across(where(is.character), ~ str_replace(., "^.*?:", ""))) %>% 
     # convert to numeric
     mutate(across(!stat, as.numeric)) %>% 
     # get rid of the total new land columns - we're only interested in change
     select(-c(new_QLAND, new_QCROP, new_LND_MAZ, new_LND_SOY)) %>%
-#!  # divide by 1000000 to get the accurate values (IF USING 10e6 VERSION)
-    mutate(across(where(is.numeric), ~ . / 1000000)) %>% 
     # add region column 
     mutate(reg = area_name) %>% 
     # rename columns for easy export
     rename(
       #"new_QLAND" new_QCROP new_LND_MAZ new_LND_SOY
+      "Stat" = "stat",
       "Percent Change in Total Land Area" = "pct_QLAND",
       "Raw Change in Total Land Area" = "rawch_QLAND", 
       "Percent Change in Total Crop Production" = "pct_QCROP",
@@ -409,12 +412,32 @@ F_clean_summary_tables <- function(area_name, pct){
       "Raw Change in Maize Area" = "rawch_MAZ", 
       "Percent Change in Soy Area" = "pct_LND_SOY",
       "Raw Change in Soy Area" = "rawch_SOY",
-      "_____" = "stat",
-      "region" = "reg")
+      "Region" = "reg") %>% 
+    # remove all apostrophes (e.g. to get NA's to NAs)
+    # Remove apostrophes from 'stat' column
+    mutate(Stat = str_replace_all(Stat, "'", "")) %>%
+    #!  # divide by 1000000 to get the accurate values (IF USING 10e6 VERSION)
+    mutate(across(
+      where(is.numeric),
+      ~ if_else(Stat != "NAs", . / 1000000, .)
+    ))
   
-  rio::export(df2, file = paste0(filename, ".xlsx"))
+  df2_round <- df2 %>% 
+    # Round each column to 3 decimal places if it is negative or greater than 0.01, else keep it the same
+    mutate(across(
+      where(is.numeric),
+      ~ if_else(. < 0 | . > 0.01, round(., 3), .)
+    ))
   
-  ## Part 2: AutoGenerate COlumn Widths ##
+
+  
+  # export the clean dataframe to an excel sheet so we can load it and work on spacing
+  rio::export(df2_round, file = paste0(filename, ".xlsx"))
+  # also export the whole values in case one rounds weird
+  rio::export(df2, file = paste0(filename, "_no_round", ".xlsx"))
+  
+  
+  ## Part 2: Auto-Generate Column Widths ##
   # load xlsx file 
   wb <- loadWorkbook(paste0(filename, ".xlsx"))
   # get sheet names 
@@ -1378,19 +1401,56 @@ print(agg_cerr %>% filter(year(year) >= 2013 & year(year) <= 2015))
 
 ## 8.2: Plot Line Plot of Cerrado Transition ------
 
+# set calculated r_cerr as a variable (note: unit is kha)
+sg_cerr_rawch_soy <- as.numeric(global(r_cerr$rawch_SOY, fun = "sum", size = Inf, na.rm = T))
+
 # filter to only include the relevant classes
-classes_few <- c("Temporary Crops", "Forest Formation", "Mosaic of Agriculture and Pasture",
+classes_few <- c(
+  #"Temporary Crops", 
+  "Forest Formation", "Mosaic of Agriculture and Pasture",
                  "Pasture", "Savanna Formation", "Grassland")
 
-df_cerr <- df_cerr %>%
+df_cerr_agg <- df_cerr %>%
   aggregate(ha ~ year + biome + from_level_3 + to_level_4, sum) %>%
   mutate(year = as.Date(paste(year, 1, 1), '%Y %m %d'))
 
-df_cerr <- filter(df_cerr, from_level_3 %in% classes_few)
+df_cerr_agg_from3 <- filter(df_cerr_agg, from_level_3 %in% classes_few)
 
 
+# --------------
+# load what will become "df" - generated from aggStats_MapBiomas
+load(file = paste0(folder_der, "mapb_col8_clean_long.Rdata"))
+
+# list of "Relevant Vegetation Classes"
+
+# filter level 4 data to only "To-Soybeans"
+df <- df %>% 
+  filter(to_level_4 == "Soy Beans") %>%
+  filter(to_level_4 != from_level_4)
+
+# filter to Cerrado
+# needs: muni_codes_cerr
+df_cerr <- df %>% 
+  filter(geocode %in% muni_codes_cerr) %>% 
+  filter(biome == "Cerrado")
+
+# filter to only land that came from one of the RVCs-to-Soybean
+agg_cerr_fromveg <- df_cerr %>% 
+  filter(from_level_3 %in% list_from_lv3) %>% 
+  aggregate(ha ~ year, sum) %>% 
+  mutate(year = as.Date(paste(year, 1, 1), '%Y %m %d')) %>% 
+  mutate(
+    biome = "Cerrado",
+    from_level_3 = "Sum of RVCs",
+    to_level_4 = "Soy Beans"
+  )
+
+# add to "from3" df
+df_cerr_RVC <- rbind(df_cerr_agg_from3, agg_cerr_fromveg)
+
+# Plot -- Add horizontal line here at the SIMPLE-G Results
 # plot line plot in Mha
-ggplot(df_cerr, aes(x=year, y=ha/1000000, color = from_level_3)) +
+ggplot(df_cerr_RVC, aes(x=year, y=ha/1000000, color = from_level_3)) +
   geom_line() +
   geom_point(fill = "white", size = 1.2) +
   xlab("")+
@@ -1401,7 +1461,10 @@ ggplot(df_cerr, aes(x=year, y=ha/1000000, color = from_level_3)) +
     color = "From-To Transitions"
   )+
   # add vertical line in 2012
-  geom_vline(xintercept = as.Date("2012-01-01"), color = "red",
+  geom_vline(xintercept = as.Date("2013-01-01"), color = "red",
+             linetype="dotted", linewidth=0.5)+
+  # add horizontal line where we calculated Cerrado transition 
+  geom_hline(yintercept = sg_cerr_rawch_soy/1000, color = "black",
              linetype="dotted", linewidth=0.5)+
   theme_bw()+
   theme(
@@ -1413,7 +1476,78 @@ ggplot(df_cerr, aes(x=year, y=ha/1000000, color = from_level_3)) +
   )
 
 # save
-ggsave(paste("../Figures/trans_mapbiomas/cerr_to_soybean.png"),
+ggsave(paste0(folder_fig, "cerr_to_soybean.png"),
        width = 14, height = 7)
 
+# now plot ONLY RVCs
+ggplot(agg_cerr_fromveg, aes(x=year, y=ha/1000000, color = from_level_3)) +
+  geom_line() +
+  geom_point(fill = "white", size = 1.2) +
+  xlab("")+
+  scale_x_date(date_labels = "%Y")+
+  labs(
+    #title = "From X to Soybean", # remove title to plot with transition map
+    y = "Land Change from Previous Year (Mha)",
+    color = "From-To Transitions"
+  )+
+  # add vertical line in 2012
+  geom_vline(aes(xintercept = as.Date("2013-01-01"), color = "Post-Drought"),
+             linetype="dotted", linewidth=0.5)+
+  
+  # add horizontal line where we calculated Cerrado transition 
+  geom_hline(aes(yintercept = sg_cerr_rawch_soy/1000, color = "SIMPLE-G"),
+             linetype="dashed", linewidth = 1)+
+  theme_bw()+
+  theme(
+    legend.title = element_blank(),
+    legend.text = element_text(size = 16),
+    legend.position = "bottom",
+    axis.title.y = element_text(size = 12),
+    plot.title = element_text(size = 17, hjust = 0.5)
+  )+
+  scale_color_manual(
+    values = c("SIMPLE-G" = "blue", "Sum of RVCs" = "black", "Post-Drought" = "red"))
 
+
+# save
+ggsave(paste0(folder_fig, "cerr_to_soybean_RVC.png"),
+       width = 14, height = 7)
+
+# # grabbed from aggStats_MapBiomas.R on 11/20
+# F_line<-function(data, aoi, class, file_name){
+#   p <- ggplot(data, aes(x = year, y = ha/1000000))+
+#     geom_line()+
+#     geom_point()+
+#     theme_minimal()+
+#     labs(
+#       title = paste("Annual Land Transition Across", aoi),
+#       subtitle = paste(class),
+#       y = "Land Transition (Mha)",
+#       x = ""
+#     )+
+#     # add horizontal line where we calculated Cerrado transition 
+#     geom_hline(yintercept = sg_cerr_rawch_soy/1000, color = "red",
+#                linetype="dotted", linewidth=0.5)+
+#     
+#     geom_vline(xintercept = as.Date("2013-01-01"), color = "red",
+#                linetype="dotted", linewidth=0.5)
+#   
+#   ggsave(filename = paste0(folder_fig, file_name),
+#          plot = p,
+#          width = 9, height = 6,
+#          dpi = 300)
+#   
+#   # print stats/data for publication
+#   print("Land Transitioned:")
+#   print(data %>% filter(year(year) >= 2012 & year(year) <= 2017))
+#   
+#   return(p)
+# }
+# 
+# 
+# F_line(data = agg_cerr_fromveg, aoi = "Cerrado", 
+#        class = "From Relevant Vegetation Classes to Soybean", 
+#        file_name = "line_cerr_fromveg.png")
+# 
+# print(agg_cerr_fromveg %>% filter(year(year) >= 2013 & year(year) <= 2015))
+# 
