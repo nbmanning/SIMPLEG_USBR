@@ -376,7 +376,8 @@ F_calc_pct_change <- function(final, raw_ch){
 # create function 
 F_clean_summary_tables <- function(area_name, pct){
   
-  csv2 <- read.csv(file = paste0(folder_results, "summary_tables/table_", area_name, pct, "_", date_string_nodash, ".csv"))
+  filename <- paste0(folder_results, "summary_tables/table_", area_name, pct, "_10e6_", date_string_nodash)
+  csv2 <- read.csv(file = paste0(filename, ".csv"))
   
   df2 <- csv2  %>% 
     select(-X) %>% 
@@ -392,6 +393,8 @@ F_clean_summary_tables <- function(area_name, pct){
     mutate(across(!stat, as.numeric)) %>% 
     # get rid of the total new land columns - we're only interested in change
     select(-c(new_QLAND, new_QCROP, new_LND_MAZ, new_LND_SOY)) %>%
+#!  # divide by 1000000 to get the accurate values (IF USING 10e6 VERSION)
+    mutate(across(where(is.numeric), ~ . / 1000000)) %>% 
     # add region column 
     mutate(reg = area_name) %>% 
     # rename columns for easy export
@@ -409,11 +412,11 @@ F_clean_summary_tables <- function(area_name, pct){
       "_____" = "stat",
       "region" = "reg")
   
-  rio::export(df2, file = paste0(folder_results, "summary_tables/cleantable_", area_name, pct, "_", date_string_nodash, ".xlsx"))
+  rio::export(df2, file = paste0(filename, ".xlsx"))
   
   ## Part 2: AutoGenerate COlumn Widths ##
   # load xlsx file 
-  wb <- loadWorkbook(paste0(folder_results, "summary_tables/cleantable_", area_name, pct, "_", date_string_nodash, ".xlsx"))
+  wb <- loadWorkbook(paste0(filename, ".xlsx"))
   # get sheet names 
   wb_sheet <- names(wb)
   # Adjust column widths based on column name lengths
@@ -427,7 +430,7 @@ F_clean_summary_tables <- function(area_name, pct){
   }
   
   # Save the updated workbook
-  saveWorkbook(wb, paste0(folder_results, "summary_tables/cleantable_", area_name, pct, "_", date_string_nodash, ".xlsx"), overwrite = TRUE)
+  saveWorkbook(wb, paste0(filename, ".xlsx"), overwrite = TRUE)
 }
 
 # Fxn to get summary of data, call the violin fxn, and plot a basic map
