@@ -1363,7 +1363,7 @@ shp_cerrmuni_fromveg <- shp_code_muni_in_cerr %>%
 F_facet<-function(data, aoi, class, file_name){
   # plot
   p <- ggplot(data)+
-    geom_sf(mapping = aes(fill = ha), color= NA)+
+    geom_sf(mapping = aes(fill = ha/1000), color= NA)+
     scale_fill_distiller(palette = "YlOrRd", direction = 1)+
     facet_wrap("year")+
     coord_sf()+
@@ -1372,11 +1372,13 @@ F_facet<-function(data, aoi, class, file_name){
     labs(
       title = paste("Land Transition Across", aoi),
       subtitle = paste(class),
-      fill = "Transition (ha)")+
+      fill = "Transition (kha)")+
 
     theme(
       plot.title = element_text(hjust = 0.5),
-      plot.subtitle = element_text(hjust = 0.5)
+      plot.subtitle = element_text(hjust = 0.5),
+      legend.position = "bottom"#,
+      #legend.key.size = unit(0.8, "cm")
     )
 
   # save
@@ -1471,7 +1473,7 @@ ggplot(df_cerr_RVC, aes(x=year, y=ha/1000000, color = from_level_3)) +
     legend.title = element_blank(),
     legend.text = element_text(size = 16),
     legend.position = "bottom",
-    axis.title.y = element_text(size = 12),
+    axis.title.y = element_text(size = 16),
     plot.title = element_text(size = 17, hjust = 0.5)
   )
 
@@ -1491,22 +1493,26 @@ ggplot(agg_cerr_fromveg, aes(x=year, y=ha/1000000, color = from_level_3)) +
     color = "From-To Transitions"
   )+
   # add vertical line in 2012
-  geom_vline(aes(xintercept = as.Date("2013-01-01"), color = "Post-Drought"),
+  geom_vline(aes(xintercept = as.Date("2013-01-01"), color = "Start of Post-Drought Period"),
              linetype="dotted", linewidth=0.5)+
   
   # add horizontal line where we calculated Cerrado transition 
-  geom_hline(aes(yintercept = sg_cerr_rawch_soy/1000, color = "SIMPLE-G"),
+  geom_hline(aes(yintercept = sg_cerr_rawch_soy/1000, color = "SIMPLE-G Estimate"),
              linetype="dashed", linewidth = 1)+
   theme_bw()+
   theme(
+    plot.title = element_text(size = 17, hjust = 0.5),
     legend.title = element_blank(),
     legend.text = element_text(size = 16),
     legend.position = "bottom",
-    axis.title.y = element_text(size = 12),
-    plot.title = element_text(size = 17, hjust = 0.5)
+    axis.title.y = element_text(size = 18),
+    axis.text.x = element_text(size = 16),
+    axis.text.y = element_text(size = 16),
   )+
   scale_color_manual(
-    values = c("SIMPLE-G" = "blue", "Sum of RVCs" = "black", "Post-Drought" = "red"))
+    values = c("SIMPLE-G Estimate" = "blue", 
+               "Sum of RVCs" = "black", 
+               "Start of Post-Drought Period" = "red"))
 
 
 # save
