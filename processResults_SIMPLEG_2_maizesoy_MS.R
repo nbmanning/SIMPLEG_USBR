@@ -1519,6 +1519,7 @@ ggplot(agg_cerr_fromveg, aes(x=year, y=ha/1000000, color = from_level_3)) +
 ggsave(paste0(folder_fig, "cerr_to_soybean_RVC.png"),
        width = 14, height = 7)
 
+
 # # grabbed from aggStats_MapBiomas.R on 11/20
 # F_line<-function(data, aoi, class, file_name){
 #   p <- ggplot(data, aes(x = year, y = ha/1000000))+
