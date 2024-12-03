@@ -44,6 +44,8 @@ library(sf)
 library(tidyterra) # plot using ggplot() instead of base R with 'terra'
 library(ggspatial) # N arrow and Scale Bar w tidyterrra
 
+# transition maps
+library(geobr)
 
 ## Constants ------
 
@@ -1301,6 +1303,8 @@ paste0("We found, on average, that a 1 ha decrease in the amount of cropland in 
 
 # 8: Transition Results: Doesn't Change with new Model Runs -----
 
+# NOTE: It is useful to clear the environment and re-run Sections 0 and 2 before running this section
+
 # set relevant vegetation class categories
 list_from_lv3 <- c("Forest Formation", "Savanna Formation", "Wetland",
                    "Grassland", "Pasture", "Forest Plantation",
@@ -1344,6 +1348,10 @@ df_cerr <- df %>%
 
 ### 8.1.2: Aggregate -------
 
+# PICK UP HERE ##
+# make years into XXXX-XXXX format, make years larger
+# make a panel with Land Trnasition Facet + Line Plot (A, B)
+
 # get aggregate sum of the entire Cerrado for stats
 agg_cerr <- df_cerr %>%
   aggregate(ha ~ year, sum) %>%
@@ -1353,14 +1361,17 @@ agg_cerr <- df_cerr %>%
 agg_cerrmuni_fromveg <- df_cerr %>%
   filter(from_level_3 %in% list_from_lv3) %>%
   aggregate(ha ~ year + geocode, sum) %>%
-  mutate(year = as.Date(paste(year, 1, 1), '%Y %m %d'))
+  mutate(year = as.numeric(year)) 
+
+  #mutate(year = as.Date(paste(year, 1, 1), '%Y %m %d'))
 
 # make shape -- from veg
 shp_cerrmuni_fromveg <- shp_code_muni_in_cerr %>%
   left_join(agg_cerrmuni_fromveg,
             join_by(code_muni == geocode)) %>%
-  mutate(year = year(year)) %>%
-  filter(year >= 2012 & year <= 2017)
+  #mutate(year = year(year)) %>%
+  filter(year >= 2012 & year <= 2017) %>% 
+  mutate(years = paste0(year-1,"-",year))
 
 ### 8.1.3: Plot Facet Map -------
 F_facet<-function(data, aoi, class, file_name){
@@ -1368,7 +1379,7 @@ F_facet<-function(data, aoi, class, file_name){
   p <- ggplot(data)+
     geom_sf(mapping = aes(fill = ha/1000), color= NA)+
     scale_fill_distiller(palette = "YlOrRd", direction = 1)+
-    facet_wrap("year")+
+    facet_wrap("years")+
     coord_sf()+
     theme_minimal()+
 
@@ -1380,7 +1391,8 @@ F_facet<-function(data, aoi, class, file_name){
     theme(
       plot.title = element_text(hjust = 0.5, size = 32),
       plot.subtitle = element_text(hjust = 0.5, size = 20),
-      legend.position = "bottom"#,
+      legend.position = "top",
+      strip.text.x = element_text(size = 14)#,
       #legend.key.size = unit(0.8, "cm")
     )
 
