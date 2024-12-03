@@ -31,6 +31,8 @@ library(dplyr)
 library(stringr)
 library(ggplot2)
 library(stringr)
+library(tidyr)
+library(openxlsx)
 
 # SIMPLE-G maps 
 library(raster) # use for initial raster stack and basic plotting
@@ -276,7 +278,7 @@ F_p_violin <- function(df, area){
   
   p2 <- bwplot(df_rawch_maizesoy, 
                main = list(paste(area, "Raw Change Maize & Soy", pct_title), cex = size_title),
-               ylab = list("Area (1000 ha)", cex = size_labels),
+               ylab = list("Area (kha)", cex = size_labels),
                scales=list(
                  x = list(rot=45, cex = size_labels),
                  y = list(cex = size_axis_nums))
@@ -492,7 +494,7 @@ F_EDA <- function(r_aoi, area_name){
   print("Totals for Casc. Effect Graph and for Total Change")
   
   # Print total change values then calculate % Change
-  cat("\n\nTotal Land Change (1000 ha)\n\n")
+  cat("\n\nTotal Land Change (kha)\n\n")
   print(global(r_aoi$new_QLAND, fun = "sum", na.rm = T))
   print(global(r_aoi$rawch_QLAND, fun = "sum", na.rm = T))
   
@@ -851,8 +853,8 @@ factor <- test3 %>%
 # run function to create plot
 F_ggplot_interval(
   df = factor, 
-  title_text = "", #"Raw Change in Cropland Area",
-  title_legend = "Area (1000 ha)",
+  title_text = "Global Change in Cropland Area",
+  title_legend = "Area (kha)",
   save_title = "gg_world_rawch_croplandarea.png")
 
 ## 4.3: World Results w/o US ------
@@ -868,7 +870,7 @@ summary(r_no_us*1000000, size = Inf)
 summary(r*1000000, size = Inf)
 
 plot(r_no_us$rawch_QLAND)
-F_EDA(r_aoi = r_no_us, area_name = "World - No US")
+F_EDA(r_aoi = r_no_us, area_name = "Rest of World")
 
 # 4: US Results ------------------------------------------------------------------------
 
@@ -907,15 +909,15 @@ F_ggplot_us_interval <- function(df, title_text, title_legend, save_title){
       plot.title = 
         element_text(
           hjust = 0.5, 
-          size = 22
+          size = 40
         ),
-      legend.title = element_text(size = 12),
+      legend.title = element_text(size = 24),
       legend.position = c(0.9, 0.25),
-      legend.text = element_text(size = 11)
+      legend.text = element_text(size = 14)
     )  
   
   ggsave(plot = p, filename = paste0(folder_fig, "/", save_title),
-         width = 18, height = 8, dpi = 300)
+         width = 16, height = 8, dpi = 300)
   
   return(p)
   
@@ -940,8 +942,8 @@ factor <- test3 %>%
 # run Fxn
 F_ggplot_us_interval(
   df = factor, 
-  title_text = "Raw Change in Cropland Area",
-  title_legend = "Area (1000 ha)",
+  title_text = "Change in US Cropland Area",
+  title_legend = "Area (kha)",
   save_title = "gg_us_rawch_croplandarea_2163.png")
 
 
@@ -1033,7 +1035,7 @@ F_ggplot_brcerr <- function(df, area, brks, pal, legend_title, p_title, save_tit
     
     theme(
       # set plot size and center it 
-      plot.title = element_text(size = 16, hjust = 0.5),
+      plot.title = element_text(size = 24, hjust = 0.5),
       # put legend in the bottom right 
       #legend.position = c(0.15, 0.2),
       legend.position = c(0.1, 0.15),
@@ -1124,7 +1126,7 @@ p2 <- F_ggplot_brcerr(
   brks = waiver(),
   pal = "gn_yl", 
   legend_title = "Area (kha)",
-  p_title = paste("Raw Change in Cerrado Cropland Area", pct_title),
+  p_title = paste("Change in Cerrado Cropland Area", pct_title),
   save_title = "gg_cerr_rawch_croplandarea.png")
 
 # call variable to save base map
@@ -1148,8 +1150,8 @@ p3 <- F_ggplot_brcerr(
   area = "Cerrado",
   brks = waiver(),
   pal = "gn_yl", 
-  legend_title = "Production (tons CE)",
-  p_title = paste("Raw Change in Cerrado Crop Production Index", pct_title),
+  legend_title = "Production\n(1000-tons CE)",
+  p_title = paste("Change in Cerrado Crop Production Index", pct_title),
   save_title = "gg_cerr_rawch_cropprod.png")
 
 # call variable to save base map
@@ -1298,6 +1300,7 @@ paste0("We found, on average, that a 1 ha decrease in the amount of cropland in 
        " ha increase in Brazil cropland.")
 
 # 8: Transition Results: Doesn't Change with new Model Runs -----
+
 # set relevant vegetation class categories
 list_from_lv3 <- c("Forest Formation", "Savanna Formation", "Wetland",
                    "Grassland", "Pasture", "Forest Plantation",
@@ -1375,8 +1378,8 @@ F_facet<-function(data, aoi, class, file_name){
       fill = "Transition (kha)")+
 
     theme(
-      plot.title = element_text(hjust = 0.5),
-      plot.subtitle = element_text(hjust = 0.5),
+      plot.title = element_text(hjust = 0.5, size = 32),
+      plot.subtitle = element_text(hjust = 0.5, size = 20),
       legend.position = "bottom"#,
       #legend.key.size = unit(0.8, "cm")
     )
