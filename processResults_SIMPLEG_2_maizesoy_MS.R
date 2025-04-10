@@ -57,28 +57,29 @@ library(geobr)
 
 
 ### Loading & Saving ###
-# Define the model date 
-# NOTE: Assumes the results are downloaded and saved in YYYY-MM-DD format
-date_string <- "2024-11-15"
-date_string_nodash <- gsub("-", "", date_string)
 
 # Set model version & parameter flexibility
 datafile_version <- "sg1x3x10_v2411_US_Heat"
-pct <- "_m" # change when you change 'datafile'
-pct_model <- "m" # for the imp/exp cleaning
+pct <- "_l" # change when you change 'datafile'
+pct_model <- "l" # for the imp/exp cleaning, either l, m, h
 
 #pct_title <- " - Med" # for plotting, either " - High" or " - Low" or "" or "- Med"
-pct_title <- "" # note: changed Aug 2024 by setting -med to nothing, as it is the default
+pct_title <- " - Low" # note: changed Aug 2024 by setting -med to nothing, as it is the default
+
+# Define the model date 
+# NOTE: Assumes the results are downloaded and saved in YYYY-MM-DD format
+date_string <- paste0("2024-11-15")
+date_string_nodash <- gsub("-", "", date_string)
 
 # create vars to house results
 folder_der <- "../Data_Derived/"
 folder_der_date <- paste0(folder_der, date_string, "/")
 
 folder_fig <- "../Figures/"
-folder_fig <- paste0(folder_fig, date_string, "/")
+folder_fig <- paste0(folder_fig, date_string, "/", pct_model, "/")
 
-folder_results <- paste0("../Results/SIMPLEG-", date_string, "/")
-folder_results_impexp <- paste0("../Results/SIMPLEG-", date_string, "/imports_exports/")
+folder_results <- paste0("../Results/SIMPLEG-", date_string, "/", pct_model, "/")
+folder_results_impexp <- paste0("../Results/SIMPLEG-", date_string,"/", pct_model, "/imports_exports/")
 
 folder_stat <- paste0(folder_results, "stat_summary/")
 
@@ -120,6 +121,16 @@ if (!(any(grepl(date_string, files_results_impexp)))) {
 
 # check for figures folder
 if (!(any(grepl(date_string, files_fig)))) {
+  # If no file name contains the search string, create a folder with that string
+  dir.create(paste0(folder_fig))
+  
+  cat("Figure Folder", date_string, "created.\n")
+} else {
+  cat("A figures folder with the string", date_string, "in its name already exists.\n")
+}
+
+# check for stat summary folder
+if (!(any(grepl(date_string, files_stat)))) {
   # If no file name contains the search string, create a folder with that string
   dir.create(paste0(folder_fig))
   
@@ -558,7 +569,8 @@ F_EDA <- function(r_aoi, area_name){
 # pct_model <- "m"
 
 # Load in data as xlsx (diff from previous) 
-# NOTE: Changed code here so there's no need to manually move 'regional_results.xlsx' from download folder to imports_exports
+# NOTE: MANUALLY MOVE regional_results.xlsx to each scenario folder
+# Changed code here so there's no need to manually move 'regional_results.xlsx' from download folder to imports_exports
 source_path <- paste0(folder_results, "regional_results.xlsx")
 data_list <- import_list(source_path)
 
@@ -969,7 +981,7 @@ factor <- test3 %>%
 F_ggplot_us_interval(
   df = factor, 
   title_text = "Raw Change in Crop Production",
-  title_legend = "Prod. (tons CE)",
+  title_legend = "CPI (1000-tons CE)",
   save_title = "gg_us_rawch_cropprod_2163.png")
 
 
@@ -1104,7 +1116,7 @@ F_ggplot_brcerr(df = r_br %>% subset("rawch_QCROP"),
                 brks = waiver(), 
                 area = "Brazil",
                 pal = "gn_yl", 
-                legend_title = "Prod. (tons CE)",
+                legend_title = "CPI (tons CE)",
                 p_title = paste("Change in BR Crop Production", pct_title),
                 save_title = "gg_br_rawch_cropprod.png")
 
@@ -1152,7 +1164,7 @@ p3 <- F_ggplot_brcerr(
   area = "Cerrado",
   brks = waiver(),
   pal = "gn_yl", 
-  legend_title = "Production\n(1000-tons CE)",
+  legend_title = "CPI\n(1000-tons CE)",
   p_title = paste("Change in Cerrado Crop Production Index", pct_title),
   save_title = "gg_cerr_rawch_cropprod.png")
 
@@ -1243,7 +1255,7 @@ stat_SG_summary_maizesoy <- rbind(stat_SG_US_maizesoy, stat_SG_BR_maizesoy, stat
 # save
 write.csv(stat_SG_summary_maizesoy, 
           file = paste0(
-            folder_stat, "sg", pct, "_stat_summary_maizesoy_US_BR_Cerr_", date_string_nodash, ".csv"),
+            folder_results, "sg", pct, "_stat_summary_maizesoy_US_BR_Cerr_", date_string_nodash, ".csv"),
           row.names = F)
 
 ## 7.2: Changes calculated for MS Abstract -------
@@ -1301,6 +1313,9 @@ paste0("We found, on average, that a 1 ha decrease in the amount of cropland in 
        format(round(t_comp2_usbr*-1, 2), nsmall = 2),  
        " ha increase in Brazil cropland.")
 
+
+
+
 # 8: Transition Results: Doesn't Change with new Model Runs -----
 
 # NOTE: It is useful to clear the environment and re-run Sections 0 and 2 before running this section
@@ -1355,7 +1370,8 @@ df_cerr <- df %>%
 # get aggregate sum of the entire Cerrado for stats
 agg_cerr <- df_cerr %>%
   aggregate(ha ~ year, sum) %>%
-  mutate(year = as.Date(paste(year, 1, 1), '%Y %m %d'))
+  #mutate(year = as.Date(paste(year, 1, 1), '%Y %m %d'))
+  mutate(year = as.numeric(year)) 
 
 # get agg sum of certain 'from' classes for mapping
 agg_cerrmuni_fromveg <- df_cerr %>%
@@ -1374,47 +1390,49 @@ shp_cerrmuni_fromveg <- shp_code_muni_in_cerr %>%
   mutate(years = paste0(year-1,"-",year))
 
 ### 8.1.3: Plot Facet Map -------
-F_facet<-function(data, aoi, class, file_name){
-  # plot
-  p <- ggplot(data)+
-    geom_sf(mapping = aes(fill = ha/1000), color= NA)+
-    scale_fill_distiller(palette = "YlOrRd", direction = 1)+
-    facet_wrap("years")+
-    coord_sf()+
-    theme_minimal()+
 
-    labs(
-      title = paste("Land Transition Across", aoi),
-      subtitle = paste(class),
-      fill = "Transition (kha)")+
+#F_facet<-function(data, aoi, class, file_name)
+# # Run Fxn
+# F_facet(shp_cerrmuni_fromveg,
+#         aoi = "Cerrado",
+#         class = "From Relevant Vegetation Classes to Soybean",
+#         file_name = "cerr_fromveg.png")
 
-    theme(
-      plot.title = element_text(hjust = 0.5, size = 32),
-      plot.subtitle = element_text(hjust = 0.5, size = 20),
-      legend.position = "top",
-      strip.text.x = element_text(size = 14)#,
-      #legend.key.size = unit(0.8, "cm")
-    )
 
-  # save
-  ggsave(filename = paste0(folder_fig, file_name),
-         plot = p,
-         width = 8, height = 8,
-         dpi = 300)
+# plot
+p_trans_shp <- ggplot(shp_cerrmuni_fromveg)+
+  geom_sf(mapping = aes(fill = ha/1000), color= NA)+
+  scale_fill_distiller(palette = "YlOrRd", direction = 1)+
+  facet_wrap("years")+
+  coord_sf()+
+  theme_minimal()+
+  
+  labs(
+    title = "Land Transition Across Cerrado",
+    subtitle = "From Relevant Vegetation Classes to Soybean",
+    fill = "Transition (kha)")+
+  
+  theme(
+    plot.title = element_text(hjust = 0.5, size = 32),
+    plot.subtitle = element_text(hjust = 0.5, size = 20),
+    legend.position = "top",
+    strip.text.x = element_text(size = 14)#,
+    #legend.key.size = unit(0.8, "cm")
+  )
 
-  return(p)
-}
+p_trans_shp
 
-# Run Fxn
-F_facet(shp_cerrmuni_fromveg,
-        aoi = "Cerrado",
-        class = "From Relevant Vegetation Classes to Soybean",
-        file_name = "cerr_fromveg.png")
+# save
+ggsave(filename = paste0(folder_fig, "cerr_fromveg.png"),
+       plot = p_trans_shp,
+       width = 8, height = 8,
+       dpi = 300)
+
 
 
 ### 8.1.4: Save Stats -----
 # print stats
-print(agg_cerr %>% filter(year(year) >= 2013 & year(year) <= 2015))
+print(agg_cerr %>% filter(year >= 2013 & year <= 2015))
 
 ## 8.2: Plot Line Plot of Cerrado Transition ------
 
@@ -1429,86 +1447,97 @@ classes_few <- c(
 
 df_cerr_agg <- df_cerr %>%
   aggregate(ha ~ year + biome + from_level_3 + to_level_4, sum) %>%
-  mutate(year = as.Date(paste(year, 1, 1), '%Y %m %d'))
+  #mutate(year = as.Date(paste(year, 1, 1), '%Y %m %d'))
+  mutate(year = as.numeric(year)) 
+
 
 df_cerr_agg_from3 <- filter(df_cerr_agg, from_level_3 %in% classes_few)
 
 
-# --------------
+## --------------
 # load what will become "df" - generated from aggStats_MapBiomas
-load(file = paste0(folder_der, "mapb_col8_clean_long.Rdata"))
+#load(file = paste0(folder_der, "mapb_col8_clean_long.Rdata"))
 
 # list of "Relevant Vegetation Classes"
 
-# filter level 4 data to only "To-Soybeans"
-df <- df %>% 
-  filter(to_level_4 == "Soy Beans") %>%
-  filter(to_level_4 != from_level_4)
-
-# filter to Cerrado
-# needs: muni_codes_cerr
-df_cerr <- df %>% 
-  filter(geocode %in% muni_codes_cerr) %>% 
-  filter(biome == "Cerrado")
-
-# filter to only land that came from one of the RVCs-to-Soybean
-agg_cerr_fromveg <- df_cerr %>% 
-  filter(from_level_3 %in% list_from_lv3) %>% 
-  aggregate(ha ~ year, sum) %>% 
-  mutate(year = as.Date(paste(year, 1, 1), '%Y %m %d')) %>% 
+# # filter level 4 data to only "To-Soybeans"
+# df <- df %>% 
+#   filter(to_level_4 == "Soy Beans") %>%
+#   filter(to_level_4 != from_level_4)
+# 
+# # filter to Cerrado
+# # needs: muni_codes_cerr
+# df_cerr <- df %>% 
+#   filter(geocode %in% muni_codes_cerr) %>% 
+#   filter(biome == "Cerrado")
+# 
+# # filter to only land that came from one of the RVCs-to-Soybean
+agg_cerr_fromveg <- df_cerr %>%
+  filter(from_level_3 %in% list_from_lv3) %>%
+  aggregate(ha ~ year, sum) %>%
+  #mutate(year = as.Date(paste(year, 1, 1), '%Y %m %d')) %>%
   mutate(
     biome = "Cerrado",
     from_level_3 = "Sum of RVCs",
-    to_level_4 = "Soy Beans"
+    to_level_4 = "Soy Beans",
+    year = as.numeric(year),
+    years = paste0(year-1,"-",year)
   )
 
 # add to "from3" df
 df_cerr_RVC <- rbind(df_cerr_agg_from3, agg_cerr_fromveg)
 
+# add year transitions
+df_cerr_RVC <- df_cerr_RVC %>% mutate(years = paste0(year-1,"-",year))
+
 # Plot -- Add horizontal line here at the SIMPLE-G Results
 # plot line plot in Mha
-ggplot(df_cerr_RVC, aes(x=year, y=ha/1000000, color = from_level_3)) +
+ggplot(df_cerr_RVC, aes(x=years, group = from_level_3, y=ha/1000000, color = from_level_3)) +
   geom_line() +
   geom_point(fill = "white", size = 1.2) +
-  xlab("")+
-  scale_x_date(date_labels = "%Y")+
+  xlab("") +
   labs(
     #title = "From X to Soybean", # remove title to plot with transition map
     y = "Land Change from Previous Year (Mha)",
     color = "From-To Transitions"
   )+
   # add vertical line in 2012
-  geom_vline(xintercept = as.Date("2013-01-01"), color = "red",
+  geom_vline(xintercept = "2012-2013", color = "red",
              linetype="dotted", linewidth=0.5)+
   # add horizontal line where we calculated Cerrado transition 
   geom_hline(yintercept = sg_cerr_rawch_soy/1000, color = "black",
              linetype="dotted", linewidth=0.5)+
   theme_bw()+
   theme(
+    plot.title = element_text(size = 17, hjust = 0.5),
+    
     legend.title = element_blank(),
     legend.text = element_text(size = 16),
     legend.position = "bottom",
+    
     axis.title.y = element_text(size = 16),
-    plot.title = element_text(size = 17, hjust = 0.5)
+    
+    axis.text.x = element_text(angle = 90, vjust = 0.5, size = 11)
   )
+
 
 # save
 ggsave(paste0(folder_fig, "cerr_to_soybean.png"),
        width = 14, height = 7)
 
 # now plot ONLY RVCs
-ggplot(agg_cerr_fromveg, aes(x=year, y=ha/1000000, color = from_level_3)) +
+p_trans_line <- ggplot(agg_cerr_fromveg, aes(x=years, y=ha/1000000, group = from_level_3, color = from_level_3)) +
   geom_line() +
   geom_point(fill = "white", size = 1.2) +
   xlab("")+
-  scale_x_date(date_labels = "%Y")+
+  #scale_x_date(date_labels = "%Y")+
   labs(
     #title = "From X to Soybean", # remove title to plot with transition map
     y = "Land Change from Previous Year (Mha)",
     color = "From-To Transitions"
   )+
   # add vertical line in 2012
-  geom_vline(aes(xintercept = as.Date("2013-01-01"), color = "Start of Post-Drought Period"),
+  geom_vline(aes(xintercept = "2012-2013", color = "Start of Post-Drought Period"),
              linetype="dotted", linewidth=0.5)+
   
   # add horizontal line where we calculated Cerrado transition 
@@ -1520,8 +1549,8 @@ ggplot(agg_cerr_fromveg, aes(x=year, y=ha/1000000, color = from_level_3)) +
     legend.title = element_blank(),
     legend.text = element_text(size = 16),
     legend.position = "bottom",
-    axis.title.y = element_text(size = 18),
-    axis.text.x = element_text(size = 16),
+    axis.title.y = element_text(size = 16),
+    axis.text.x = element_text(angle = 90, vjust = 0.5, size = 16),
     axis.text.y = element_text(size = 16),
   )+
   scale_color_manual(
@@ -1529,11 +1558,38 @@ ggplot(agg_cerr_fromveg, aes(x=year, y=ha/1000000, color = from_level_3)) +
                "Sum of RVCs" = "black", 
                "Start of Post-Drought Period" = "red"))
 
+p_trans_line
 
 # save
 ggsave(paste0(folder_fig, "cerr_to_soybean_RVC.png"),
        width = 14, height = 7)
 
+## 8.XX Plot together ----------
+p_trans <- plot_grid(
+  # Top plot with extra padding for alignment
+  plot_grid(p_trans_shp, NULL, ncol = 1, rel_heights = c(1, 0.05), labels = "A"), 
+  # Bottom plot
+  plot_grid(NULL, p_trans_line, NULL, ncol = 3, rel_widths = c(0.2, 1, 0.2), labels = "B"),
+  nrow = 2,
+  rel_heights = c(1.5, 1), # Adjust heights: top plot taller
+  align = "v",
+  axis = "tb"
+)
+
+p_trans
+
+ggsave(paste0(folder_fig, "_line.png"),
+       p_trans, width = 10, height = 14, units = "in", dpi = 300)
+
+
+# p_trans <- plot_grid(p_trans_shp, p_trans_line, 
+#                      nrow = 2, labels = "AUTO",
+#                      align = "v", axis = "tb"
+#                      # rel_heights = c(1,1),
+#                      #rel_widths = c(1,4)
+#                      #scale = c(1,0.5)
+#                      )
+# p_trans
 
 # # grabbed from aggStats_MapBiomas.R on 11/20
 # F_line<-function(data, aoi, class, file_name){
