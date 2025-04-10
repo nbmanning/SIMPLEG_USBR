@@ -60,11 +60,11 @@ library(geobr)
 
 # Set model version & parameter flexibility
 datafile_version <- "sg1x3x10_v2411_US_Heat"
-pct <- "_m" # change when you change 'datafile'
-pct_model <- "m" # for the imp/exp cleaning, either l, m, h
+pct <- "_h" # change when you change 'datafile'
+pct_model <- "h" # for the imp/exp cleaning, either l, m, h
 
 #pct_title <- " - Med" # for plotting, either " - High" or " - Low" or "" or "- Med"
-pct_title <- " - Med" # note: changed Aug 2024 by setting -med to nothing, as it is the default
+pct_title <- " - High" # note: changed Aug 2024 by setting -med to nothing, as it is the default
 
 # Define the model date 
 # NOTE: Assumes the results are downloaded and saved in YYYY-MM-DD format
@@ -130,14 +130,14 @@ if (!(any(grepl(date_string, files_fig)))) {
 }
 
 # check for stat summary folder
-if (!(any(grepl(date_string, files_stat)))) {
-  # If no file name contains the search string, create a folder with that string
-  dir.create(paste0(folder_fig))
-  
-  cat("Figure Folder", date_string, "created.\n")
-} else {
-  cat("A figures folder with the string", date_string, "in its name already exists.\n")
-}
+# if (!(any(grepl(date_string, files_stat)))) {
+#   # If no file name contains the search string, create a folder with that string
+#   dir.create(paste0(folder_fig))
+#   
+#   cat("Figure Folder", date_string, "created.\n")
+# } else {
+#   cat("A figures folder with the string", date_string, "in its name already exists.\n")
+# }
 
 # 0: Functions ------------------------------------------------------------------------
 
