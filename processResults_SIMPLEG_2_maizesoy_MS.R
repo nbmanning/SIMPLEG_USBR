@@ -60,11 +60,11 @@ library(geobr)
 
 # Set model version & parameter flexibility
 datafile_version <- "sg1x3x10_v2411_US_Heat"
-pct <- "_l" # change when you change 'datafile'
-pct_model <- "l" # for the imp/exp cleaning, either l, m, h
+pct <- "_m" # change when you change 'datafile'
+pct_model <- "m" # for the imp/exp cleaning, either l, m, h
 
 #pct_title <- " - Med" # for plotting, either " - High" or " - Low" or "" or "- Med"
-pct_title <- " - Low" # note: changed Aug 2024 by setting -med to nothing, as it is the default
+pct_title <- " - Med" # note: changed Aug 2024 by setting -med to nothing, as it is the default
 
 # Define the model date 
 # NOTE: Assumes the results are downloaded and saved in YYYY-MM-DD format
