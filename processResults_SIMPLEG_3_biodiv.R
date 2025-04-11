@@ -38,7 +38,7 @@ library(rio)
 ## Constants ####
 
 # set folders 
-date_string <- "2024-09-15"
+date_string <- "2024-11-15"
 
 folder_der <- "../Data_Derived/"
 folder_der <- paste0(folder_der, date_string, "/")
@@ -47,13 +47,14 @@ folder_fig <- "../Figures/"
 folder_fig <- paste0(folder_fig, date_string, "/")
 
 # set pct
-pct <- "_m" # either "_l" , "_m" , or "_h"
-pct_title <- " - Med"
+pct <- "_h" # either "_l" , "_m" , or "_h"
+pct_model <- "h"
+pct_title <- " - High"
 crop <- "soy" # either maize, soy, or sm (Soy+Maize)
 layer_choice <- "rawch_SOY"
 
 # Create Biodiversity plotting folder 
-folder_fig_biodiv <- paste0(folder_fig, "/biodiversity/")
+folder_fig_biodiv <- paste0(folder_fig, pct_model,  "/biodiversity/")
 files_fig_impexp <- list.dirs(folder_fig_biodiv)
 
 # do the same but specifically for imp/exp folder
@@ -65,6 +66,9 @@ if (!(any(grepl(date_string, files_fig_impexp)))) {
 } else {
   cat("A Biodiversity figures folder with the string", date_string, "in its name already exists.\n")
 }
+
+# Create Biodiversity results folder (for process_Reults_4) 
+folder_results_biodiv <- paste0("../Results/SIMPLEG-", date_string,  "/", pct_model, "/")
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
 
@@ -112,6 +116,7 @@ if (!(any(grepl(date_string, files_fig_impexp)))) {
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
 
 ### Load Corrected Ecoregions here -----
+# raw_eco <- st_read("../Data_Source/wwf_ecoregions/wwf_terr_ecos.shp")
 eco <- st_read("../Data_Source/wwf_ecoregions/agg_wwf_terr_ecos_fixed_ecocode.shp")
 
 
@@ -200,11 +205,11 @@ df_rawch_ecoreg <- merge(df_rawch_ecoreg, df_sv_eco[, c("ID", "eco_code")], by =
 ## 3) made each column name tidy by unmerging cells and moving the land cover and stat (median, uppper95, lower95) to the title; e.g. Mammals_AnnualCrops_Median
 
 # load in regional and global CFs for each ecoregion
-cf_regional <- rio::import("../Data_Source/CFs/Chaudhary2015_SI3_CFsEcoregions_AnnualCrops.xlsx",
+cf_regional <- rio::import("../Data_Source/CFs/Chaudhary2015_SI2_cSAR_CFsEcoregions.xlsx",
                            which = "Trans_marginal_regional", 
                            skip = 3)
 
-cf_global <- rio::import("../Data_Source/CFs/Chaudhary2015_SI3_CFsEcoregions_AnnualCrops.xlsx",
+cf_global <- rio::import("../Data_Source/CFs/Chaudhary2015_SI2_cSAR_CFsEcoregions.xlsx",
                          which = "Trans_marginal_global",
                          skip = 3)
 
@@ -423,6 +428,11 @@ df_global_sum <- F_clean_forplots(df_global)
 # Plotting 
 F_plot(df_global_sum, "Global")
 
+## Save Reg. & Global --------
+save(df_global_sum, file = paste0(folder_results_biodiv, "df_global_sum", pct, ".RData"))
+save(df_reg_sum, file = paste0(folder_results_biodiv, "df_reg_sum", pct, ".RData"))
+
+
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
@@ -490,33 +500,34 @@ F_map <- function(layer_choice, plot_sv, scale, breaks_n, breaks_type){
   plot_sv$cut_data <- cut_data
   
   # Create labels for the Jenks breaks
-  cut_labels <- paste0("[", round(type_breaks[-length(type_breaks)], 0), 
+  cut_labels <- paste0("[", pmax(round(type_breaks[-length(type_breaks)], 0), 0), 
                        ", ", round(type_breaks[-1], 0), "]")
   
   ## ggplot ## 
   ggplot()+
     geom_spatvector(data = plot_sv, aes(fill = factor(cut_data)))+
     scale_fill_manual(values = colors, 
-                      name = str_to_title(breaks_type) , 
+                      #name =  # str_to_title(breaks_type) , 
                       labels = cut_labels)+
     labs(
-      fill = "Impact (species*years)",
+      fill = "Species*Years",
       title = paste0(scale, " Biodiversity Impact per Ecoregion (",taxa,")"))+
     theme_minimal() +
     theme(
       # set plot title size and center it
       plot.title = element_text(size = 16, hjust = 0.5),
       # put legend in the bottom right
-      legend.position = c(0.15, 0.2),
-      legend.title = element_text(size = 14),
-      legend.text = element_text(size = 10))
+      legend.position = 'none')
+      # legend.position = c(0.15, 0.2),
+      # legend.title = element_text(size = 14),
+      # legend.text = element_text(size = 10))
   
   # save plot
   ggsave(filename = paste0(folder_fig_biodiv, "/", "gg_",
                            str_to_lower(scale),
                            "_impact_",
                            str_to_lower(taxa),
-                           ".png"),
+                           "_nolegend.png"),
          width = 14, height = 6, dpi = 300)
   
 }
