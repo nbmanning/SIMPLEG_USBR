@@ -78,21 +78,28 @@ df_global$Elas <- factor(df_global$Elas, levels=c("High", "Med", "Low"))
 ggplot(df_reg, aes(x=Taxa, y=Median, fill=Elas)) +
   geom_bar(stat="identity", position=position_dodge(width=0.5), width=0.4) +
   geom_errorbar(aes(ymin=error_low, ymax=error_high), width=0.2, position=position_dodge(width=0.5)) +
-  labs(title="Grouped Barplot with 95% Confidence Intervals",
+  labs(title="Regional Extinctions Across Elasticity Scenarios",
+       subtitle = "Bars are 95% Confidence Intervals",
        x="Group",
        y="Mean Value") +
   theme_minimal() +
   scale_fill_brewer(palette="Set1", direction = -1)+
   coord_flip()
 
-ggsave("../Figures/2024-11-15/biodiversity/")
+ggsave("../Figures/2024-11-15/biodiversity/bar_reg_elas.png")
 
 ggplot(df_global, aes(x=Taxa, y=Median, fill=Elas)) +
   geom_bar(stat="identity", position=position_dodge(width=0.5), width=0.4) +
   geom_errorbar(aes(ymin=error_low, ymax=error_high), width=0.2, position=position_dodge(width=0.5)) +
-  labs(title="Grouped Barplot with 95% Confidence Intervals",
+  labs(title="Global Extinctions Across Elasticity Scenarios",
+       subtitle = "Bars are 95% Confidence Intervals",
        x="Group",
        y="Mean Value") +
   theme_minimal() +
   scale_fill_brewer(palette="Set1", direction = -1)+
   coord_flip()
+
+ggsave("../Figures/2024-11-15/biodiversity/bar_global_elas.png")
+
+# Future: Get lowest low and highest high for Major Taxa impacted  ------
+
