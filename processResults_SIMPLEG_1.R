@@ -12,7 +12,7 @@
 
 # REQUIRES:
 ## SIMPLE-G Result files as '.txt' 
-
+## Download Results folder and add to ../Results/xx with name of date matching 2024-11-15
 # NOTES:
 ## Create a folder named 'raster' in your local directory before running
 
@@ -44,7 +44,7 @@ library(rworldmap) # getting simple BR Border
 
 # new code #
 # Define the string to search for in file names
-search_string <- "2024-09-15"
+search_string <- "2024-11-15"
 
 # create vars to house results 
 folder_der <- "../Data_Derived/"
@@ -56,6 +56,9 @@ files_der <- list.dirs(folder_der)
 files_fig <- list.dirs(folder_fig)
 
 # Check if any file name contains the search string
+
+## To-do: Create a fucntino that does this 
+
 if (!(any(grepl(search_string, files_der)))) {
   # If no file name contains the search string, create a folder with that string
   dir.create(paste0(folder_der, search_string))
@@ -76,10 +79,10 @@ if (!(any(grepl(search_string, files_fig)))) {
 }
 
 
-### For 2024-03-03 & 2024-09-15 runs ###
-datafile_version <- "sg1x3x10_v2409_US_Heat"
-pct <- "_m" # change when you change 'datafile'
-pct_title <- " - Med" # for plotting, either " - High" or " - Low" or "" or "- Med"
+### For newer (3/3, 9/15, 11/15/24) runs ###
+datafile_version <- "sg1x3x10_v2411_US_Heat"
+pct <- "_h" # change when you change 'datafile';
+pct_title <- " - High" # for plotting, either " - High" or " - Low" or "" or "- Med"
 
 folder_results <- paste0("../Results/SIMPLEG-", search_string, "/")
 folder_fig <- paste0(folder_fig, search_string, "/")
