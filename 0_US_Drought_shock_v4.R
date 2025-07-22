@@ -1,4 +1,4 @@
-# Title: US_Drought_shock_v4.R
+# Title: 0_US_Drought_shock_v4.R
 
 # Purpose: This script calculates the US 2012 crop shock for use in SIMPLE-G-Global
 
@@ -17,8 +17,17 @@
 ### CROP_TOTALS_SALES_USD_FIPS.csv
 ### cb_2018_us_state_500k.shp
 
+## 'grid_id_xyg.tif' which is a file typically used in SIMPLE-G with the grid cell ID numbers for eachgrid cell around the world
+
+
 # OUTPUTS:
-## 
+## 'shock_v4_df.RData' which contains:
+### df.xyz = the XY loss rates that get converted to raster
+### loss.aggr = the variable we're going to change by filtering only to drought and heat   
+
+## 'shock_v4_r99.RData' which contains raster 'r' which is the Loss Rate 
+## 'SIMPLEG_Shock_v4.png' which is the map of the percent loss of corn+soy from drought and heat
+## 'y12d.txt' & 'y12d.har' which are the files that are input into SIMPLE-G
 
 # NOTES:
 ## 
