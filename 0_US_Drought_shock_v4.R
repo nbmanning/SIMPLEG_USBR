@@ -37,7 +37,7 @@
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
 
-# (0) Load libraries --------
+# 0) Load libraries --------
 rm(list = ls())
 getwd()
 
@@ -50,7 +50,7 @@ library(tidyterra)
 library(RColorBrewer)
 library(ggplot2)
 
-# (1) Create a data frame with FIPS and XY coordinates and SIMPLE-G grid IDs ----
+# 1) Create a data frame with FIPS and XY coordinates and SIMPLE-G grid IDs ----
 # US coordinates and FIPS
 us.xy.file = "../US_Drought_Shock_v4/Coords.csv" #NOTE: re-name folder to "../US_Drought_Shock_v4" after moving this code to the "Code" folder 
 tmp = read.csv(us.xy.file, header=T, sep=",")
@@ -65,7 +65,7 @@ plot(tmp.ras)
 
 us.xy = tmp[c("x","y","FIPS", "VCRP_2010", "QLND_2010")]
 
-# (2) Create a data frame of loss by FIPS for 2012 ----
+# 2) Create a data frame of loss by FIPS for 2012 ----
 
 # read the USDA RMA Causes of Loss
 loss.file = "../US_Drought_Shock_v4/colsom_2012/colsom12.txt" #NOTE: needed to re-name folder here
@@ -102,7 +102,7 @@ loss.aggr = aggregate( . ~ FIPS, data =loss.df, FUN= sum, na.rm=T ) ## Q: Doesn'
 summary(loss.aggr)
 
 
-# (3) Create a data frame of insured acres ----
+# 3) Create a data frame of insured acres ----
 
 ## read the insured acres from USDA-NASS Census of AG ----
 my.file = "../US_Drought_Shock_v4/AGLAND_CROP_INSURANCE_ACRES_FIPS.csv" 
@@ -144,7 +144,7 @@ sales.df$Expected_Sale = pmax(sales.df$X2012,
 crop.sales = sales.df[c("FIPS", "Expected_Sale")]
 
 
-# (4) Merge data sets and calculate the rates (averages) ---- 
+# 4) Merge data sets and calculate the rates (averages) ---- 
 fips.df = merge(loss.aggr, insured.acres, by = "FIPS", all.x=T) 
 fips.df = merge(fips.df,      crop.acres, by = "FIPS", all.x=T)
 fips.df = merge(fips.df,      crop.sales, by = "FIPS", all.x=T)
@@ -198,7 +198,7 @@ save(df.xyz, loss.aggr,
 save(r, file = "../Data_Derived/shock_v4_r99.RData")
 
 
-# (5) Plot the shock ----
+# 5) Plot the shock ----
 ## Reproject 
 ## change the projection
 #u = terra::project(r, "+init=epsg:2163")
@@ -241,7 +241,7 @@ ggplot()+
 ggsave("../Figures/SIMPLEG_Shock_v4.png",
        height = 10, width = 15, dpi = 300)
 
-# (6) Shock for SIMPLE-G global  ----
+# 6) Shock for SIMPLE-G global  ----
 xygID  <- rast("../US_Drought_Shock_v4/grid_id_xyg.tif")
 plot(xygID)
 
