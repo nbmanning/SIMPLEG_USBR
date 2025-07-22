@@ -15,6 +15,7 @@
 # REQUIRES:
 ## SIMPLE-G Result files as '.txt' 
 ## Download Results folder and add to ../Results/xx with name of date matching 2024-11-15
+
 # NOTES:
 ## Create a folder named 'raster' in your local directory before running
 
