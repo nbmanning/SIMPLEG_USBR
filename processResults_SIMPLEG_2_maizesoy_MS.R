@@ -1453,7 +1453,9 @@ df_cerr_agg <- df_cerr %>%
   mutate(year = as.numeric(year)) 
 
 
-df_cerr_agg_from3 <- filter(df_cerr_agg, from_level_3 %in% classes_few)
+df_cerr_agg_from3 <- df_cerr_agg %>% 
+  filter(from_level_3 %in% classes_few) %>% 
+  mutate(years = paste0(year-1,"-",year))
 
 
 ## --------------
