@@ -96,7 +96,7 @@ summary(loss.aggr)
 # (3) Create a data frame of insured acres ----
 
 ## read the insured acres from USDA-NASS Census of AG ----
-my.file = "../US_Drought_Shock_v4/AGLAND_CROP_INSURANCE_ACRES_FIPS.csv"
+my.file = "../US_Drought_Shock_v4/AGLAND_CROP_INSURANCE_ACRES_FIPS.csv" 
 my.dt = read.csv(my.file, header =T, sep=",")
 my.df <- my.dt %>% mutate_all(as.numeric)
 summary(my.df)
@@ -125,7 +125,7 @@ summary(my.df)
 sales.df = my.df
 head(sales.df)
 
-## how much the 2012 sale would be without drought? ----
+## how much would the 2012 sale would be without drought? ----
 ## average of 2007-2017 or observed sales in 2012, which one is bigger
 sales.df$Expected_Sale = pmax(sales.df$X2012, 
                               (sales.df$X2007 + sales.df$X2017)/2,
@@ -190,6 +190,18 @@ save(r, file = "../Data_Derived/shock_v4_r99.RData")
 
 
 # (5) Plot the shock ----
+## Reproject 
+## change the projection
+#u = terra::project(r, "+init=epsg:2163")
+u = terra::project(r, "+init=epsg:4326")
+
+
+v = vect("../US_Drought_Shock_v4/cb_2018_us_state_500k/cb_2018_us_state_500k.shp") #NOTE: Need to copy/paste the US shp folder to v2
+
+v = crop(v,s)
+
+#w = terra::project(v, "+init=epsg:2163")
+w = terra::project(v, "+init=epsg:4326")
 
 # Define breaks and colors using RColorBrewer
 breaks <- c(0, 5, 10, 50, 99)
@@ -258,6 +270,3 @@ write.table(my.df[ , my.var], txt.file,
             row.names=F, col.names=F, quote=F, sep=",", dec = ".", append=T)
 
 system(paste0("txt2har.exe ", v,".txt ", v,".har"))
-
-# (7) Shock stats for MS ----
-
