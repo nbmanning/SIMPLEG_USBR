@@ -798,10 +798,6 @@ names(r) <- c(
 # 4) World Results  ------------------------------------------------------------------------
 
 ## 4.1) World EDA -----
-# make a quick plot of the global results
-# terra::plot(r, axes = F)
-
- 
 
 # Call fxn to clip and prep data 
 r_row <- F_aoi_prep(shp = shp_world, area_name = "World")
@@ -1363,9 +1359,7 @@ df_cerr <- df %>%
 
 ### 9.1.2: Aggregate -------
 
-# PICK UP HERE ##
-# make years into XXXX-XXXX format, make years larger
-# make a panel with Land Trnasition Facet + Line Plot (A, B)
+# make a panel with Land Transition Facet + Line Plot (A, B)
 
 # get aggregate sum of the entire Cerrado for stats
 agg_cerr <- df_cerr %>%

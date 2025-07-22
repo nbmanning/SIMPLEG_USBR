@@ -110,9 +110,9 @@ if (!(any(grepl("stat_summary", files_stat)))) {
 
 # # # # # # # # # #
 
-# 1: Prep SIMPLE-G Results --------------------
+# 1) Prep SIMPLE-G Results --------------------
 
-## 1.1: import and modify the output from the SIMPLE-G model ----------
+## 1.1) import and modify the output from the SIMPLE-G model ----------
 getwd()
 
 # read results and substitute the old row-notation of using "!" on each row
@@ -158,7 +158,7 @@ names(dat)
 # new_LND_SOY ==  post-simulation area of soybeans cropland (1000 ha)
 
 
-# 2: Create Raster Stack & Save Rasters ----------
+# 2) Create Raster Stack & Save Rasters ----------
 
 # create X and Y coordinates -- takes a bit
 dat$x <- as.numeric(round(dat$LON, digits = 1))
@@ -221,7 +221,7 @@ saveRDS(r_maizesoy, file = paste0(folder_der, "r_maizesoy", pct, ".rds"))
 
 
 
-# 3: Get Shapefiles: US-MW, BR, & Cerrado ------------
+# 3) Get Shapefiles: US-MW, BR, & Cerrado ------------
 
 # NOTE: Only need to run once per computer - these don't change for different model results
 
@@ -268,7 +268,7 @@ shp_cerr_states <- shp_br_states %>%
                                     "SP","MS","MT","GO","DF"))
 
 
-# 4: Save Shapefiles ------
+# 4) Save Shapefiles ------
 save(shp_br, shp_br_border, shp_br_states,
      shp_cerr, shp_cerr_states,
      shp_us, shp_us_mw,
