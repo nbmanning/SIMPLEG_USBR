@@ -1457,8 +1457,7 @@ df_cerr_agg_from3 <- df_cerr_agg %>%
   filter(from_level_3 %in% classes_few) %>% 
   mutate(years = paste0(year-1,"-",year))
 
-
-## --------------
+# xx: might not need
 # load what will become "df" - generated from aggStats_MapBiomas
 #load(file = paste0(folder_der, "mapb_col8_clean_long.Rdata"))
 
@@ -1568,7 +1567,7 @@ p_trans_line
 ggsave(paste0(folder_fig, "cerr_to_soybean_RVC.png"),
        width = 14, height = 7)
 
-## 8.XX Plot together ----------
+## 8.3 Plot together ----------
 p_trans <- plot_grid(
   # Top plot with extra padding for alignment
   plot_grid(p_trans_shp, NULL, ncol = 1, rel_heights = c(1, 0.05), labels = "A"), 
