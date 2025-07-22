@@ -1,8 +1,10 @@
-# Title: aggStats_MapBiomas_extra.R
-# Purpose: Calculate aggregated transition stats from MapBiomas to compare to our cropland area changes
+# Title: 0_aggStats_MapBiomas.R
+# Purpose: Shortened from aggStats_MapBiomas_extra.R; this script
+## loads the source CSV for MapBiomas data and cleans it, 
+## then saves it in long format to be pulled into 2_processResults_SIMPLEG.R Section 9
 
 # Creation Date: 12/4/23
-# Last edited: Dec 2023
+# Last edited: July 2025
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #  
 rm(list = ls())
