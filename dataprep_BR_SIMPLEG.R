@@ -1,4 +1,4 @@
-# title: dataprep_BR_SIMPLEG.R
+# title: 0_dataprep_BR_SIMPLEG.R
 # author: Nick Manning
 # purpose: 
 ## Import and clean data needed to modify SIMPLE-G (2010 BR stats and MAPSPAM rasters). Previous 
@@ -6,7 +6,7 @@
 ## had definite maize layers and MapBiomas does not. 
 
 # creation date: 7/27/23
-# last updated: May 2024
+# last updated: July 2025
 
 # links: 
 ## BR GeoTiff Download: https://brasil.mapbiomas.org/en/colecoes-mapbiomas-1?cama_set_language=en
@@ -20,15 +20,17 @@
 ### Maize Physical Area raster
 ### Maize Production raster
 
+# Outputs: 
+# 'spam2010_soyb_maize_parea_prod_yield_br.tif' which are the Planted Area, Production, and Yield rasters for Brazil soybean and maize from MAPSPAM 
+# 'spam2010_soyb_maize_parea_prod_yield_cerr.tif' which are the Planted Area, Production, and Yield rasters for the Cerrado soybean and maize from MAPSPAM
+
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
 
 rm(list=ls())
 getwd()
 
-# 0: Load Libraries & Set Constants -----------
-
-library(tidyverse) 
+# 0) Load Libraries & Set Constants -----------
 library(geobr) # loading Cerrado & BR shapefiles
 library(terra) # raster manipulation and plotting
 library(sidrar) # getting data from SIDRA
@@ -38,9 +40,9 @@ library(RColorBrewer) # adding color palettes to maps
 path_import <- "../Data_Source/"
 
 
-# 1: 2010 BR stats from SIDRA data ------
+# 1) 2010 BR stats from SIDRA data ------
 
-## 1.0: Notes on 'sidrar' package -------------
+## 1.0) Notes on 'sidrar' package -------------
 
 # Search terms:
 ## "Tabela 1612: Área plantada, área colhida, quantidade produzida, rendimento médio e valor da produção das lavouras temporárias"
@@ -70,7 +72,7 @@ path_import <- "../Data_Source/"
 
 # 1000215: Valor da produção - percentual do total geral (%)
 
-## 1.1: National BR Raw Production (Prod & Planted) ------- 
+## 1.1) National BR Raw Production (Prod & Planted) ------- 
 raw_sidra_br <- get_sidra(x = 1612, 
                              variable =  c(214, 216), # production and yield # or for first six (excluding value of production) c(109, 1000109, 216, 1000216,214, 112) 
                              period = "2010",# list_year_range, #2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021
@@ -95,7 +97,7 @@ raw_sidra_br <- get_sidra(x = 1612,
 
 
 
-# 2: Prepare MAPSPAM 2010 data for Brazil ---------------------
+# 2) Prepare MAPSPAM 2010 data for Brazil ---------------------
 
 # get units and descriptions for SPAM data here: https://mapspam.info/methodology/
 
@@ -122,7 +124,7 @@ terra::plot(spam)
 spam_harv_prod <- c(spam_soy_harvarea, spam_maize_harvarea, spam_soy_prod, spam_maize_prod)
 terra::plot(spam_harv_prod)
 
-## 2.1: Clip to Brazil to test ----
+## 2.1) Clip to Brazil to test ----
 
 # Load BR Shapefile
 shp_br <- read_country(year = 2010, 
@@ -138,13 +140,13 @@ terra::plot(r_br, axes = F, type = "interval")
 r_br_source <- r_br                       
                        
 
-## 2.2: Get results --------------
+## 2.2) Get results --------------
 ## Note: area = (total area)/(ha)
 plot(r_br$spam2010V2r0_global_A_SOYB_A)
 plot(spam_soy_parea)
 
 
-### 2.2.1A: Area (% of grid cell) ------ 
+### 2.2.1A) Area (% of grid cell) ------ 
 # get area of each grid cell (will be different bc of projection)
 r_br_area <- cellSize(r_br$spam2010V2r0_global_A_SOYB_A, unit = "ha")
 plot(r_br_area)
@@ -156,7 +158,7 @@ plot(spam_soy_parea_perc)
 spam_maize_parea_perc <- (r_br$spam2010V2r0_global_A_MAIZ_A/r_br_area) #* 100
 plot(spam_maize_parea_perc)
 
-### 2.2.1B: Area (% of total) -----
+### 2.2.1B) Area (% of total) -----
 # get the sum of the total crop (either so or maize) produced across BR; should be one value 
 sum_parea_soy <- as.numeric(
   global(classify(r_br$spam2010V2r0_global_A_SOYB_A, cbind(NA, 0)), fun = "sum"))
@@ -171,12 +173,12 @@ plot(spam_soy_parea_perctotal)
 spam_maize_parea_perctotal <- r_br$spam2010V2r0_global_A_MAIZ_A / sum_parea_maize
 plot(spam_soy_parea_perctotal)
 
-### 2.2.2: Production (% of total) ------
+### 2.2.2) Production (% of total) ------
 # get production percentage (% of total per grid cell)
 ## production per grid cell = (mt)/(total BR prod) 
 
 # first, get total sum of Brazil soy or maize
-# NOTE: I set all NA's to 0 when calculating the sume of metric tons of crops produced
+# NOTE: I set all NA's to 0 when calculating the sums of metric tons of crops produced
 
 # get sums 
 sum_prod_soy <- as.numeric(
@@ -193,13 +195,13 @@ spam_maize_prod_perc <- r_br$spam2010V2r0_global_P_MAIZ_A / sum_prod_maize
 plot(spam_maize_prod_perc)
 
 
-### 2.2.3: Yield per grid cell (production / harvested area) (mt / ha) ------
+### 2.2.3) Yield per grid cell (production / harvested area) (mt / ha) ------
 spam_soy_yield <- r_br$spam2010V2r0_global_P_SOYB_A / r_br$spam2010V2r0_global_A_SOYB_A
 spam_maize_yield <- r_br$spam2010V2r0_global_P_MAIZ_A / r_br$spam2010V2r0_global_A_MAIZ_A
 
 plot(spam_soy_yield)
 
-## 2.3: Combine to Get Percentage Raster Stack ---------
+## 2.3) Combine to Get Percentage Raster Stack ---------
 # Combine percentage rasters 
 spam_perc <- c(spam_soy_parea_perc, spam_maize_parea_perc, spam_soy_prod_perc, spam_maize_prod_perc)
 plot(spam_perc)
@@ -210,7 +212,7 @@ plot(spam_perc_total)
 spam_perc_all <- c(spam_soy_parea_perc, spam_maize_parea_perc, spam_soy_parea_perctotal, spam_maize_parea_perctotal, spam_soy_prod_perc, spam_maize_prod_perc, spam_soy_yield, spam_maize_yield)
 
 
-## 2.4: Plot Brazil -------
+## 2.4) Plot Brazil -------
 
 # rename layers from _all
 names(spam_perc_all)
@@ -233,7 +235,7 @@ lines(shp_br, lwd = 0.8, lty = 3, col = "darkgray")
 
 
 
-## 2.5: Clip to Cerrado to Plot -------
+## 2.5) Clip to Cerrado to Plot -------
 
 # Load Cerrado Shapefile
 shp_br_cerr <- read_biomes(
@@ -268,7 +270,7 @@ lines(shp_br_cerr, lwd = 0.8, lty = 3, col = "darkgray")
 
 
 
-## 2.6: Export SPAM BR & Cerrado Data --------
+## 2.6) Export SPAM BR & Cerrado Data --------
 writeRaster(spam_perc_all, paste0(path_import, "spam2010_soyb_maize_parea_prod_yield_br.tif"),
             overwrite = T)
 writeRaster(r_cerr, paste0(path_import, "spam2010_soyb_maize_parea_prod_yield_cerr.tif"),
