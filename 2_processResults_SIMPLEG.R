@@ -260,7 +260,7 @@ F_ggplot_bar_vert_sep <- function(df, y_var, title_text, save_text){
 }
 
 
-## 0.2: Spatial Analysis for Areas of Interest ------- 
+## 0.2) Spatial Analysis for Areas of Interest ------- 
 
 ## NOTE: The plotting functions for each individual AOI are in their individual sections; e.g. Section 4.2 for plotting global results ##
 
@@ -550,9 +550,9 @@ F_EDA <- function(r_aoi, area_name){
   # )
 }
 
-# 1: Import / Export Plot ------------------------------------------------------------------------
+# 1) Import / Export Plot ------------------------------------------------------------------------
 
-## 1.1: Clean Import & Export Data -------
+## 1.1) Clean Import & Export Data -------
 
 # Load in data as xlsx (diff from previous)
 # source_path <- paste0(files_results, "regional_results.xlsx")
@@ -563,7 +563,7 @@ F_EDA <- function(r_aoi, area_name){
 ## pct == the model type for elasticity; enter either "l" for low, "m" for medium, or "h" for high
 
 
-## 1.2: Run Fxn & Join --------
+## 1.2) Run Fxn & Join --------
 
 # reset model variable here if you want to re-run with different amounts 
 # pct_model <- "m"
@@ -574,7 +574,7 @@ F_EDA <- function(r_aoi, area_name){
 source_path <- paste0(folder_results, "regional_results.xlsx")
 data_list <- import_list(source_path)
 
-### 1.2.1: Exports -------
+### 1.2.1 Exports -------
 # Get Exports  
 exp_soy <- F_clean_sheet(var = "Soy Exp", pct = pct_model)
 exp_corn <- F_clean_sheet(var = "Corn Exp", pct = pct_model)
@@ -611,7 +611,7 @@ imp$chg_mmt <- (imp$chg)/1000
 # exclude us
 imp_nous <- imp %>% filter(region_abv != "US")
 
-## 1.3: Vertical Barplots ------
+## 1.3) Vertical Barplots ------
 
 # Run fxn to plot vertical barplot
 
@@ -646,7 +646,7 @@ ggsave(paste0(folder_fig, "bar_impexp.png"),
        p,
        width = 12, height = 6)
 
-## 1.4: Print Results for MS (excluding US) ------
+## 1.4) Print Results for MS (excluding US) ------
 # US Reductions in Corn/SoyExports 
 print(paste("Total Change in US Soy Exports (Mmt) (Excluding US): ", exp_soy$chg_mmt[exp_soy$region_abv == "US"]))
 print(paste("Total Change in US Corn Exports (Mmt) (Excluding US): ", exp_corn$chg_mmt[exp_corn$region_abv == "US"]))
@@ -676,7 +676,7 @@ print(paste("Total Change in US Corn Imports (Mmt) (US Only): ", imp_corn$chg_mm
 
 imp_soy$chg_mmt[imp_soy$region_abv == "US"] + imp_corn$chg_mmt[imp_corn$region_abv == "US"]
 
-## 1.5: Create Clean Results Sheet for Casc Effects Plot ----
+## 1.5) Create Clean Results Sheet for Casc Effects Plot ----
 
 # Function for summarizing data - sums for .. and mean for ..
 F_calc_totals <- function(data){
@@ -728,7 +728,7 @@ paste("Global Soy Price Change: ", mean(data_clean$`Soy Exp Price index`$pct_chg
 paste("Global Corn Price Change: ", mean(data_clean$`Corn Exp Price index`$pct_chg))
 
 
-# 2: Load Shapefiles & SIMPLE-G Raster ------------------------------------------------------------------------
+# 2) Load Shapefiles & SIMPLE-G Raster ------------------------------------------------------------------------
 
 ### RUN 'processResults_SIMPLEG_1.R' FIRST TO CREATE RASTER AND SHAPEFILES ###
 
@@ -742,9 +742,9 @@ r <- readRDS(file = paste0(folder_der_date, "r_maizesoy", pct, ".rds"))
 # print cropland area in ha by getting the sum of each grid-cell value
 print(global(r$new_QLAND, fun = "sum", na.rm = T))
 
-# 3: Edit Stack & Check Values ------------------------------------------------------------------------
+# 3) Edit Stack & Check Values ------------------------------------------------------------------------
 
-## 3.1: Calc & Add Raw Change from % and New -------
+## 3.1) Calc & Add Raw Change from % and New -------
 # Formula: new - (new / ((pct_change/100)+1))
 
 # subset 
@@ -795,9 +795,9 @@ names(r) <- c(
   "rawch_SOY"
 )
 
-# 4: World Results  ------------------------------------------------------------------------
+# 4) World Results  ------------------------------------------------------------------------
 
-## 4.1: World EDA -----
+## 4.1) World EDA -----
 # make a quick plot of the global results
 # terra::plot(r, axes = F)
 
@@ -809,7 +809,7 @@ r_row <- F_aoi_prep(shp = shp_world, area_name = "World")
 # call fxn to create EDA plots and generate stats of the clipped data 
 F_EDA(r_aoi = r_row, area_name = "World")
 
-## 4.2: World Interval Plot --------
+## 4.2) World Interval Plot --------
 
 F_ggplot_interval <- function(df, title_text, title_legend, save_title){
   
@@ -871,7 +871,7 @@ F_ggplot_interval(
   title_legend = "Area (kha)",
   save_title = "gg_world_rawch_croplandarea.png")
 
-## 4.3: World Results w/o US ------
+## 4.3) World Results w/o US ------
 # get extent as terra object for plotting
 us_vect <- vect(shp_us)
 
@@ -886,9 +886,9 @@ summary(r*1000000, size = Inf)
 plot(r_no_us$rawch_QLAND)
 F_EDA(r_aoi = r_no_us, area_name = "Rest of World")
 
-# 4: US Results ------------------------------------------------------------------------
+# 5) US Results ------------------------------------------------------------------------
 
-## 4.1: US EDA -------
+## 5.1) US EDA -------
 
 # Call fxn to clip data 
 r_us <- F_aoi_prep(shp = shp_us, area_name = "US")
@@ -896,7 +896,7 @@ r_us <- F_aoi_prep(shp = shp_us, area_name = "US")
 # call fxn to create EDA plots of the clipped data 
 F_EDA(r_aoi = r_us, area_name = "US")
 
-## 4.2: US Interval Plot -------
+## 5.2) US Interval Plot -------
 F_ggplot_us_interval <- function(df, title_text, title_legend, save_title){
   
   # plot 
@@ -962,7 +962,7 @@ F_ggplot_us_interval(
   save_title = "gg_us_rawch_croplandarea_4326.png")
 
 
-## 4.3 US Prod Plot for SI ------
+## 5.3) US Prod Plot for SI ------
 test3 <-  r_us %>%
   subset("rawch_QCROP")
 
@@ -987,7 +987,7 @@ F_ggplot_us_interval(
 
 
 
-## 4.4: US Corn+Soy Changes (regional_results.xlsx) ----
+## 5.4) US Corn+Soy Changes (regional_results.xlsx) ----
 
 ### prod -----
 ms_us_prod_pre <- data_clean$`Soy Production`$pre[data_clean$`Soy Production`$region_abv == "US"] + 
@@ -1017,9 +1017,9 @@ ms_us_exp_post <- data_clean$`Soy Exp`$post[data_clean$`Soy Exp`$region_abv == "
 ms_us_exp_pct_chg <- (ms_us_exp_post - ms_us_exp_pre) / ms_us_exp_pre  
 
 
-# 5: Brazil Results --------
+# 6) Brazil Results --------
 
-## 5.1: Brazil EDA -------
+## 6.1) Brazil EDA -------
 # Call fxn to clip data 
 r_br <- F_aoi_prep(shp = shp_br, area_name = "Brazil")
 
@@ -1027,7 +1027,7 @@ r_br <- F_aoi_prep(shp = shp_br, area_name = "Brazil")
 F_EDA(r_aoi = r_br, area_name = "Brazil")
 
 
-## 5.2: Brazil + Cerrado Continuous Plot -------
+## 6.2) Brazil + Cerrado Continuous Plot -------
 
 # set up function for both 
 F_ggplot_brcerr <- function(df, area, brks, pal, legend_title, p_title, save_title){
@@ -1113,7 +1113,7 @@ F_ggplot_brcerr(df = r_br %>% subset("rawch_QLAND"),
                 p_title = paste("Change in BR Cropland Area", pct_title),
                 save_title = "gg_br_rawch_croplandarea.png")
 
-## 5.4 BR Prod Plot for SI -----
+## 6.3) BR Prod Plot for SI -----
 F_ggplot_brcerr(df = r_br %>% subset("rawch_QCROP"),
                 brks = waiver(), 
                 area = "Brazil",
@@ -1124,9 +1124,9 @@ F_ggplot_brcerr(df = r_br %>% subset("rawch_QCROP"),
 
 
 
-# 6: Cerrado Results ----------
+# 7) Cerrado Results ----------
 
-## 6.1: Cerrado EDA -------
+## 7.1) Cerrado EDA -------
 # Call fxn to clip data 
 r_cerr <- F_aoi_prep(shp = shp_cerr, area_name = "Cerrado")
 
@@ -1134,7 +1134,7 @@ r_cerr <- F_aoi_prep(shp = shp_cerr, area_name = "Cerrado")
 F_EDA(r_aoi = r_cerr, area_name = "Cerrado")
 
 
-## 6.2: Cerrado Plot -------
+## 7.2) Cerrado Plot -------
 ## NOTE: Cerrado is slightly different as a scale bar and N arrow are very helpful here
 p2 <- F_ggplot_brcerr(
   df = r_cerr %>% subset("rawch_QLAND"),
@@ -1159,7 +1159,7 @@ p2
 ggsave(plot = p2, filename = paste0(folder_fig, "/", "gg_cerr_rawch_croplandarea_nscale.png"),
        width = 12, height = 8, dpi = 300)
 
-## 6.3 Cerrado Prod Plot fo SI --------
+## 7.3) Cerrado Prod Plot fo SI --------
 p3 <- F_ggplot_brcerr(
   df = r_cerr %>% subset("rawch_QCROP"),
   area = "Cerrado",
@@ -1183,8 +1183,8 @@ p3
 ggsave(plot = p3, filename = paste0(folder_fig, "/", "gg_cerr_rawch_cropprod_nscale.png"),
        width = 12, height = 8, dpi = 300)
 
-# 7: Maize/Soy Summary Statistics --------
-## 7.1: Sum of total changes for CSV ----
+# 8) Maize/Soy Summary Statistics --------
+## 8.1) Sum of total changes for CSV ----
 # Fxn to get the total changes
 F_sum <- function(df, layer){
   test2 <- df %>% subset(layer)
@@ -1258,7 +1258,7 @@ write.csv(stat_SG_summary_maizesoy,
             folder_results, "sg", pct, "_stat_summary_maizesoy_US_BR_Cerr_", date_string_nodash, ".csv"),
           row.names = F)
 
-## 7.2: Changes calculated for MS Abstract -------
+## 8.2) Changes calculated for MS Abstract -------
 
 ### t1 ----
 # Text:  Mean area of corn and soy land expansion per grid-cell in the Cerrado (32.2 ha) was ~1.6 times higher than in Brazil as a whole (24.2 ha).
@@ -1316,7 +1316,7 @@ paste0("We found, on average, that a 1 ha decrease in the amount of cropland in 
 
 
 
-# 8: Transition Results: Doesn't Change with new Model Runs -----
+# 9: Transition Results: Doesn't Change with new Model Runs -----
 
 # NOTE: It is useful to clear the environment and re-run Sections 0 and 2 before running this section
 
@@ -1337,9 +1337,9 @@ df <- df %>%
   filter(to_level_4 == "Soy Beans") %>%
   filter(to_level_4 != from_level_4)
 
-## 8.1: Facet Map of Cerrado Transition ----
+## 9.1) Facet Map of Cerrado Transition ----
 
-### 8.1.1: Prep Spatial Data ---------
+### 9.1.1: Prep Spatial Data ---------
 
 # NOTE: Municipality & Cerrado Shapefiles come from 'geobr' package
 
@@ -1361,7 +1361,7 @@ df_cerr <- df %>%
   filter(geocode %in% muni_codes_cerr) %>%
   filter(biome == "Cerrado")
 
-### 8.1.2: Aggregate -------
+### 9.1.2: Aggregate -------
 
 # PICK UP HERE ##
 # make years into XXXX-XXXX format, make years larger
@@ -1389,7 +1389,7 @@ shp_cerrmuni_fromveg <- shp_code_muni_in_cerr %>%
   filter(year >= 2012 & year <= 2017) %>% 
   mutate(years = paste0(year-1,"-",year))
 
-### 8.1.3: Plot Facet Map -------
+### 9.1.3: Plot Facet Map -------
 
 #F_facet<-function(data, aoi, class, file_name)
 # # Run Fxn
@@ -1430,11 +1430,11 @@ ggsave(filename = paste0(folder_fig, "cerr_fromveg.png"),
 
 
 
-### 8.1.4: Save Stats -----
+### 9.1.4: Save Stats -----
 # print stats
 print(agg_cerr %>% filter(year >= 2013 & year <= 2015))
 
-## 8.2: Plot Line Plot of Cerrado Transition ------
+## 9.2) Plot Line Plot of Cerrado Transition ------
 
 # set calculated r_cerr as a variable (note: unit is kha)
 sg_cerr_rawch_soy <- as.numeric(global(r_cerr$rawch_SOY, fun = "sum", size = Inf, na.rm = T))
@@ -1565,7 +1565,7 @@ p_trans_line
 ggsave(paste0(folder_fig, "cerr_to_soybean_RVC.png"),
        width = 14, height = 7)
 
-## 8.3 Plot together ----------
+## 9.3) Plot together ----------
 p_trans <- plot_grid(
   # Top plot with extra padding for alignment
   plot_grid(p_trans_shp, NULL, ncol = 1, rel_heights = c(1, 0.05), labels = "A"), 
@@ -1582,6 +1582,8 @@ p_trans
 ggsave(paste0(folder_fig, "_line.png"),
        p_trans, width = 10, height = 14, units = "in", dpi = 300)
 
+
+# END #################
 
 # p_trans <- plot_grid(p_trans_shp, p_trans_line, 
 #                      nrow = 2, labels = "AUTO",
