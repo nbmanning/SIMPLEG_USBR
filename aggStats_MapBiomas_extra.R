@@ -1,4 +1,4 @@
-# Title: aggStats_MapBiomas.R
+# Title: aggStats_MapBiomas_extra.R
 # Purpose: Calculate aggregated transition stats from MapBiomas to compare to our cropland area changes
 
 # Creation Date: 12/4/23
@@ -18,7 +18,8 @@ library(sf) # st_intersection and crs
 library(RColorBrewer) # maps 
 
 ## Constants 
-date_string <- "2024-03-03"
+# date_string <- "2024-03-03"
+date_string <- "2024-11-15"
 
 # looks like the last date for this attempt was 01-30
 folder_stat <- paste0("../Results/SIMPLEG-", date_string, "/stat_summary/")
