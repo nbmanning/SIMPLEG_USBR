@@ -36,6 +36,11 @@ getwd()
 library(terra) # load Coords.csv
 library(dplyr) # df loading and editing
 
+# load for plotting
+library(tidyterra)
+library(RColorBrewer)
+library(ggplot2)
+
 # (1) Create a data frame with FIPS and XY coordinates and SIMPLE-G grid IDs ----
 # US coordinates and FIPS
 us.xy.file = "../US_Drought_Shock_v4/Coords.csv" #NOTE: re-name folder to "../US_Drought_Shock_v4" after moving this code to the "Code" folder 
@@ -185,36 +190,9 @@ save(r, file = "../Data_Derived/shock_v4_r99.RData")
 
 
 # (5) Plot the shock ----
-plot(r)
-
-## change the projection
-u = terra::project(r, "+init=epsg:2163")
-v = vect("../US_Drought_Shock_v4/cb_2018_us_state_500k/cb_2018_us_state_500k.shp") #NOTE: Need to copy/paste the US shp folder to v2
-v = crop(v,s)
-w = terra::project(v, "+init=epsg:2163")
-
-plot(u*100,  
-     breaks=c(0,5,10,25,50,99),
-     col = c( "#fecc5c", "#fd8d3c", "#f03b20", "#bd0026", "#b30000"),
-     #main = "Percentage of crop production loss in 2012", 
-     type= "continuous",
-     axes =F,
-     legend.width=2,
-     pax=list(side=1:4,retro=T),
-     plg=list(title="(percentage loss)\n", x="bottom", horiz=T))
-
-plot(w, add=T)
-text(w, "STUSPS", cex=0.7)
-
-# Plot using Tidyterra
-library(tidyterra)
 
 # Define breaks and colors using RColorBrewer
-library(RColorBrewer)
-library(ggplot2)
-
 breaks <- c(0, 5, 10, 50, 99)
-#colors <- c("#fecc5c", "#fd8d3c", "#f03b20", "#bd0026")
 colors <- brewer.pal(n = length(breaks) - 1, name = "YlOrRd")
 
 # Cut the 'value' column into categories based on the breaks
@@ -269,9 +247,10 @@ v = "y12d"
 print(v)
 txt <- paste0(nGrid, ' real row_order header "',v,'" longname "US 2012 Drought Shock, revision d" ;')
 
+# txt.file = paste0("../US_Drought_Shock_v4/", v,".txt") # NOTE: this works to get the .txt file to the right folder but does not convert to HAR
 txt.file = paste0(v,".txt")
 
-write(txt, txt.file) # NOTE: Need to manually move y12b from the working directory (for me, "Code") to US_Drought_Shock_v4
+write(txt, txt.file) # NOTE: Need to manually move y12d from the working directory (for me, "Code") to US_Drought_Shock_v4
 
 my.var = "LossRate"
 
