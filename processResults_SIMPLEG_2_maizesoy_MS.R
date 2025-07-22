@@ -2,7 +2,7 @@
 # Purpose: Read and plot SIMPLE-G results from text format across US, World, BR, and Cerrado
 
 # Initial date: Aug 23, 2024
-# Last edited: Aug 2024
+# Last edited: July 2025
 
 # NOTES ------------------------------------- 
 # REQUIRES:
@@ -19,7 +19,7 @@
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
 
-# 0: Load Libraries & Set Constants ------------------------------------------------------------------------
+# 0) Load Libraries & Set Constants ------------------------------------------------------------------------
 rm(list = ls())
 
 ## Libraries -----
@@ -139,11 +139,11 @@ if (!(any(grepl(date_string, files_fig)))) {
 #   cat("A figures folder with the string", date_string, "in its name already exists.\n")
 # }
 
-# 0: Functions ------------------------------------------------------------------------
+# 0) Functions ------------------------------------------------------------------------
 
 # list functions used multiple times here
 
-## 0.1: ImpExp Functions --------
+## 0.1) ImpExp Functions --------
 
 # Import and clean each Regional Result sheet from 'regional_results.xlsx'
 F_clean_sheet <- function(var, pct){
@@ -1149,7 +1149,6 @@ p2 <- F_ggplot_brcerr(
 p2
 
 # Add scale bar and N arrow manually 
-library(ggspatial)
 p2 <- p2 +       
   annotation_scale(location = "br", width_hint = 0.4) +  # Scale bar at the bottom right
   annotation_north_arrow(location = "br", which_north = "true",  # North arrow at the bottom right
@@ -1174,7 +1173,6 @@ p3 <- F_ggplot_brcerr(
 p3
 
 # Add scale bar and N arrow manually 
-library(ggspatial)
 p3 <- p3 +       
   annotation_scale(location = "br", width_hint = 0.4) +  # Scale bar at the bottom right
   annotation_north_arrow(location = "br", which_north = "true",  # North arrow at the bottom right
