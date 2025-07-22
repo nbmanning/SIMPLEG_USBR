@@ -60,11 +60,11 @@ library(geobr)
 
 # Set model version & parameter flexibility
 datafile_version <- "sg1x3x10_v2411_US_Heat"
-pct <- "_h" # change when you change 'datafile'
-pct_model <- "h" # for the imp/exp cleaning, either l, m, h
+pct <- "_m" # change when you change 'datafile'
+pct_model <- "m" # for the imp/exp cleaning, either l, m, h
 
-#pct_title <- " - Med" # for plotting, either " - High" or " - Low" or "" or "- Med"
-pct_title <- " - High" # note: changed Aug 2024 by setting -med to nothing, as it is the default
+pct_title <- " - Med" # for plotting, either " - High" or " - Low" or "" or "- Med"
+#pct_title <- " - High" # note: changed Aug 2024 by setting -med to nothing, as it is the default
 
 # Define the model date 
 # NOTE: Assumes the results are downloaded and saved in YYYY-MM-DD format
@@ -570,7 +570,7 @@ F_EDA <- function(r_aoi, area_name){
 
 # Load in data as xlsx (diff from previous) 
 # NOTE: MANUALLY MOVE regional_results.xlsx to each scenario folder
-# Changed code here so there's no need to manually move 'regional_results.xlsx' from download folder to imports_exports
+# TO-DO: Change code here so there's no need to manually move 'regional_results.xlsx' from download folder to imports_exports
 source_path <- paste0(folder_results, "regional_results.xlsx")
 data_list <- import_list(source_path)
 
@@ -908,7 +908,8 @@ F_ggplot_us_interval <- function(df, title_text, title_legend, save_title){
     scale_fill_whitebox_d(palette = "pi_y_g", direction = 1, drop = F)+
     
     geom_sf(data = vect(shp_us), color = "gray30", fill = "transparent", lwd = 0.2)+
-    coord_sf(crs = "EPSG:2163")+ # Robinson
+    #coord_sf(crs = "EPSG:2163")+ # Robinson
+    coord_sf(crs = "EPSG:4326")+ # WGS 1984
     
     theme_minimal()+
     labs(
@@ -926,7 +927,7 @@ F_ggplot_us_interval <- function(df, title_text, title_legend, save_title){
           size = 40
         ),
       legend.title = element_text(size = 24),
-      legend.position = c(0.9, 0.25),
+      legend.position = c(0.9, 0.3),
       legend.text = element_text(size = 14)
     )  
   
@@ -958,7 +959,7 @@ F_ggplot_us_interval(
   df = factor, 
   title_text = "Change in US Cropland Area",
   title_legend = "Area (kha)",
-  save_title = "gg_us_rawch_croplandarea_2163.png")
+  save_title = "gg_us_rawch_croplandarea_4326.png")
 
 
 ## 4.3 US Prod Plot for SI ------
@@ -981,8 +982,8 @@ factor <- test3 %>%
 F_ggplot_us_interval(
   df = factor, 
   title_text = "Raw Change in Crop Production",
-  title_legend = "CPI (1000-tons CE)",
-  save_title = "gg_us_rawch_cropprod_2163.png")
+  title_legend = "CPI\n(1000-tons CE)",
+  save_title = "gg_us_rawch_cropprod_4326.png")
 
 
 
@@ -1034,7 +1035,8 @@ F_ggplot_brcerr <- function(df, area, brks, pal, legend_title, p_title, save_tit
   # plot
   p <- ggplot()+
     geom_spatraster(data = df, maxcell = Inf)+
-    
+    #coord_sf(crs = "EPSG:5880")+ # SIRGAS 2000 /Brazil Polyconic
+ 
     # use continuous palette
     scale_fill_whitebox_c(
       #palette = "viridi", direction = 1,
