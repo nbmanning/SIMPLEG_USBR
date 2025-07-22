@@ -1,14 +1,16 @@
-# Title: processResults_SIMPLEG.R
+# Title: 1_processResults_SIMPLEG.R
 
-# Purpose: Run this script FIRST to get SIMPLE-G results from .txt into raster and 
-# import all of the necessary source shapefiles
+# Purpose: Run this script FIRST to
+## create folders in the directory
+## get SIMPLE-G results from .txt into raster  
+## import all of the necessary source shapefiles
 
 # Initial SIMPLE-G script by: Iman Haqiqi
 # Initial date: Aug 2019
 
 # Edited by: Nick Manning 
 # Initial edit date: May 2023
-# Last edited: Feb 2024
+# Last edited: July 2025
 
 # REQUIRES:
 ## SIMPLE-G Result files as '.txt' 
@@ -17,7 +19,7 @@
 ## Create a folder named 'raster' in your local directory before running
 
 # Next:
-## Clean up beginning portion. Ideally, we would enter a given string, check if the files are there, if not, then create the files, rahter than having to recreate the file structure each time
+## Clean up beginning portion. Ideally, we would enter a given string, check if the files are there, if not, then create the files, rather than having to recreate the file structure each time
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
 
@@ -57,7 +59,7 @@ files_fig <- list.dirs(folder_fig)
 
 # Check if any file name contains the search string
 
-## To-do: Create a fucntino that does this 
+## To-do: Create a fucntion that does this 
 
 if (!(any(grepl(search_string, files_der)))) {
   # If no file name contains the search string, create a folder with that string
@@ -107,40 +109,6 @@ if (!(any(grepl("stat_summary", files_stat)))) {
 
 # # # # # # # # # #
 
-# ### For 2024-02-12 run ###
-# pct <- "_m" # change when you change 'datafile'
-# pct_title <- " - Med" # for plotting, either " - High" or " - Low" or "" or "- Med"
-# 
-# folder_results <- "../Results/SIMPLEG-2024-02-12/"
-# folder_plot <- "../Figures/021224/"
-# datafile   <- paste0(folder_results, "sg1x3x10_v2401_US_Heat", pct, "-out.txt")
-# folder_der <- "../Data_Derived/20240212/"
-# folder_stat <- paste0(folder_results, "stat_summary/")
-
-# ### For 2024-01-30 run ###
-# pct <- "_m" # change when you change 'datafile'
-# pct_title <- "- Med" # for plotting, either " - High" or " - Low" or "" or "- Med"
-# 
-# # NOTE: will need to change to local location
-# folder <- "../Results/SIMPLEG-2024-01-30/"
-# folder_plot <- "../Figures/013024/new"
-# datafile   <- paste0(folder, "US_HEAT", pct, "-out.txt")
-# #datafile <- "../Results/SIMPLEG-2023-10-29/sg1x3x10_v2310-out.txt"
-# folder_der <- "../Data_Derived/20240130/"
-# folder_stat <- "../Results/SIMPLEG-2024-01-30/stat_summary/"
-
-### For 2023-10-29 run ###
-# pct <- "" # change when you change 'datafile'
-# pct_title <- "" # for plotting, either " - High" or " - Low" or "" or "- Med"
-
-# folder <- "../Results/SIMPLEG-2023-10-29/"
-# folder_plot <- "../Figures/102923/new"
-# datafile   <- paste0(folder, "sg1x3x10_v2310", pct, "-out.txt")
-# #datafile <- "../Results/SIMPLEG-2023-10-29/sg1x3x10_v2310-out.txt"
-# folder_der <- "../Data_Derived/20231029/"
-# folder_stat <- "../Results/SIMPLEG-2024-10-29/stat_summary/"
-
-# INITIAL PREP & SAVE -----------------------------------------------------------
 # 1: Prep SIMPLE-G Results --------------------
 
 ## 1.1: import and modify the output from the SIMPLE-G model ----------
@@ -256,51 +224,52 @@ saveRDS(r_maizesoy, file = paste0(folder_der, "r_maizesoy", pct, ".rds"))
 
 # NOTE: Only need to run once per computer - these don't change for different model results
 
-# ### Load World Shapefile ###
-# shp_world <- st_read(system.file("shapes/world.gpkg", package="spData"))
-# 
-# ### Load US Shapefile ###
-# shp_us <- states(cb = TRUE, resolution = "20m") %>%
-#   filter(!STUSPS %in% c("AK", "HI", "PR"))
-# 
-# #### Load US-MW Shapefile ###
-# shp_us_mw <- shp_us %>%
-#   filter(STUSPS %in% c("IA", "IL", "IN", "KS", "MI", "MN",
-#                        "MO", "ND", "NE", "OH", "SD", "WI"))
-# 
-# #### Load Cerrado Shapefile ###
-# shp_cerr <- read_biomes(
-#   year = 2019,
-#   simplified = T,
-#   showProgress = T) %>%
-#   dplyr::filter(name_biome == "Cerrado")
-# 
-# 
-# #### Load BR Shapefile ###
-# shp_br <- read_country(
-#   year = 2019,
-#   simplified = T,
-#   showProgress = T)
-# 
-# #### Load Simple BR Border Shapefile ###
-# data("countriesCoarse")
-# shp_br_border <- countriesCoarse %>% subset(SOV_A3 == "BRA")
-# shp_br_border <- st_combine(st_as_sf(shp_br_border))
-# 
-# ## Load Cerrado Outline ##
-# # get Brazil States outline
-# shp_br_states <- read_state(
-#   year = 2019,
-#   simplified = T)
-# 
-# # filter to Cerrado States
-# shp_cerr_states <- shp_br_states %>%
-#   dplyr::filter(abbrev_state %in% c("TO","MA","PI","BA","MG",
-#                                     "SP","MS","MT","GO","DF"))
-# 
-# # # Save Shapefiles ------
-# save(shp_br, shp_br_border, shp_br_states
-#      shp_cerr, shp_cerr_states,
-#      shp_us, shp_us_mw,
-#      shp_world,
-#      file = "../Data_Derived/shp_usbr.RData")
+### Load World Shapefile ###
+shp_world <- st_read(system.file("shapes/world.gpkg", package="spData"))
+
+### Load US Shapefile ###
+shp_us <- states(cb = TRUE, resolution = "20m") %>%
+  filter(!STUSPS %in% c("AK", "HI", "PR"))
+
+#### Load US-MW Shapefile ###
+shp_us_mw <- shp_us %>%
+  filter(STUSPS %in% c("IA", "IL", "IN", "KS", "MI", "MN",
+                       "MO", "ND", "NE", "OH", "SD", "WI"))
+
+#### Load Cerrado Shapefile ###
+shp_cerr <- read_biomes(
+  year = 2019,
+  simplified = T,
+  showProgress = T) %>%
+  dplyr::filter(name_biome == "Cerrado")
+
+
+#### Load BR Shapefile ###
+shp_br <- read_country(
+  year = 2019,
+  simplified = T,
+  showProgress = T)
+
+#### Load Simple BR Border Shapefile ###
+data("countriesCoarse")
+shp_br_border <- countriesCoarse %>% subset(SOV_A3 == "BRA")
+shp_br_border <- st_combine(st_as_sf(shp_br_border))
+
+## Load Cerrado Outline ##
+# get Brazil States outline
+shp_br_states <- read_state(
+  year = 2019,
+  simplified = T)
+
+# filter to Cerrado States
+shp_cerr_states <- shp_br_states %>%
+  dplyr::filter(abbrev_state %in% c("TO","MA","PI","BA","MG",
+                                    "SP","MS","MT","GO","DF"))
+
+
+# 4: Save Shapefiles ------
+save(shp_br, shp_br_border, shp_br_states,
+     shp_cerr, shp_cerr_states,
+     shp_us, shp_us_mw,
+     shp_world,
+     file = "../Data_Derived/shp_usbr.RData")
