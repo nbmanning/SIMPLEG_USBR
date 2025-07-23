@@ -47,7 +47,7 @@ ggplot(data, aes(x=Group, y=Mean, fill=Scenario)) +
 
 
 # 1) Import Results ------
-
+rm(list = ls())
 load("../Results/SIMPLEG-2024-11-15/l/df_reg_sum_l.Rdata")
 df_l_reg <- df_reg_sum %>% mutate(Elas = "Low")
 load("../Results/SIMPLEG-2024-11-15/l/df_global_sum_l.Rdata")
@@ -79,9 +79,10 @@ ggplot(df_reg, aes(x=Taxa, y=Median, fill=Elas)) +
   geom_bar(stat="identity", position=position_dodge(width=0.5), width=0.4) +
   geom_errorbar(aes(ymin=error_low, ymax=error_high), width=0.2, position=position_dodge(width=0.5)) +
   labs(title="Regional Extinctions Across Elasticity Scenarios",
-       subtitle = "Bars are 95% Confidence Intervals",
-       x="Group",
-       y="Mean Value") +
+       subtitle = "Bars are Error Low/HIgh",
+       x = "",#x="Taxa",
+       y = ""#y="Median Value"
+       ) +
   theme_minimal() +
   scale_fill_brewer(palette="Set1", direction = -1)+
   coord_flip()
