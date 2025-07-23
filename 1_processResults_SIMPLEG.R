@@ -16,9 +16,6 @@
 ## SIMPLE-G Result files as '.txt' 
 ## Download Results folder and add to ../Results/xx with name of date matching 2024-11-15
 
-# NOTES:
-## Create a folder named 'raster' in your local directory before running
-
 # Next:
 ## Clean up beginning portion. Ideally, we would enter a given string, check if the files are there, if not, then create the files, rather than having to recreate the file structure each time
 
