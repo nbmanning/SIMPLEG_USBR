@@ -47,9 +47,9 @@ folder_fig <- "../Figures/"
 folder_fig <- paste0(folder_fig, date_string, "/")
 
 # set pct
-pct <- "_h" # either "_l" , "_m" , or "_h"
-pct_model <- "h"
-pct_title <- " - High"
+pct <- "_m" # either "_l" , "_m" , or "_h"
+pct_model <- "m"
+pct_title <- " - Med"
 crop <- "soy" # either maize, soy, or sm (Soy+Maize)
 layer_choice <- "rawch_SOY"
 
