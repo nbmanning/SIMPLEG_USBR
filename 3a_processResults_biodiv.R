@@ -10,12 +10,13 @@
 # REQUIRES:
 ## SIMPLE-G Result files as 'SpatRasters' from 'processResults_SIMPLEG_2.R'
 ## WWF Ecoregions shapefile 
-## Chaudhary et al. 2015 Characterization Factor XLSX sheets
+## Chaudhary et al. 2015 Characterization Factor XLSX sheets - See Section 2 for Details
 
-# Links:
-## Chaudhary et al., 2015, """:
+# LINKS:
+## Chaudhary et al., 2015, SI2 "Quantifying Land Use Impacts on Biodiversity: Combining Species–Area Models and 
+## Vulnerability Indicators". DOI: 10.1021/acs.est.5b02507
+
 ## WWF Ecoregions Download: https://www.worldwildlife.org/publications/terrestrial-ecoregions-of-the-world
-
 
 # NEXT:
 ## Convert to Jupyter Notebook
@@ -79,7 +80,11 @@ folder_results_biodiv <- paste0("../Results/SIMPLEG-", date_string,  "/", pct_mo
 ## 1.1: Load Shapefiles ------
 
 ## Clean WWF Shapefile  ##
+
+# # # # # # # # # # # # # # # # # # # # # # # # #
 ## Uncomment (Highlight then Ctrl + C) to run ##
+# # # # # # # # # # # # # # # # # # # # # # # # #
+
 ## ONLY NEED TO RUN THIS ONCE TO FIX BROKEN BOUNDARIES ## 
 
 # ## WWF Ecoregions ##
@@ -157,45 +162,6 @@ df_rawch_ecoreg <- terra::extract(rawch_s_eco, sv_eco, na.rm = T, fun = sum)
 # merge by ID with the previous df
 df_rawch_ecoreg <- merge(df_rawch_ecoreg, df_sv_eco[, c("ID", "eco_code")], by = "ID")
 
-
-## 1.3: Plot ----------------------
-
-## Quick Terra Plots ##
-## Uncomment to run ##
-
-# plot some zonal stats with eco outline  
-# terra::plot(rawch_s_eco$rawch_SOY , main = "Sum of SIMPLE-G Soy Change in Area (m2) per Ecoregion")
-# plot(sv_eco, add = T, lwd = 0.1)
-
-# ## ggplot ##
-# ggplot()+
-#   geom_spatraster(data = rawch_s_eco, maxcell = Inf)+
-# 
-#   # add scico palette to split the colors at 0
-#   scale_fill_scico(palette = "bam",
-#                    direction = 1,
-#                    na.value = "white",
-#                    midpoint = 0)+
-#   labs(
-#     fill = "Area (m^2)",
-#     title = paste("Post-Sim Soybean Change"
-#                   #, pct_title
-#                   )
-#   )+
-#   theme_minimal() +
-#   theme(
-#     # set plot size and center it
-#     plot.title = element_text(size = 16, hjust = 0.5),
-#     # put legend in the bottom right
-#     legend.position = c(0.15, 0.2),
-#     legend.title = element_text(size = 14),
-#     legend.text = element_text(size = 10))+
-#   # add the ecoregion outlines
-#   geom_sf(data = sv_eco, fill = "transparent", color = "gray40", lwd = 0.2)
-# 
-# # save plot
-# ggsave(filename = paste0(folder_fig_biodiv, "/", "gg_eco_rawch_soy_cont.png"),
-#        width = 14, height = 6, dpi = 300)
 
 # 2: Calculate Biodiversity from CFs -----
 
