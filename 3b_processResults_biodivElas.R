@@ -14,8 +14,7 @@
 
 # # # # # # # # # # # # # # # # # # # # # # # # 
 
-rm(list = ls())
-
+# 0) Load Libraries ----
 library(ggplot2)
 
 # 1) Import Results ------
@@ -52,8 +51,11 @@ ggplot(df_reg, aes(x=Taxa, y=Median, fill=Elas)) +
   geom_errorbar(aes(ymin=error_low, ymax=error_high), width=0.2, position=position_dodge(width=0.5)) +
   labs(title="Regional Extinctions Across Elasticity Scenarios",
        subtitle = "Bars are Error Low/HIgh",
-       x = "",#x="Taxa",
-       y = ""#y="Median Value"
+       x = "",
+       #y = ""
+       
+       #x="Taxa",
+       y="Sum of Median Regional Extinctions per Ecoregion"
        ) +
   theme_minimal() +
   scale_fill_brewer(palette="Set1", direction = -1)+
@@ -61,14 +63,19 @@ ggplot(df_reg, aes(x=Taxa, y=Median, fill=Elas)) +
 
 ggsave("../Figures/2024-11-15/biodiversity/bar_reg_elas.png")
 
+
 ## global ##
 ggplot(df_global, aes(x=Taxa, y=Median, fill=Elas)) +
   geom_bar(stat="identity", position=position_dodge(width=0.5), width=0.4) +
   geom_errorbar(aes(ymin=error_low, ymax=error_high), width=0.2, position=position_dodge(width=0.5)) +
   labs(title="Global Extinctions Across Elasticity Scenarios",
        subtitle = "Bars are 95% Confidence Intervals",
-       x="Group",
-       y="Mean Value") +
+       x= "",
+       #y= "" 
+       
+       #x= "Taxa",
+       y= "Sum of Median Global Extinctions per Ecoregion"
+       ) +
   theme_minimal() +
   scale_fill_brewer(palette="Set1", direction = -1)+
   coord_flip()

@@ -6,16 +6,13 @@
 # Created on: April 2024
 # Last edited: July 2025
 
-
 # REQUIRES:
 ## SIMPLE-G Result files as 'SpatRasters' from 'processResults_SIMPLEG_2.R'
 ## WWF Ecoregions shapefile 
 ## Chaudhary et al. 2015 Characterization Factor XLSX sheets - See Section 2 for Details
 
 # LINKS:
-## Chaudhary et al., 2015, SI2 "Quantifying Land Use Impacts on Biodiversity: Combining Species–Area Models and 
-## Vulnerability Indicators". DOI: 10.1021/acs.est.5b02507
-
+## Chaudhary et al., 2015, SI2 "Quantifying Land Use Impacts on Biodiversity: Combining Species–Area Models and Vulnerability Indicators". DOI: 10.1021/acs.est.5b02507
 ## WWF Ecoregions Download: https://www.worldwildlife.org/publications/terrestrial-ecoregions-of-the-world
 
 # NEXT:
@@ -25,20 +22,34 @@
 rm(list = ls())
 getwd()
 
-# 0: Load Libraries & Set Constants ----------------------
+# 0) Load Libraries & Set Constants ----------------------
 
-## Libraries ####
-library(tidyverse)
+### Libraries ###
+# Loading, Cleaning, and Plotting Data
+library(ggplot2)
+library(dplyr)
 library(terra)
 library(sf)
 library(tidyterra)
 library(scico)
 library(treemap)
 
-# Calc. Biodiversity Impacts from CFs 
+# Calulating Biodiversity Impacts from CFs 
 library(rio)
 
-## Constants ####
+# Mapping Biodiversity Impacts
+library(classInt)
+library(RColorBrewer)
+
+### Constants ###
+
+# SET PCT -  NEED TO DO MANUALLY FOR NOW! 
+pct <- "_m" # either "_l" , "_m" , or "_h"
+pct_model <- "m"
+pct_title <- " - Med"
+crop <- "soy" # either maize, soy, or sm (Soy+Maize)
+layer_choice <- "rawch_SOY"
+
 
 # set folders 
 date_string <- "2024-11-15"
@@ -49,19 +60,12 @@ folder_der <- paste0(folder_der, date_string, "/")
 folder_fig <- "../Figures/"
 folder_fig <- paste0(folder_fig, date_string, "/")
 
-# set pct
-pct <- "_m" # either "_l" , "_m" , or "_h"
-pct_model <- "m"
-pct_title <- " - Med"
-crop <- "soy" # either maize, soy, or sm (Soy+Maize)
-layer_choice <- "rawch_SOY"
-
 # Create Biodiversity plotting folder 
 folder_fig_biodiv <- paste0(folder_fig, pct_model,  "/biodiversity/")
-files_fig_impexp <- list.dirs(folder_fig_biodiv)
+files_fig_biodiv <- list.dirs(folder_fig_biodiv)
 
-# do the same but specifically for imp/exp folder
-if (!(any(grepl(date_string, files_fig_impexp)))) {
+# Check to see if Biodiversity folder (per scenario) exists
+if (!(any(grepl(date_string, files_fig_biodiv)))) {
   # If no file name contains the search string, create a folder with that string
   dir.create(paste0(folder_fig_biodiv))
   
@@ -70,14 +74,14 @@ if (!(any(grepl(date_string, files_fig_impexp)))) {
   cat("A Biodiversity figures folder with the string", date_string, "in its name already exists.\n")
 }
 
-# Create Biodiversity results folder (for process_Reults_4) 
+# Create Biodiversity results folder
 folder_results_biodiv <- paste0("../Results/SIMPLEG-", date_string,  "/", pct_model, "/")
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
 
-# 1: Plotting Change -----
+# 1) Plotting Change -----
 
-## 1.1: Load Shapefiles ------
+## 1.1) Load Shapefiles ------
 
 ## Clean WWF Shapefile  ##
 
@@ -85,7 +89,10 @@ folder_results_biodiv <- paste0("../Results/SIMPLEG-", date_string,  "/", pct_mo
 ## Uncomment (Highlight then Ctrl + C) to run ##
 # # # # # # # # # # # # # # # # # # # # # # # # #
 
-## ONLY NEED TO RUN THIS ONCE TO FIX BROKEN BOUNDARIES ## 
+
+## ONLY NEED TO RUN THIS ONCE TO FIX BROKEN ECOREGION BOUNDARIES ## 
+## IGNORE IF THE CORRECTED SHP FILE WAS PROVIDED ## 
+
 
 # ## WWF Ecoregions ##
 # raw_eco <- st_read("../Data_Source/wwf_ecoregions/wwf_terr_ecos.shp")
@@ -122,17 +129,18 @@ folder_results_biodiv <- paste0("../Results/SIMPLEG-", date_string,  "/", pct_mo
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
 
-### Load Corrected Ecoregions here -----
+### 1.1.1 Load Corrected Ecoregions here -----
 # raw_eco <- st_read("../Data_Source/wwf_ecoregions/wwf_terr_ecos.shp")
 eco <- st_read("../Data_Source/wwf_ecoregions/agg_wwf_terr_ecos_fixed_ecocode.shp")
 
 
-### Load SIMPLE-G -------------
+### 1.1.2 Load SIMPLE-G -------------
 
 # load Raster - Maize+Soy - World
 r_ms_w <- readRDS(file = paste0(folder_der, "r", pct, "_World", ".rds"))
 
-## 1.2: Zonal Stat Agg to Ecoregion ----------------------
+
+## 1.2) Zonal Stat Agg. (SUM) to Ecoregion ----------------------
 
 # convert ecoregions to spatial vector
 sv_eco <- terra::vect(eco)
@@ -163,7 +171,7 @@ df_rawch_ecoreg <- terra::extract(rawch_s_eco, sv_eco, na.rm = T, fun = sum)
 df_rawch_ecoreg <- merge(df_rawch_ecoreg, df_sv_eco[, c("ID", "eco_code")], by = "ID")
 
 
-# 2: Calculate Biodiversity from CFs -----
+# 2) Calculate Biodiversity from CFs -----
 
 # NOTE: These come from Chaudhary 2015 Supp. Info. 2
 # Link: DOI: 10.1021/acs.est.5b02507
@@ -194,9 +202,7 @@ df_rawch_s_eco_reg <- left_join(cf_regional, df_rawch_ecoreg)
 df_rawch_s_eco_global <- left_join(cf_global, df_rawch_ecoreg)
 
 
-## 2.1 Functions ----
-
-# new approach using extract()
+## 2.1) Functions ----
 
 # first function to clean data
 F_clean_calc <- function(df){
@@ -276,6 +282,7 @@ custom_colors <- c("Reptiles" = "#C77CFF",  # violet
                    "Birds" = "#7CAE00",  # yellowgreen
                    "Amphibians" = "#F8766D")  # lightcoral "#F8766D"
 
+# this function plots the tree maps, bar plots, and doughnut plots for extinction stats
 F_plot <- function(df, scale){
   
   
@@ -372,7 +379,7 @@ F_plot <- function(df, scale){
 }
 
 
-## Regional Extinctions -----
+## 2.2) Plot Regional Extinctions -----
 
 # clean 
 df_reg <- F_clean_calc(df_rawch_s_eco_reg)
@@ -385,7 +392,7 @@ df_reg_sum <- F_clean_forplots(df_reg)
 F_plot(df_reg_sum, "Regional")
 
 
-## Global Extinctions ---------
+## 2.3) Plot Global Extinctions ---------
 
 # clean 
 df_global <- F_clean_calc(df_rawch_s_eco_global)
@@ -396,56 +403,34 @@ df_global_sum <- F_clean_forplots(df_global)
 # Plotting 
 F_plot(df_global_sum, "Global")
 
-## Save Reg. & Global --------
+## 2.4) Save Reg. & Global Stats --------
 save(df_global_sum, file = paste0(folder_results_biodiv, "df_global_sum", pct, ".RData"))
 save(df_reg_sum, file = paste0(folder_results_biodiv, "df_reg_sum", pct, ".RData"))
 
 
+# 3) Mapping Biodiv. Impacts --------
 
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+## 3.1) Mapping Function -----
 
-# Test --------
+### FUNCTION INPUTS ###
+# plot_sv =   Spatial Vector merged with the df containing our results (e.g. 'sv_reg_calc') 
+# layer_choice =   The layer (i.e. taxa) this map focuses on. Will loop over 'sv_names', (e.g. Mammals_AnnualCrops_Median) 
+# scale =   Type of extinction, either "Regional" or "Global 
+# breaks_n =   Number of breaks, here we opted for 7 
+# breaks_type =   Type of Mapping unit for data breaks to use with the ClassIntervals() function. We opted for "fisher" but can be "fixed", "sd", "equal", "pretty", "quantile", "kmeans", "hclust", "bclust", "jenks", "dpih", "headtails", "maximum", or "box"
 
+# More on Fisher Algorithm:
+## The "fisher" style uses the algorithm proposed by W. D. Fisher (1958) and discussed by Slocum et
+## al. (2005) as the Fisher-Jenks algorithm; added here thanks to Hisaji Ono. This style will subsample
+## by default for more than 3000 observations. This style should always be preferred to "jenks" as it
+## uses the original Fortran code and runs nested for-loops much faster. -- From ClassInt Package Details
 
-# Future -----------
-# PICK UP HERE --------
-## Re-Merge w SV_Eco to plot sp. change per ecoregion map -------- 
-df_reg_agg <- df_rawch_s_eco_reg %>% 
-  select(rawch_SOY, eco_code, ID, 
-         contains("Median"),
-         -TaxaAggregated_AnnualCrops_Median
-         #TaxaAggregated_AnnualCrops_Median
-         )
-  #select(rawch_SOY, eco_code, contains("Median"))
+## Fisher-Jenks Algorithms "classify an array of 'n' numeric values into 'k' classes such that the sum of the squared deviations from the class means" -- GeoDMS, https://geodms.nl/docs/fisher's-natural-breaks-classification-complexity-proof.html
 
-df_reg_agg2 <- F_clean_calc(df_reg_agg)
-str(df_reg_agg2)
-
-sv_reg_calc <- merge(sv_eco, df_reg_agg2)
-
-# sv_reg_calc <- sv_reg_calc %>% 
-#   rename(
-#     Impact = Birds_AnnualCrops_Median
-#     )
-### TEST ###
-# reclassify data into breaks
-library(classInt)
-library(RColorBrewer)
-# set number of breaks and type
-
-# get spatial vector from either glo
-# inputs 
-plot_df <- df_reg_agg
-scale <- "Regional"
-breaks_n <- 7
-breaks_type <- "fisher"
-
-# loop over layer
-layer <- "Mammals_AnnualCrops_Median"
-
+# mapping function that creates a map for each layer in the stack  (i.e. each taxa)
 F_map <- function(layer_choice, plot_sv, scale, breaks_n, breaks_type){
-  #layer_taxa <- names(sv_reg_calc)[str_detect(names(sv_reg_calc), taxa)]
+  
+  # set taxa name based on column name
   taxa <- sub("_.*", "", layer_choice)
   
   # set colors 
@@ -461,13 +446,13 @@ F_map <- function(layer_choice, plot_sv, scale, breaks_n, breaks_type){
   breaks <- classIntervals(attribute_data, n = breaks_n, style = breaks_type)
   type_breaks <- breaks$brks
   
-  # Classify the attribute based on Jenks breaks
+  # Classify the attribute based on breaks
   cut_data <- cut(attribute_data, breaks = type_breaks, include.lowest = TRUE, labels = FALSE)
   
   # Add the classified data back to the SpatVector
   plot_sv$cut_data <- cut_data
   
-  # Create labels for the Jenks breaks
+  # Create labels for the breaks
   cut_labels <- paste0("[", pmax(round(type_breaks[-length(type_breaks)], 0), 0), 
                        ", ", round(type_breaks[-1], 0), "]")
   
@@ -485,7 +470,8 @@ F_map <- function(layer_choice, plot_sv, scale, breaks_n, breaks_type){
       # set plot title size and center it
       plot.title = element_text(size = 16, hjust = 0.5),
       # put legend in the bottom right
-      legend.position = 'none')
+      legend.position = 'none') # comment out if you want the legend
+  # Un-commment below to re-add legend 
       # legend.position = c(0.15, 0.2),
       # legend.title = element_text(size = 14),
       # legend.text = element_text(size = 10))
@@ -500,17 +486,24 @@ F_map <- function(layer_choice, plot_sv, scale, breaks_n, breaks_type){
   
 }
 
-# get spatial vector from either global or regional
+## 3.2) Clean & Map -------- 
+
+### 3.2.1 Regional ------------- 
+# get only the median columns
+df_reg_agg <- df_rawch_s_eco_reg %>% 
+  select(rawch_SOY, eco_code, ID, 
+         contains("Median"),
+         -TaxaAggregated_AnnualCrops_Median
+  )
+
+# clean and re-merge with Spatial Vector of Ecoregions (sv_eco)
 df_reg_agg2 <- F_clean_calc(df_reg_agg)
 sv_reg_calc <- merge(sv_eco, df_reg_agg2)
 
 # get list of columns / attributes for the things we want to map
-sv_names <- names(sv_reg_calc)[str_detect(names(sv_reg_calc), "AnnualCrops")]
+sv_names <- names(sv_reg_calc)[str_detect(names(sv_reg_calc), "AnnualCrops")] # get all columns containing "AnnualCrops" string (we removed "Aggregated" in the previous section)
 
-# if I did this right, this should loop over each layer in sv_reg_calc and 
-# make a map of the impact per taxa
-
-# regional ###
+# Loop over each layer in sv_reg_calc and make a map of the impact per taxa
 for (layer_name in sv_names) {
   F_map(
     plot_sv = sv_reg_calc, 
@@ -521,7 +514,7 @@ for (layer_name in sv_names) {
   )
   }
 
-# global ###
+### 3.2.2 Global -----------
 # get spatial vector from either global or regional
 df_global_agg <- df_rawch_s_eco_global %>% 
   select(rawch_SOY, eco_code, ID, 
@@ -529,238 +522,20 @@ df_global_agg <- df_rawch_s_eco_global %>%
          -TaxaAggregated_AnnualCrops_Median
          #TaxaAggregated_AnnualCrops_Median
   )
+
+# clean and re-merge
 df_global_agg2 <- F_clean_calc(df_global_agg)
 sv_global_calc <- merge(sv_eco, df_global_agg2)
 
-
+# Loop over each layer in sv_global_calc and make a map of the impact per taxa
 for (layer_name in sv_names) {
   F_map(
     plot_sv = sv_global_calc, 
-    layer_choice = layer_name, 
+    layer_choice = layer_name, # uses the same names as regional
     scale = "Global", 
     breaks_n = 7, 
     breaks_type = "fisher"
   )
 }
 
-### ### ###
-
-# WORKS! NOW CLEAN IT!!! 
-# ALSO: Add Hard-Coded Legends instead of Fisher so we can compare between maps
-
-
-# ggplot ##
-ggplot()+
-  geom_spatvector(data = sv_reg_calc, aes(fill = Impact))+
-
-  # add scico palette to split the colors at 0
-  # scale_fill_scico(palette = "bam",
-  #                  direction = 1,
-  #                  na.value = "white",
-  #                  midpoint = 0)+
-  labs(
-    fill = "Impact (species*years)",
-    title = "Biodiversity Impact per Ecoregion")+
-  theme_minimal() +
-  theme(
-    # set plot size and center it
-    plot.title = element_text(size = 16, hjust = 0.5),
-    # put legend in the bottom right
-    legend.position = c(0.15, 0.2),
-    legend.title = element_text(size = 14),
-    legend.text = element_text(size = 10))+
-  # add the ecoregion outlines
-  geom_sf(data = sv_eco, fill = "transparent", color = "white", lwd = 0.1)
-
-
-# save plot
-ggsave(filename = paste0(folder_fig_biodiv, "/", "gg_reg_impact.png"),
-       width = 14, height = 6, dpi = 300)
-
-
-
-# Graveyard -------
-
-## Interactive plot with plotly --------
-
-### interactive bar plot ###
-# Create an interactive barplot with error bars using plotly
-# library(plotly)
-# plot <- plot_ly(df, 
-#                 x = ~Taxa, 
-#                 y = ~Median, 
-#                 type = 'bar', 
-#                 error_y = ~list(type = 'data', 
-#                                 array = error_high,   # Upper error (upper95 - Median)
-#                                 arrayminus = error_low)) %>%  # Lower error (Median - lower95)
-#   layout(title = "Interactive Barplot with Error Bars",
-#          xaxis = list(title = "Taxa"),
-#          yaxis = list(title = "Loss"))
-# 
-# # Show the plot
-# plot
-
-## Plotting with tmap --------
-
-library(tmap)
-# tmap link: https://tmieno2.github.io/R-as-GIS-for-Economists/quick-plot-and-interactive-map.html
-# View ecoregions in interactive map
-tmap_leaflet(x = tm_shape(eco)+ tm_borders())
-# Note that we can't use SpatRasters with tmap() - annoying
-# tmap_leaflet(                                                      
-#   tm_shape(as(rawch_eco1, "Raster")) + # what sf to use for creating a map 
-#     tm_raster(), # what type of geometry to put on the map 
-#   #mapview.maxpixels = 1000000000
-#   midpoint = NA
-# ) 
-
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
-
-## Loop Zonal Stats over all layers of "r_world" ---------
-# set up fxn to calc zonal stats for a given layer based on ecoregions
-
-# NOTE: since we are doing raw change per grid cell, we want the sum per ecoregion
-F_zonal <- function(layer){ 
-  layer <- terra::zonal(layer, sv_eco, fun = sum, na.rm = T, as.raster = T)
-  layer <- layer * 1000 # get from kha to ha to compare with raw data
-  # reclassify NA as 0
-  #layer[is.na(layer)] <- 0
-  #layer <- terra::subst(layer, from = NA, to = 0)
-
-}
-# keep only layers with names that start with rawch to apply our fxn to
-r_ms_w_rawch <- r_ms_w %>%
-subset(grepl( "rawch" , names(.)))
-
-# run function over each layer
-rawch_eco <- sapp(r_ms_w_rawch, fun = F_zonal)
-rawch_eco$rawch_SOY
-
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
-
-# Got rid of this bc it doesn't make any sense to clip to Brazil if the point of doing ecoregions 
-# was to avoid political boundaries
-
-## Filter to Brazil/Cerrado ------
-
-F_aoi_clip <- function(spat_rast, aoi_shp){
-  
-  # get extent as terra object for plotting
-  ext_area <- vect(ext(aoi_shp))
-  
-  # crop and masking to just the extent of interest
-  r_aoi <- terra::crop(spat_rast, ext_area, mask = T) 
-  r_aoi <- mask(r_aoi, aoi_shp)
-  
-  # return as result
-  return(r_aoi)
-}
-
-# load shapefiles
-load("../Data_Derived/shp_usbr.RData")
-
-# clip to Brazil 
-rawch_s_br <- F_aoi_clip(rawch_s, shp_br)
-
-F_ggplot_world(df = rawch_s_br,
-               shp = shp_br,
-               brks = waiver(),
-               #pal = "gn_yl", 
-               pal = "bam",
-               legend_title = "Area (ha)",
-               p_title = paste("Post-Sim Soybean Change", pct_title),
-               save_title = "test_gg_eco_rawch_soy_br.png")
-
-# clip to Cerrado 
-rawch_s_cerr <- F_aoi_clip(rawch_s, shp_cerr)
-
-F_ggplot_world(df = rawch_s_cerr,
-               shp = shp_cerr,
-               brks = waiver(),
-               #pal = "gn_yl", 
-               pal = "bam",
-               legend_title = "Area (ha)",
-               p_title = paste("Post-Sim Soybean Change", pct_title),
-               save_title = "test_gg_eco_rawch_soy_cerr.png")
-
-# now try and get it to ecoregions in Brazil
-r_ms_w_rawch <- r_ms_w %>% 
-  subset(grepl( "rawch" , names(.)))
-
-rawch_s <- r_ms_w_rawch %>% subset("rawch_SOY")
-
-# clip ecoregions to BR - 
-## no point in doing this because the ecoregions overlap political boundaries 
-sv_eco_br <- F_aoi_clip(sv_eco, shp_br)
-
-# get extent as terra object for plotting
-ext_br <- vect(ext(shp_br))
-
-# crop and masking to just the extent of interest
-sv_eco_br <- terra::crop(sv_eco, ext_br) 
-
-plot(shp_br, col = NA, border = "red", lwd = 3)
-plot(sv_eco_br, border = "gray20", lwd = 0.8, add = T)
-
-plot(rawch_s_eco$rawch_SOY, 
-     main = "Land Converted to Soy per Ecoregion (ha)",
-)
-
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
-
-## ggplot with function ---------------------
-
-# got rid of bc I'm only doing this once in the clean script, keeping it here in case I want to plot more layers
-
-## ggplot ##
-F_ggplot_world <- function(df, shp, brks, pal, legend_title, p_title, save_title){
-  
-  
-  
-  p <- ggplot()+
-    geom_spatraster(data = df, maxcell = Inf)+
-    # scale_fill_whitebox_c(
-    #   #palette = "viridi", direction = 1,
-    #   palette = pal,
-    #   breaks = brks
-    # )+
-    scale_fill_scico(palette = "bam", 
-                     direction = 1, 
-                     na.value = "white",
-                     midpoint = 0)+
-    labs(
-      fill = legend_title,
-      title = p_title
-    )+
-    theme_minimal() +
-    theme(
-      # set plot size and center it 
-      plot.title = element_text(size = 16, hjust = 0.5),
-      # put legend in the bottom right 
-      legend.position = c(0.15, 0.2),
-      legend.title = element_text(size = 14),
-      legend.text = element_text(size = 10))+
-    #geom_spatvector(data = sv_eco, color = "black", fill = "transparent", lwd = 0.5)
-    #geom_sf(data = sv_eco, fill = "transparent", color = "gray40", lwd = 0.2)
-    geom_sf(data = shp, fill = "transparent", color = "gray40", lwd = 0.2)
-  
-  #geom_spatvector(data = sv_eco, lwd = 0.2)#+
-  
-  
-  ggsave(plot = p, filename = paste0(folder_fig_biodiv, "/", save_title),
-         width = 14, height = 6, dpi = 300)
-  
-  return(p)
-}
-
-F_ggplot_world(df = rawch_eco %>% subset("rawch_SOY"),
-               shp = sv_eco,
-               brks = waiver(),
-               #pal = "gn_yl", 
-               pal = "bam",
-               legend_title = "Area (ha)",
-               p_title = paste("Post-Sim Soybean Change", pct_title),
-               save_title = "test_gg_eco_rawch_soy.png")
-
-
-
+# END ################################
