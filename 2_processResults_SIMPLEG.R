@@ -16,6 +16,8 @@
 ### 'summary_tables' which houses a table with the stats for each area (min, mean, median, 1st & 3rd Quartiles, max, and NA's)
 ### 'stat_summary' which houses the raw values for changes in cropland area and production as an R data file to bring into another script   
 
+# NEXT:
+## Add code to automatically move 'regional_results.xlsx' from download folder to imports_exports
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
 
@@ -262,7 +264,7 @@ F_ggplot_bar_vert_sep <- function(df, y_var, title_text, save_text){
 
 ## 0.2) Spatial Analysis for Areas of Interest ------- 
 
-## NOTE: The plotting functions for each individual AOI are in their individual sections; e.g. Section 4.2 for plotting global results ##
+## NOTE: The plotting functions for each individual AOI are in their individual sections; e.g. Section 4 for plotting global results ##
 
 # Fxn to Create and Save Violin Plots 
 ## NOTE: the SI code is similar but includes histograms and violin plots for more variables 
@@ -332,45 +334,6 @@ F_aoi_prep <- function(shp, area_name){
   r_aoi <- terra::crop(r_func, ext_area, mask = T) 
   r_aoi <- mask(r_aoi, shp)
   
-  ## NICK: Not sure if we need any of this since we aren't clamping anymore - this other section just re-orders the layers
-  # ## Call Count and Clamp functions to cap the grid cells at 50,000 ##
-  # # QLAND #
-  # F_count_invalid(r_aoi, "new_QLAND")
-  # r_aoi_new_qland <- F_clamp(r_aoi, "new_QLAND")
-  # 
-  # # QCROP #
-  # F_count_invalid(r_aoi, "new_QCROP")
-  # r_aoi_new_qcrop <- F_clamp(r_aoi, "new_QCROP")
-  # 
-  # # Crop Specific
-  # F_count_invalid(r_aoi, "new_LND_MAZ")
-  # r_aoi_new_maize <- F_clamp(r_aoi, "new_LND_MAZ")
-  # 
-  # # 
-  # F_count_invalid(r_aoi, "new_LND_SOY")
-  # r_aoi_new_soy <- F_clamp(r_aoi, "new_LND_SOY")
-  # 
-  # # get other layers
-  # r_aoi_pct_qland <- r_aoi %>% subset("pct_QLAND")
-  # r_aoi_rawch_qland <- r_aoi %>% subset("rawch_QLAND")
-  # 
-  # r_aoi_pct_qcrop <- r_aoi %>% subset("pct_QCROP")
-  # r_aoi_rawch_qcrop <- r_aoi %>% subset("rawch_QCROP")
-  # 
-  # r_aoi_pct_maize <- r_aoi %>% subset("pct_LND_MAZ")
-  # r_aoi_rawch_maize <- r_aoi %>% subset("rawch_MAZ")
-  # 
-  # r_aoi_pct_soy <- r_aoi %>% subset("pct_LND_SOY")
-  # r_aoi_rawch_soy <- r_aoi %>% subset("rawch_SOY")
-  # 
-  # # re-stack and re-order
-  # r_aoi <- c(
-  #   r_aoi_new_qland, r_aoi_pct_qland, r_aoi_rawch_qland,
-  #   r_aoi_new_qcrop, r_aoi_pct_qcrop, r_aoi_rawch_qcrop,
-  #   r_aoi_new_maize, r_aoi_pct_maize, r_aoi_rawch_maize,
-  #   r_aoi_new_soy, r_aoi_pct_soy, r_aoi_rawch_soy
-  # )
-  # 
   # save clipped and clamped raster with new AOI 
   saveRDS(r_aoi, file = paste0(folder_der_date, "r", pct, "_", area_name, ".rds"))
   
@@ -552,25 +515,16 @@ F_EDA <- function(r_aoi, area_name){
 
 # 1) Import / Export Plot ------------------------------------------------------------------------
 
-## 1.1) Clean Import & Export Data -------
+## 1.1) Run Fxn to Clean & Join Import/Export Data --------
 
-# Load in data as xlsx (diff from previous)
-# source_path <- paste0(files_results, "regional_results.xlsx")
-# data_list <- import_list(source_path)
-
-# function to get one sheet of data and clean it
-## var == the name of the sheet we want
-## pct == the model type for elasticity; enter either "l" for low, "m" for medium, or "h" for high
-
-
-## 1.2) Run Fxn & Join --------
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+## NOTE: MANUALLY MOVE regional_results.xlsx to each scenario folder ##
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
 
 # reset model variable here if you want to re-run with different amounts 
 # pct_model <- "m"
 
 # Load in data as xlsx (diff from previous) 
-# NOTE: MANUALLY MOVE regional_results.xlsx to each scenario folder
-# TO-DO: Change code here so there's no need to manually move 'regional_results.xlsx' from download folder to imports_exports
 source_path <- paste0(folder_results, "regional_results.xlsx")
 data_list <- import_list(source_path)
 
@@ -846,11 +800,11 @@ F_ggplot_interval <- function(df, title_text, title_legend, save_title){
 
 # example from: https://cloud.r-project.org/web/packages/tidyterra/tidyterra.pdf
 # With discrete values
-test3 <-  r_row %>%
+tmp <-  r_row %>%
   subset("rawch_QLAND")
 
 # create df
-factor <- test3 %>%
+factor <- tmp %>%
   # add column with break intervals
   mutate(
     cats =
@@ -938,11 +892,11 @@ F_ggplot_us_interval <- function(df, title_text, title_legend, save_title){
 
 # example from: https://cloud.r-project.org/web/packages/tidyterra/tidyterra.pdf
 # With discrete values
-test3 <-  r_us %>%
+tmp <-  r_us %>%
   subset("rawch_QLAND")
 
 # create df
-factor <- test3 %>%
+factor <- tmp %>%
   mutate(
     cats =
       cut(rawch_QLAND,
@@ -959,11 +913,11 @@ F_ggplot_us_interval(
 
 
 ## 5.3) US Prod Plot for SI ------
-test3 <-  r_us %>%
+tmp <-  r_us %>%
   subset("rawch_QCROP")
 
 # create df
-factor <- test3 %>%
+factor <- tmp %>%
   mutate(
     cats =
       cut(rawch_QCROP,
@@ -1256,7 +1210,7 @@ write.csv(stat_SG_summary_maizesoy,
 
 ## 8.2) Changes calculated for MS Abstract -------
 
-### t1 ----
+### text block 1 ----
 # Text:  Mean area of corn and soy land expansion per grid-cell in the Cerrado (32.2 ha) was ~1.6 times higher than in Brazil as a whole (24.2 ha).
 t_c1 <- as.numeric(terra::global(r_cerr$rawch_QLAND, fun = "mean", na.rm = T))
 t_br1 <- as.numeric(terra::global(r_br$rawch_QLAND, fun = "mean", na.rm = T))
@@ -1273,7 +1227,7 @@ paste0("Mean area of corn and soy land expansion per grid-cell in the Cerrado, (
       round(t_br1*1000, 1),
       " ha).")
 
-### t2 ----
+### text block 2 ----
 
 ## SOY ## 
 # We found, on average, that a 1 ha decrease in the amount of cropland dedicated to soybean in the US leads to a 0.20 increase in Cerrado soybean cropland. 
@@ -1449,24 +1403,7 @@ df_cerr_agg_from3 <- df_cerr_agg %>%
   filter(from_level_3 %in% classes_few) %>% 
   mutate(years = paste0(year-1,"-",year))
 
-# xx: might not need
-# load what will become "df" - generated from aggStats_MapBiomas
-#load(file = paste0(folder_der, "mapb_col8_clean_long.Rdata"))
-
-# list of "Relevant Vegetation Classes"
-
-# # filter level 4 data to only "To-Soybeans"
-# df <- df %>% 
-#   filter(to_level_4 == "Soy Beans") %>%
-#   filter(to_level_4 != from_level_4)
-# 
-# # filter to Cerrado
-# # needs: muni_codes_cerr
-# df_cerr <- df %>% 
-#   filter(geocode %in% muni_codes_cerr) %>% 
-#   filter(biome == "Cerrado")
-# 
-# # filter to only land that came from one of the RVCs-to-Soybean
+# filter to only land that came from one of the RVCs-to-Soybean
 agg_cerr_fromveg <- df_cerr %>%
   filter(from_level_3 %in% list_from_lv3) %>%
   aggregate(ha ~ year, sum) %>%
@@ -1578,51 +1515,3 @@ ggsave(paste0(folder_fig, "_line.png"),
 
 
 # END #################
-
-# p_trans <- plot_grid(p_trans_shp, p_trans_line, 
-#                      nrow = 2, labels = "AUTO",
-#                      align = "v", axis = "tb"
-#                      # rel_heights = c(1,1),
-#                      #rel_widths = c(1,4)
-#                      #scale = c(1,0.5)
-#                      )
-# p_trans
-
-# # grabbed from aggStats_MapBiomas.R on 11/20
-# F_line<-function(data, aoi, class, file_name){
-#   p <- ggplot(data, aes(x = year, y = ha/1000000))+
-#     geom_line()+
-#     geom_point()+
-#     theme_minimal()+
-#     labs(
-#       title = paste("Annual Land Transition Across", aoi),
-#       subtitle = paste(class),
-#       y = "Land Transition (Mha)",
-#       x = ""
-#     )+
-#     # add horizontal line where we calculated Cerrado transition 
-#     geom_hline(yintercept = sg_cerr_rawch_soy/1000, color = "red",
-#                linetype="dotted", linewidth=0.5)+
-#     
-#     geom_vline(xintercept = as.Date("2013-01-01"), color = "red",
-#                linetype="dotted", linewidth=0.5)
-#   
-#   ggsave(filename = paste0(folder_fig, file_name),
-#          plot = p,
-#          width = 9, height = 6,
-#          dpi = 300)
-#   
-#   # print stats/data for publication
-#   print("Land Transitioned:")
-#   print(data %>% filter(year(year) >= 2012 & year(year) <= 2017))
-#   
-#   return(p)
-# }
-# 
-# 
-# F_line(data = agg_cerr_fromveg, aoi = "Cerrado", 
-#        class = "From Relevant Vegetation Classes to Soybean", 
-#        file_name = "line_cerr_fromveg.png")
-# 
-# print(agg_cerr_fromveg %>% filter(year(year) >= 2013 & year(year) <= 2015))
-# 
