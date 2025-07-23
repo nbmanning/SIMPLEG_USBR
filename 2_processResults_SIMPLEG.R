@@ -131,7 +131,7 @@ if (!(any(grepl(date_string, files_fig)))) {
   cat("A figures folder with the string", date_string, "in its name already exists.\n")
 }
 
-# check for stat summary folder
+# check for stat summary folder -- commented out because stat_summary goes to '/Results/' folder now
 # if (!(any(grepl(date_string, files_stat)))) {
 #   # If no file name contains the search string, create a folder with that string
 #   dir.create(paste0(folder_fig))
