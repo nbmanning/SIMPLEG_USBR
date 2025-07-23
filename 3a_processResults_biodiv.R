@@ -1,22 +1,24 @@
-# Title: processResults_SIMPLEG_3_biodiv.R
-# Purpose: Get impact sto biodiversity at the WWF ecoregion level
+# Title: 3a_processResults_biodiv.R
+# Purpose: Get impacts to biodiversity at the WWF ecoregion level by using the characterization factors
+# designed by Chaudhary et al. 2015 at the regional and global level (from marginal transition).
 
-# Initial SIMPLE-G script by: Iman Haqiqi
-# Initial date: Aug 2019
-
-# Edited by: Nick Manning 
-# Initial edit date: May 2023
-# Last edited: April 2024
+# Author: Nick Manning 
+# Created on: April 2024
+# Last edited: July 2025
 
 
 # REQUIRES:
 ## SIMPLE-G Result files as 'SpatRasters' from 'processResults_SIMPLEG_2.R'
-## WWF Ecoregions shapefile (from https://www.worldwildlife.org/publications/terrestrial-ecoregions-of-the-world)
+## WWF Ecoregions shapefile 
+## Chaudhary et al. 2015 Characterization Factor XLSX sheets
 
-# NEXT ------
-## Clean -- DONE
+# Links:
+## Chaudhary et al., 2015, """:
+## WWF Ecoregions Download: https://www.worldwildlife.org/publications/terrestrial-ecoregions-of-the-world
+
+
+# NEXT:
 ## Convert to Jupyter Notebook
-## Add results from new (2024-09-15) model run to Working2 Draft along with new methods
 
 # # # # # # # # # # # # # # # # # # # # # # # # 
 rm(list = ls())
