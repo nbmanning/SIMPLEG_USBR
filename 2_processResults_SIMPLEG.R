@@ -313,6 +313,52 @@ F_p_violin <- function(df, area){
   return(p2)
 }
 
+F_p_violin_soy <- function(df, area){
+  
+  ## subset and change names ##
+  df_pct_soy <- df %>% 
+    subset(c("pct_QLAND", "pct_LND_SOY")) 
+  names(df_pct_soy) <- c("All", "Soy")
+  
+  
+  # violin plots for % change in all simulation results and soy subsetted (because bwplot() needs two or more bwplots) 
+  # set size_title, size_labels, and size_axis_nums in the "Constants" section
+  p1 <- bwplot(df_pct_soy, 
+               main = list(paste(area, "% Change Soy", pct_title), cex = size_title),
+               ylab = list("% Change", cex = size_labels),
+               scales=list(
+                 x = list(rot=45, cex = size_labels),
+                 y = list(cex = size_axis_nums))
+  )
+  
+
+  
+  # save figures as PNGs - filename will include the area (e.g. US, Brazil) and model elasticity version (e.g. l, m, or h)
+  png(filename = paste0(folder_fig, str_to_lower(area), pct, "_bw", "_pctchange", "_soy", ".png"))
+  plot(p1)
+  dev.off()
+  
+  
+  # raw 
+  df_raw_soy <- df %>%
+    subset(c("rawch_QLAND", "rawch_SOY"))
+  names(df_raw_soy) <- c("All", "Soy")
+
+  p2 <- bwplot(df_raw_soy,
+               main = list(paste(area, "Raw Change Soy", pct_title), cex = size_title),
+               ylab = list("Area (kha)", cex = size_labels),
+               scales=list(
+                 x = list(rot=45, cex = size_labels),
+                 y = list(cex = size_axis_nums))
+  )
+  png(filename = paste0(folder_fig, str_to_lower(area), pct, "_bw", "_rawchange", "_soy", ".png"))
+  plot(p2)
+  dev.off()
+  
+  # also plot these figures in the code window
+  return(p1)
+  return(p2)
+}
 
 # Fxn to incorporate both of these into one function
 # Note that we exclude the clamping to 50,000 here as we fixed this step in our analysis
@@ -505,7 +551,7 @@ F_EDA <- function(r_aoi, area_name){
   
   # Call EDA fxn to get and save violin plots 
   F_p_violin(r_aoi, area_name)
-  
+  F_p_violin_soy(r_aoi, area_name)
   # Plot basic initial maps - removed as this takes a lot of time 
   # terra::plot(r_aoi, 
   #             axes = F#, 
@@ -761,6 +807,7 @@ F_EDA(r_aoi = r_row, area_name = "World")
 
 ## 4.2) World Interval Plot --------
 
+# Set up fxn for plotting across specific intervals
 F_ggplot_interval <- function(df, title_text, title_legend, save_title){
   
   # plot 
@@ -797,6 +844,8 @@ F_ggplot_interval <- function(df, title_text, title_legend, save_title){
   return(p)
   
 }
+### 4.2.1) Total Change (C+S) -------
+
 
 # example from: https://cloud.r-project.org/web/packages/tidyterra/tidyterra.pdf
 # With discrete values
@@ -812,7 +861,7 @@ factor <- tmp %>%
           # manually set break intervals here 
           breaks = c(-5, -2.5, -1, -0.5, -0.01,
                      0.01, 0.1, 0.25, 0.5, 1))
-    )
+  )
 
 # run function to create plot
 F_ggplot_interval(
@@ -820,6 +869,30 @@ F_ggplot_interval(
   title_text = "Global Change in Cropland Area",
   title_legend = "Area (kha)",
   save_title = "gg_world_rawch_croplandarea.png")
+
+### 4.2.2) Total Soy Change -------
+# example from: https://cloud.r-project.org/web/packages/tidyterra/tidyterra.pdf
+# With discrete values
+tmp <-  r_row %>%
+  subset("rawch_SOY")
+
+# create df
+factor <- tmp %>%
+  mutate(
+    cats =
+      cut(rawch_SOY,
+          breaks = c(-5, -3, -1, -0.1, -0.01,
+                     0.01, 0.25, 0.5, 1, 2))
+  )
+
+# run Fxn
+F_ggplot_interval(
+  df = factor, 
+  title_text = "Global Change in Soybean Cropland Area",
+  title_legend = "Area (kha)",
+  save_title = "gg_rawch_soy_croplandarea_4326.png")
+
+
 
 ## 4.3) World Results w/o US ------
 # get extent as terra object for plotting
@@ -889,7 +962,7 @@ F_ggplot_us_interval <- function(df, title_text, title_legend, save_title){
   
 }
 
-
+### 5.2.1) Total US Change (C+S) -------
 # example from: https://cloud.r-project.org/web/packages/tidyterra/tidyterra.pdf
 # With discrete values
 tmp <-  r_us %>%
@@ -910,6 +983,28 @@ F_ggplot_us_interval(
   title_text = "Change in US Cropland Area",
   title_legend = "Area (kha)",
   save_title = "gg_us_rawch_croplandarea_4326.png")
+
+### 5.2.2) US Soy Change -------
+# example from: https://cloud.r-project.org/web/packages/tidyterra/tidyterra.pdf
+# With discrete values
+tmp <-  r_us %>%
+  subset("rawch_SOY")
+
+# create df
+factor <- tmp %>%
+  mutate(
+    cats =
+      cut(rawch_SOY,
+          breaks = c(-5, -3, -1, -0.1, -0.01,
+                     0.01, 0.25, 0.5, 1, 2))
+  )
+
+# run Fxn
+F_ggplot_us_interval(
+  df = factor, 
+  title_text = "Change in US Cropland Area",
+  title_legend = "Area (kha)",
+  save_title = "gg_us_rawch_soy_croplandarea_4326.png")
 
 
 ## 5.3) US Prod Plot for SI ------
@@ -1031,7 +1126,7 @@ F_ggplot_brcerr <- function(df, area, brks, pal, legend_title, p_title, save_tit
     # add outlines based on the AOI
     p <- p + 
       # option to plot all the states containing any Cerrado biome
-      geom_sf(data = shp_cerr_states, color = "gray70", fill = "transparent", lwd = 0.2)+ 
+      geom_sf(data = shp_cerr_states, color = "gray50", fill = "transparent", lwd = 0.2)+ 
       # option to plot the outline of the Cerrado
       geom_sf(data = shp_cerr, color = "black", fill = "transparent", lwd = 0.3)
   }
@@ -1054,6 +1149,7 @@ F_ggplot_brcerr <- function(df, area, brks, pal, legend_title, p_title, save_tit
   return(p)
 }
 
+### 6.2.1) Total Brazil Change (C+S) -------
 # call Fxn for Brazil
 F_ggplot_brcerr(df = r_br %>% subset("rawch_QLAND"),
                 brks = waiver(), 
@@ -1062,6 +1158,15 @@ F_ggplot_brcerr(df = r_br %>% subset("rawch_QLAND"),
                 legend_title = "Area (kha)",
                 p_title = paste("Change in BR Cropland Area", pct_title),
                 save_title = "gg_br_rawch_croplandarea.png")
+
+### 6.2.2) Brazil Soy Change ------
+F_ggplot_brcerr(df = r_br %>% subset("rawch_SOY"),
+                brks = waiver(), 
+                area = "Brazil",
+                pal = "gn_yl", 
+                legend_title = "Area (kha)",
+                p_title = paste("Change in BR Soybean Cropland Area", pct_title),
+                save_title = "gg_br_rawch_soy_croplandarea.png")
 
 ## 6.3) BR Prod Plot for SI -----
 F_ggplot_brcerr(df = r_br %>% subset("rawch_QCROP"),
@@ -1085,6 +1190,8 @@ F_EDA(r_aoi = r_cerr, area_name = "Cerrado")
 
 
 ## 7.2) Cerrado Plot -------
+
+### 7.2.1) Cerrado Land (C+S) Plot -------
 ## NOTE: Cerrado is slightly different as a scale bar and N arrow are very helpful here
 p2 <- F_ggplot_brcerr(
   df = r_cerr %>% subset("rawch_QLAND"),
@@ -1109,15 +1216,15 @@ p2
 ggsave(plot = p2, filename = paste0(folder_fig, "/", "gg_cerr_rawch_croplandarea_nscale.png"),
        width = 12, height = 8, dpi = 300)
 
-## 7.3) Cerrado Prod Plot fo SI --------
+### 7.2.2) Cerrado Soy Land Plot -------
 p3 <- F_ggplot_brcerr(
-  df = r_cerr %>% subset("rawch_QCROP"),
+  df = r_cerr %>% subset("rawch_SOY"),
   area = "Cerrado",
   brks = waiver(),
   pal = "gn_yl", 
-  legend_title = "CPI\n(1000-tons CE)",
-  p_title = paste("Change in Cerrado Crop Production Index", pct_title),
-  save_title = "gg_cerr_rawch_cropprod.png")
+  legend_title = "Area (kha)",
+  p_title = paste("Change in Cerrado Soybean Cropland Area", pct_title),
+  save_title = "gg_cerr_rawch_soy_croplandarea.png")
 
 # call variable to save base map
 p3
@@ -1130,7 +1237,32 @@ p3 <- p3 +
                          style = north_arrow_minimal())
 
 p3
-ggsave(plot = p3, filename = paste0(folder_fig, "/", "gg_cerr_rawch_cropprod_nscale.png"),
+ggsave(plot = p3, filename = paste0(folder_fig, "/", "gg_cerr_rawch_soy_croplandarea_nscale.png"),
+       width = 12, height = 8, dpi = 300)
+
+
+## 7.3) Cerrado Prod Plot fo SI --------
+p4 <- F_ggplot_brcerr(
+  df = r_cerr %>% subset("rawch_QCROP"),
+  area = "Cerrado",
+  brks = waiver(),
+  pal = "gn_yl", 
+  legend_title = "CPI\n(1000-tons CE)",
+  p_title = paste("Change in Cerrado Crop Production Index", pct_title),
+  save_title = "gg_cerr_rawch_cropprod.png")
+
+# call variable to save base map
+p4
+
+# Add scale bar and N arrow manually 
+p4 <- p4 +       
+  annotation_scale(location = "br", width_hint = 0.4) +  # Scale bar at the bottom right
+  annotation_north_arrow(location = "br", which_north = "true",  # North arrow at the bottom right
+                         pad_x = unit(0.1, "in"), pad_y = unit(0.3, "in"),
+                         style = north_arrow_minimal())
+
+p4
+ggsave(plot = p4, filename = paste0(folder_fig, "/", "gg_cerr_rawch_cropprod_nscale.png"),
        width = 12, height = 8, dpi = 300)
 
 # 8) Maize/Soy Summary Statistics --------
