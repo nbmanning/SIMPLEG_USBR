@@ -1002,7 +1002,7 @@ factor <- tmp %>%
 # run Fxn
 F_ggplot_us_interval(
   df = factor, 
-  title_text = "Change in US Cropland Area",
+  title_text = "Change in US Soybean Cropland Area",
   title_legend = "Area (kha)",
   save_title = "gg_us_rawch_soy_croplandarea_4326.png")
 
