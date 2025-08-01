@@ -1418,7 +1418,7 @@ print(pgc_combined_df)
 colnames(pgc_combined_df) <- gsub("\\.", " ", colnames(pgc_combined_df))
 
 # Define output file path
-pgc_output_file <- file.path(pgc_path, "_pgc_allresults_no_round.xlsx")
+pgc_output_file <- file.path(pgc_path, paste0("_pgc_allresults_no_round", pct, ".xlsx"))
 
 # Write to new Excel file
 write.xlsx(pgc_combined_df, pgc_output_file)
@@ -1501,7 +1501,7 @@ reg_df_combined <- bind_rows(reg_df_combined, reg_priceindex) %>%
     variable = paste("CornSoy", type),
     chg = post - pre,
     pct_chg = ((post - pre) / pre) * 100,
-    modeltype = "med",
+    modeltype = pct_model,
     Unit = case_when(
       type == "Area" ~ "kha",
       type == "Production" ~ "1000-Tons CE",
@@ -1532,7 +1532,7 @@ reg_df_newreg <- bind_rows(
     pre = as.numeric(terra::global(r_cerr$new_LND_MAZ, fun = "sum", na.rm = T)) - as.numeric(terra::global(r_cerr$rawch_MAZ, fun = "sum", na.rm = T)),
     post = as.numeric(terra::global(r_cerr$new_LND_MAZ, fun = "sum", na.rm = T)),
     Unit = "kha",
-    modeltype = "med",
+    modeltype = pct_model,
     crop = "CornSoy",
     type = "Area"
   ),
@@ -1544,7 +1544,7 @@ reg_df_newreg <- bind_rows(
     pre = as.numeric(terra::global(r_cerr$new_QLAND, fun = "sum", na.rm = T)) - as.numeric(terra::global(r_cerr$rawch_QLAND, fun = "sum", na.rm = T)),
     post = as.numeric(terra::global(r_cerr$rawch_QLAND, fun = "sum", na.rm = T)),
     Unit = "kha",
-    modeltype = "med",
+    modeltype = pct_model,
     crop = "CornSoy",
     type = "Area"
   ),
@@ -1556,7 +1556,7 @@ reg_df_newreg <- bind_rows(
     pre = as.numeric(terra::global(r_cerr$new_QCROP, fun = "sum", na.rm = T)) - as.numeric(terra::global(r_cerr$rawch_QCROP, fun = "sum", na.rm = T)),
     post = as.numeric(terra::global(r_cerr$rawch_QCROP, fun = "sum", na.rm = T)),
     Unit = "metric tons",
-    modeltype = "med",
+    modeltype = pct_model,
     crop = "CornSoy",
     type = "Production"
   ),
@@ -1568,7 +1568,7 @@ reg_df_newreg <- bind_rows(
     pre = as.numeric(terra::global(r_cerr$new_LND_SOY, fun = "sum", na.rm = T)) - as.numeric(terra::global(r_cerr$rawch_SOY, fun = "sum", na.rm = T)),
     post = as.numeric(terra::global(r_cerr$rawch_SOY, fun = "sum", na.rm = T)),
     Unit = "kha",
-    modeltype = "med",
+    modeltype = pct_model,
     crop = "Soy",
     type = "Area"
   )
@@ -1586,12 +1586,15 @@ reg_df_cerr <- reg_df_combined_types %>%
   mutate(region_abv = factor(region_abv, levels = c("US", "Cerrado", "Brazil", "S. America (excl. Brazil)", "China", "EU", "Total"))) %>% 
   arrange(region_abv)
 
-write.xlsx(reg_df_cerr, paste0(folder_results, "_regional_aggregate.xlsx"), overwrite = TRUE)
+## SAVE TABLE - REGIONAL RESULTS ##
+write.xlsx(reg_df_cerr, paste0(folder_results, "_regional_aggregate", pct, ".xlsx"), overwrite = TRUE)
 
 # filter just to soy
 reg_df_cerr_s <-  reg_df_cerr %>% 
   filter(variable == "Soy Area" | variable == "Soy Production")
-write.xlsx(reg_df_cerr_s, paste0(folder_results, "_regional_aggregate_soy.xlsx"), overwrite = TRUE)
+
+## SAVE TABLE - REGIONAL SOY RESULTS ##
+write.xlsx(reg_df_cerr_s, paste0(folder_results, "_regional_aggregate_soy", pct, ".xlsx"), overwrite = TRUE)
 
 
 # 9: Transition Results: Doesn't Change with new Model Runs -----
