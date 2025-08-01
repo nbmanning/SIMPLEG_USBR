@@ -1395,46 +1395,9 @@ paste0("We found, on average, that a 1 ha decrease in the amount of cropland in 
        format(round(t_comp2_usbr*-1, 2), nsmall = 2),  
        " ha increase in Brazil cropland.")
 
+## 8.2) Merge Per-Grid-Cell Tables ------
 
-## 8.3) US Soybean Production Changes ------
-
-## SOY ##
-us_pre_prod_s <- data_clean[["Soy Production"]] %>%
-  filter(region_abv == "US") %>%
-  pull(pre)
-
-us_post_prod_s <- data_clean[["Soy Production"]] %>%
-  filter(region_abv == "US") %>%
-  pull(post)
-
-## CORN ##
-us_pre_prod_c <- data_clean[["Corn Production"]] %>%
-  filter(region_abv == "US") %>%
-  pull(pre)
-
-us_post_prod_c <- data_clean[["Corn Production"]] %>%
-  filter(region_abv == "US") %>%
-  pull(post)
-
-us_pre_prod_cs <- us_pre_prod_s + us_pre_prod_c
-us_post_prod_cs <- us_post_prod_c + us_post_prod_s
-
-us_pct_change_prod_cs <- ((us_post_prod_cs - us_pre_prod_cs)/us_pre_prod_cs)*100
-us_pct_change_prod_s <- ((us_post_prod_s - us_pre_prod_s)/us_pre_prod_s)*100
-us_pct_change_prod_c <- ((us_post_prod_c - us_pre_prod_c)/us_pre_prod_c)*100
-
-# print
-units <- "1000-ton CE"
-area <- "US"
-cat("The Change in Corn+Soy for", area, "Production was", (us_post_prod_cs - us_pre_prod_cs), "(",units,"), or ", round(us_pct_change_prod_cs, 2),"%")
-cat("The Change in Soy for", area, "Production was", (us_post_prod_s - us_pre_prod_s), "(",units,"), or ", round(us_pct_change_prod_s, 2),"%")
-cat("The Change in Corn for", area, "Production was", (us_post_prod_c - us_pre_prod_c), "(",units,"), or ", round(us_pct_change_prod_c, 2),"%")
-
-
-## 8.4) Merge Per-Grid-Cell Tables ------
-
-# Set your folder path for per-grid-cell (PGC) results
-getwd()
+# Set the folder path for per-grid-cell (PGC) results
 pgc_path <- "../Results/SIMPLEG-2024-11-15/m/summary_tables"
 
 # List all .xlsx files containing "_no_round"
@@ -1454,34 +1417,25 @@ print(pgc_combined_df)
 # Replace periods in column names with spaces
 colnames(pgc_combined_df) <- gsub("\\.", " ", colnames(pgc_combined_df))
 
-# Add "%" to all values in columns containing "Percent"
-percent_cols <- grep("Percent", colnames(pgc_combined_df), ignore.case = TRUE)
-pgc_combined_df[percent_cols] <- lapply(pgc_combined_df[percent_cols], function(col) {
-  paste0(col, "%")
-})
-
-
 # Define output file path
 pgc_output_file <- file.path(pgc_path, "_pgc_allresults_no_round.xlsx")
 
 # Write to new Excel file
 write.xlsx(pgc_combined_df, pgc_output_file)
 
-## 8.5) Create Aggregated table for all Areas of Change ------
+## 8.3) Create Regional Results Table for Areas of Interest ------
 
-### 8.5.1) Get data into one df --------
+### 8.3.1) Get data into one df --------
 
-# Load workbook
-data_clean #<- loadWorkbook("t2.xlsx")
-
-# Get all sheet names
-sheets #<- names(data_clean)
+# Call the df from "Clean Results Sheet" step in Section 1
+data_clean 
+sheets
 
 # Define regions to keep
-regions_to_keep <- c("BRA", "US", "EU", "CHINA", "S_Amer", "Total")
+reg_names <- c("BRA", "US", "EU", "CHINA", "S_Amer", "Total")
 
 # Function to assign units based on 'type'
-assign_unit <- function(type) {
+F_reg_assign_unit <- function(type) {
   if (type == "Area") {
     return("kha")
   } else if (type == "Production") {
@@ -1497,30 +1451,31 @@ assign_unit <- function(type) {
 
 
 # Process each data frame in the list
-processed_list <- lapply(data_clean, function(df) {
+reg_cleaned_list <- lapply(data_clean, function(df) {
   df <- df %>% 
-    filter(region_abv %in% regions_to_keep) %>% 
+    filter(region_abv %in% reg_names) %>% 
     select(-chg_mmt) %>% 
-    mutate(Unit = sapply(type, assign_unit))
+    mutate(Unit = sapply(type, F_reg_assign_unit))
   return(df)
 })
 
 
 # Combine all processed data frames into one
-merged_data <- bind_rows(processed_list)
+reg_df <- bind_rows(reg_cleaned_list)
+head(reg_df)
 
 # Optionally write to Excel
-write.xlsx(merged_data, "../Results/st_agg.xlsx", overwrite = TRUE)
+# write.xlsx(reg_df, "../Results/st_agg.xlsx", overwrite = TRUE)
 
-### 8.5.2) Calculate CornSoy -----
+### 8.3.2) Calculate CornSoy -----
 
 
 # Define types to aggregate
-relevant_types <- c("Area", "Production", "Imp", "Exp", "index")
+reg_cs_types <- c("Area", "Production", "Imp", "Exp", "index")
 
 # Aggregate sum for Area, Production, Imp, Exp
-combined_data <- merged_data %>%
-  filter(type %in% relevant_types & type != "index") %>%
+reg_df_combined <- reg_df %>%
+  filter(type %in% reg_cs_types & type != "index") %>%
   group_by(region_abv, type) %>%
   summarise(
     pre = sum(pre, na.rm = TRUE),
@@ -1529,7 +1484,7 @@ combined_data <- merged_data %>%
   )
 
 # Aggregate average for index type
-index_data <- merged_data %>%
+reg_priceindex <- reg_df %>%
   filter(type == "index") %>%
   group_by(region_abv) %>%
   summarise(
@@ -1540,7 +1495,7 @@ index_data <- merged_data %>%
   mutate(type = "index")
 
 # Combine both
-combined_all <- bind_rows(combined_data, index_data) %>%
+reg_df_combined <- bind_rows(reg_df_combined, reg_priceindex) %>%
   mutate(
     crop = "CornSoy",
     variable = paste("CornSoy", type),
@@ -1556,21 +1511,21 @@ combined_all <- bind_rows(combined_data, index_data) %>%
     )
   )
 
-# Combine this with the merged_data from before to get one huge df of change 
-combined_all_m <- combined_all %>% 
-  rbind(merged_data) 
+# Combine this with the reg_df from before to get one huge df of change 
+reg_df_combined_types <- reg_df_combined %>% 
+  rbind(reg_df) 
 
 # Create a template from final_combined
-template <- combined_all_m[0, ]
-new_region <- "Cerrado"
+reg_template <- reg_df_combined_types[0, ]
+reg_new <- "Cerrado"
 
 # Add multiple rows for the Cerrado, calculate them similar to the "text-block" step
 # NOTE: SIMPLE-G doesn't report source data "pre" values, so we have to back-calculate them with the formula: pre = post - chg 
 # e.g. after the shock there were 100 kha maize, it changed +20, so there must have been 80 kha before
 
-new_region_data <- bind_rows(
-  template %>% add_row(
-    region_abv = new_region,
+reg_df_newreg <- bind_rows(
+  reg_template %>% add_row(
+    region_abv = reg_new,
     variable = "Corn Area",
     pct_chg = as.numeric(terra::global(r_cerr$pct_LND_MAZ, fun = "mean", na.rm = T)),
     chg = as.numeric(terra::global(r_cerr$rawch_MAZ, fun = "sum", na.rm = T)),
@@ -1581,8 +1536,8 @@ new_region_data <- bind_rows(
     crop = "CornSoy",
     type = "Area"
   ),
-  template %>% add_row(
-    region_abv = new_region,
+  reg_template %>% add_row(
+    region_abv = reg_new,
     variable = "CornSoy Area",
     pct_chg = as.numeric(terra::global(r_cerr$pct_QLAND, fun = "mean", na.rm = T)),
     chg = as.numeric(terra::global(r_cerr$rawch_QLAND, fun = "sum", na.rm = T)),
@@ -1593,8 +1548,8 @@ new_region_data <- bind_rows(
     crop = "CornSoy",
     type = "Area"
   ),
-  template %>% add_row(
-    region_abv = new_region,
+  reg_template %>% add_row(
+    region_abv = reg_new,
     variable = "CornSoy Production",
     pct_chg = as.numeric(terra::global(r_cerr$pct_QCROP, fun = "mean", na.rm = T)),
     chg = as.numeric(terra::global(r_cerr$rawch_QCROP, fun = "sum", na.rm = T)),
@@ -1605,8 +1560,8 @@ new_region_data <- bind_rows(
     crop = "CornSoy",
     type = "Production"
   ),
-  template %>% add_row(
-    region_abv = new_region,
+  reg_template %>% add_row(
+    region_abv = reg_new,
     variable = "Soy Area",
     pct_chg = as.numeric(terra::global(r_cerr$pct_LND_SOY, fun = "mean", na.rm = T)),
     chg = as.numeric(terra::global(r_cerr$rawch_SOY, fun = "sum", na.rm = T)),
@@ -1619,8 +1574,8 @@ new_region_data <- bind_rows(
   )
 )
 
-combined_all_m_cerr <- combined_all_m %>% 
-  rbind(new_region_data)%>% 
+reg_df_cerr <- reg_df_combined_types %>% 
+  rbind(reg_df_newreg)%>% 
   select(region_abv, variable, pct_chg, chg, pre, post, Unit, modeltype, crop, type) %>% 
   mutate(region_abv = case_when(
     region_abv == "BRA" ~ "Brazil",
@@ -1631,12 +1586,12 @@ combined_all_m_cerr <- combined_all_m %>%
   mutate(region_abv = factor(region_abv, levels = c("US", "Cerrado", "Brazil", "S. America (excl. Brazil)", "China", "EU", "Total"))) %>% 
   arrange(region_abv)
 
-write.xlsx(combined_all_m_cerr, paste0(folder_results, "st_agg_calc_cerr.xlsx"), overwrite = TRUE)
+write.xlsx(reg_df_cerr, paste0(folder_results, "_regional_aggregate.xlsx"), overwrite = TRUE)
 
 # filter just to soy
-combined_all_m_cerr_soy <-  combined_all_m_cerr %>% 
+reg_df_cerr_s <-  reg_df_cerr %>% 
   filter(variable == "Soy Area" | variable == "Soy Production")
-write.xlsx(combined_all_m_cerr_soy, paste0(folder_results, "st_agg_calc_cerr_soy.xlsx"), overwrite = TRUE)
+write.xlsx(reg_df_cerr_s, paste0(folder_results, "_regional_aggregate_soy.xlsx"), overwrite = TRUE)
 
 
 # 9: Transition Results: Doesn't Change with new Model Runs -----
