@@ -1533,7 +1533,7 @@ reg_df_newreg <- bind_rows(
     post = as.numeric(terra::global(r_cerr$new_LND_MAZ, fun = "sum", na.rm = T)),
     Unit = "kha",
     modeltype = pct_model,
-    crop = "CornSoy",
+    crop = "Corn",
     type = "Area"
   ),
   reg_template %>% add_row(
@@ -1582,16 +1582,50 @@ reg_df_cerr <- reg_df_combined_types %>%
     region_abv == "S_Amer" ~ "S. America (excl. Brazil)",
     region_abv == "CHINA" ~ "China",
     TRUE ~ region_abv
-  )) %>% 
-  mutate(region_abv = factor(region_abv, levels = c("US", "Cerrado", "Brazil", "S. America (excl. Brazil)", "China", "EU", "Total"))) %>% 
-  arrange(region_abv)
+  )) 
+
+### 8.3.3) Calculate the Total Price Changes Separately ------
+# NOTE: need to calculate the Total Change in Price Index differently than anything else because they are the mean of change from all regions
+
+# Extract the chg value for region_abv == "Total"
+## Corn
+reg_index_c_totalchg <- data_clean[["Corn Exp Price index"]] %>%
+  filter(region_abv == "Total") %>%
+  pull(chg)
+
+## Soy
+reg_index_s_totalchg <- data_clean[["Soy Exp Price index"]] %>%
+  filter(region_abv == "Total") %>%
+  pull(chg)
+
+## CornSoy
+reg_index_cs_totalchg <- reg_index_c_totalchg + reg_index_s_totalchg
+
+# Change them to these chg values divided by 17 (the original number of regions), except for corn+soy, which needs to be divded by the total corn and total soy regions (17+17)
+reg_index_c_totalchg <- reg_index_c_totalchg/17
+reg_index_s_totalchg <- reg_index_s_totalchg/17
+reg_index_cs_totalchg <- reg_index_cs_totalchg/34
+
+# Change the specific cell values to these new results 
+reg_df_cerr <- reg_df_cerr %>%
+  mutate(chg = ifelse(region_abv == "Total" & variable == "Corn Exp Price index", reg_index_c_totalchg, chg)) %>%
+  mutate(chg = ifelse(region_abv == "Total" & variable == "Soy Exp Price index", reg_index_s_totalchg, chg)) %>% 
+  mutate(chg = ifelse(region_abv == "Total" & variable == "CornSoy index", reg_index_cs_totalchg, chg))
+
+# arrange results
+reg_df_cerr <- reg_df_cerr %>% 
+  mutate(region_abv = factor(region_abv, levels = c("US", "Cerrado", "Brazil", "S. America (excl. Brazil)", "China", "EU", "Total"))) %>%
+  mutate(crop = factor(crop, levels = c("Soy", "Corn", "CornSoy"))) %>% 
+  arrange(crop, region_abv) %>% 
+  mutate(modeltype = pct_model)
 
 ## SAVE TABLE - REGIONAL RESULTS ##
 write.xlsx(reg_df_cerr, paste0(folder_results, "_regional_aggregate", pct, ".xlsx"), overwrite = TRUE)
 
 # filter just to soy
 reg_df_cerr_s <-  reg_df_cerr %>% 
-  filter(variable == "Soy Area" | variable == "Soy Production")
+  filter(variable == "Soy Area" | variable == "Soy Production") %>% 
+  arrange(variable)
 
 ## SAVE TABLE - REGIONAL SOY RESULTS ##
 write.xlsx(reg_df_cerr_s, paste0(folder_results, "_regional_aggregate_soy", pct, ".xlsx"), overwrite = TRUE)
