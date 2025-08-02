@@ -1395,7 +1395,7 @@ paste0("We found, on average, that a 1 ha decrease in the amount of cropland in 
        format(round(t_comp2_usbr*-1, 2), nsmall = 2),  
        " ha increase in Brazil cropland.")
 
-## 8.2) Merge Per-Grid-Cell Tables ------
+## 8.3) Merge Per-Grid-Cell Tables ------
 
 # Set the folder path for per-grid-cell (PGC) results
 pgc_path <- "../Results/SIMPLEG-2024-11-15/m/summary_tables"
@@ -1423,9 +1423,9 @@ pgc_output_file <- file.path(pgc_path, paste0("_pgc_allresults_no_round", pct, "
 # Write to new Excel file
 write.xlsx(pgc_combined_df, pgc_output_file)
 
-## 8.3) Create Regional Results Table for Areas of Interest ------
+## 8.4) Create Regional Results Table for Areas of Interest ------
 
-### 8.3.1) Get data into one df --------
+### 8.4.1) Get data into one df --------
 
 # Call the df from "Clean Results Sheet" step in Section 1
 data_clean 
@@ -1467,7 +1467,7 @@ head(reg_df)
 # Optionally write to Excel
 # write.xlsx(reg_df, "../Results/st_agg.xlsx", overwrite = TRUE)
 
-### 8.3.2) Calculate CornSoy -----
+### 8.4.2) Calculate CornSoy -----
 
 
 # Define types to aggregate
