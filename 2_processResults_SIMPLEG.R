@@ -1743,10 +1743,6 @@ ggsave(filename = paste0(folder_fig, "cerr_fromveg.png"),
 
 
 
-### 9.1.4: Save Stats -----
-# print stats
-print(agg_cerr %>% filter(year >= 2013 & year <= 2015))
-
 ## 9.2) Plot Line Plot of Cerrado Transition ------
 
 # set calculated r_cerr as a variable (note: unit is kha)
@@ -1860,6 +1856,51 @@ p_trans_line
 # save
 ggsave(paste0(folder_fig, "cerr_to_soybean_RVC.png"),
        width = 14, height = 7)
+
+### Save Transition Table -----
+table_landtrans_cerr <- df_cerr_RVC %>% 
+  filter(year >= 2013 & year <= 2015) %>% 
+  filter(from_level_3 == "Sum of RVCs")
+
+print("TABLE: Land Transition in Cerrado:")
+print(table_landtrans_cerr)
+
+## Repeat Cerrado Process but with Brazil ##
+# get all muni codes in Brazil
+muni_codes_br <- shp_muni$code_muni
+
+# filter Mapbiomas 'df' to Brazil muni's
+df_br <- df %>% 
+  filter(geocode %in% muni_codes_br)
+
+# get agg sum of certain 'from' classes
+agg_br_fromveg <- df_br %>%
+  filter(from_level_3 %in% list_from_lv3) %>% 
+  aggregate(ha ~ year, sum) 
+
+# get BRAZIl df to match CERRADO df so we can merge them together
+stat_agg_br_fromveg <- agg_br_fromveg %>% 
+  mutate(biome = "Brazil",
+         from_level_3 = "Sum of RVCs",
+         to_level_4 = "Soy Beans",
+         year = as.numeric(year),
+         years = paste0(year-1,"-", year))
+
+table_landtrans_br <- stat_agg_br_fromveg %>% 
+  filter(year >= 2013 & year <= 2015) %>% 
+  filter(from_level_3 == "Sum of RVCs")
+
+# merge tables 
+table_landtrans <- table_landtrans_cerr %>% 
+  rbind(table_landtrans_br) %>% 
+  mutate(area_mha = ha/1000000) %>% 
+  rename(region = biome)
+print(table_landtrans)
+
+
+## SAVE ##
+openxlsx::write.xlsx(table_landtrans, file =paste0(folder_results, "_landtrans_CerrBrazil.xlsx"))
+
 
 ## 9.3) Plot together ----------
 p_trans <- plot_grid(
