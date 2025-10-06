@@ -62,10 +62,10 @@ library(geobr)
 
 # Set model version & parameter flexibility
 datafile_version <- "sg1x3x10_v2411_US_Heat"
-pct <- "_m" # change when you change 'datafile'
-pct_model <- "m" # for the imp/exp cleaning, either l, m, h
+pct <- "_h" # change when you change 'datafile'
+pct_model <- "h" # for the imp/exp cleaning, either l, m, h
 
-pct_title <- " - Med" # for plotting, either " - High" or " - Low" or "" or "- Med"
+pct_title <- " - High" # for plotting, either " - High" or " - Low" or "" or "- Med"
 #pct_title <- " - High" # note: changed Aug 2024 by setting -med to nothing, as it is the default
 
 # Define the model date 
@@ -620,7 +620,7 @@ imp_nous <- imp %>% filter(region_abv != "US")
 col_neg <- "red"
 col_pos <- "blue"
 
-
+### 1.3.1: Corn-Soy ----------
 # get Corn-Soy Exports
 (p_exp <- F_ggplot_bar_vert_sep(
   df = exp_nous,
@@ -645,6 +645,38 @@ col_pos <- "blue"
 ggsave(paste0(folder_fig, "bar_impexp.png"),
        p,
        width = 12, height = 6)
+
+### 1.3.2 Soy -------
+# Get Exports  
+exp_soy <- F_clean_sheet(var = "Soy Exp", pct = pct_model)
+
+# rename
+names(exp_soy) <- c("region_abv", "chg")
+
+# get million metric tons 
+exp$chg_mmt <- (exp$chg)/1000
+
+# exclude us
+exp_nous <- exp %>% filter(region_abv != "US")
+#print(paste("Total Change in Exports (Mmt) (Excluding US): ", sum(exp_nous$chg_mmt)))
+
+### 1.2.2 Imports ----------
+# Get Imports  
+imp_soy <- F_clean_sheet(var = "Soy Imp", pct = pct_model)
+imp_corn <- F_clean_sheet(var = "Corn Imp", pct = pct_model)
+imp <- rbind(imp_soy, imp_corn)
+
+# get sum by region
+imp <- aggregate(imp$chg, list(imp$region_abv), FUN=sum)
+
+# rename
+names(imp) <- c("region_abv", "chg")
+
+# get million metric tons 
+imp$chg_mmt <- (imp$chg)/1000
+
+# exclude us
+imp_nous <- imp %>% filter(region_abv != "US")
 
 ## 1.4) Print Results for MS (excluding US) ------
 # US Reductions in Corn/SoyExports 
@@ -713,7 +745,7 @@ F_calc_totals <- function(data){
 
 # clean data by running through each sheet with the above function 
 sheets <- names(data_list)
-data_clean <- lapply(X = sheets, FUN = F_clean_sheet, pct = "m")
+data_clean <- lapply(X = sheets, FUN = F_clean_sheet, pct = pct_model)
 names(data_clean) <- names(data_list)
 data_clean <- lapply(X = data_clean, FUN = F_calc_totals)
 
@@ -1351,9 +1383,9 @@ t_comp1 <- t_c1 / t_br1
 
 t_c1 / t_br1
 
-paste0("Mean area of corn and soy land expansion per grid-cell in the Cerrado, (",
+paste0("Mean area of corn and soy land expansion per grid-cell in the Cerrado (",
       round(t_c1*1000, 1), 
-      " ha) was", 
+      " ha) was ", 
       round(t_comp1, 2), 
       " times higher than in Brazil as a whole (", 
       round(t_br1*1000, 1),
@@ -1386,7 +1418,7 @@ t_comp2 <- t_c2 / t_us2
 
 paste0("We found, on average, that a 1 ha decrease in the amount of cropland in the US leads to a ",
        format(round(t_comp2*-1, 2), nsmall = 2),  
-       " ha increase in Cerradocropland.")
+       " ha increase in Cerrado cropland.")
 
 t_br2 <- as.numeric(global(r_br$rawch_QLAND, fun = "sum", na.rm = T))
 t_comp2_usbr <- t_br2 / t_us2
@@ -1398,7 +1430,7 @@ paste0("We found, on average, that a 1 ha decrease in the amount of cropland in 
 ## 8.3) Merge Per-Grid-Cell Tables ------
 
 # Set the folder path for per-grid-cell (PGC) results
-pgc_path <- "../Results/SIMPLEG-2024-11-15/m/summary_tables"
+pgc_path <- paste0("../Results/SIMPLEG-2024-11-15/", pct_model, "/summary_tables")
 
 # List all .xlsx files containing "_no_round"
 pgc_file_list <- list.files(path = pgc_path, pattern = "_no_round.*\\.xlsx$", full.names = TRUE)
@@ -1619,6 +1651,7 @@ reg_df_cerr <- reg_df_cerr %>%
   arrange(crop, region_abv) %>% 
   mutate(modeltype = pct_model)
 
+### 8.3.4) Save Regional Table for Cascading Effects ------
 ## SAVE TABLE - REGIONAL RESULTS ##
 write.xlsx(reg_df_cerr, paste0(folder_results, "_regional_aggregate", pct, ".xlsx"), overwrite = TRUE)
 
