@@ -29,7 +29,6 @@ rm(list = ls())
 #library(tidyverse)
 library(rio)
 library(cowplot)
-library(dplyr)
 library(stringr)
 library(ggplot2)
 library(stringr)
@@ -49,6 +48,8 @@ library(ggspatial) # N arrow and Scale Bar w tidyterrra
 # transition maps
 library(geobr)
 
+library(dplyr)
+
 ## Constants ------
 
 # NOTE: change this when you change the result file to one of three TXT files
@@ -62,10 +63,10 @@ library(geobr)
 
 # Set model version & parameter flexibility
 datafile_version <- "sg1x3x10_v2411_US_Heat"
-pct <- "_h" # change when you change 'datafile'
-pct_model <- "h" # for the imp/exp cleaning, either l, m, h
+pct <- "_m" # change when you change 'datafile'
+pct_model <- "m" # for the imp/exp cleaning, either l, m, h
 
-pct_title <- " - High" # for plotting, either " - High" or " - Low" or "" or "- Med"
+pct_title <- " - Med" # for plotting, either " - High" or " - Low" or "" or "- Med"
 #pct_title <- " - High" # note: changed Aug 2024 by setting -med to nothing, as it is the default
 
 # Define the model date 
@@ -405,7 +406,7 @@ F_clean_summary_tables <- function(area_name, pct){
   csv2 <- read.csv(file = paste0(filename, ".csv"))
   
   df2 <- csv2  %>% 
-    select(-X) %>% 
+    dplyr::select(-X) %>% 
     # remove all whitespace
     mutate(across(where(is.character), ~ str_replace_all(., " ", ""))) %>% 
     # rename by removing the "X.." or "X." 
@@ -420,7 +421,7 @@ F_clean_summary_tables <- function(area_name, pct){
     # convert to numeric
     mutate(across(!stat, as.numeric)) %>% 
     # get rid of the total new land columns - we're only interested in change
-    select(-c(new_QLAND, new_QCROP, new_LND_MAZ, new_LND_SOY)) %>%
+    dplyr::select(-c(new_QLAND, new_QCROP, new_LND_MAZ, new_LND_SOY)) %>%
     # add region column 
     mutate(reg = area_name) %>% 
     # rename columns for easy export
@@ -1486,7 +1487,7 @@ F_reg_assign_unit <- function(type) {
 reg_cleaned_list <- lapply(data_clean, function(df) {
   df <- df %>% 
     filter(region_abv %in% reg_names) %>% 
-    select(-chg_mmt) %>% 
+    dplyr::select(-chg_mmt) %>% 
     mutate(Unit = sapply(type, F_reg_assign_unit))
   return(df)
 })
@@ -1608,7 +1609,7 @@ reg_df_newreg <- bind_rows(
 
 reg_df_cerr <- reg_df_combined_types %>% 
   rbind(reg_df_newreg)%>% 
-  select(region_abv, variable, pct_chg, chg, pre, post, Unit, modeltype, crop, type) %>% 
+  dplyr::select(region_abv, variable, pct_chg, chg, pre, post, Unit, modeltype, crop, type) %>% 
   mutate(region_abv = case_when(
     region_abv == "BRA" ~ "Brazil",
     region_abv == "S_Amer" ~ "S. America (excl. Brazil)",
