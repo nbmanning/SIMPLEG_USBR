@@ -1891,9 +1891,16 @@ p_trans_line <- ggplot(agg_cerr_fromveg %>% filter(year > 2007 & year < 2018),
                    y = sg_cerr_rawch_soy / 1000, yend = sg_cerr_rawch_soy / 1000, 
                    color = "SIMPLE-G Estimate"),
                linetype = "dashed", linewidth = 1) +
-  geom_rect(data = p_scen_df,
-              aes(xmin = xmin, xmax = xmax, ymin = ymin, ymax = ymax),
-              fill = "blue", alpha = 0.1, inherit.aes = FALSE)+
+  
+  geom_segment(aes(x = "2011-2012", xend = "2013-2014", 
+                   y = y_upper, yend = y_upper, 
+                   color = "Upper Bound", linetype = "Upper Bound"),
+               linewidth = 0.8) +
+  geom_segment(aes(x = "2011-2012", xend = "2013-2014", 
+                   y = y_lower, yend = y_lower, 
+                   color = "Lower Bound", linetype = "Lower Bound", 
+                   linewidth = 0.8))
+               
   theme_bw()+
   theme(
     plot.title = element_text(size = 17, hjust = 0.5),
@@ -1907,10 +1914,88 @@ p_trans_line <- ggplot(agg_cerr_fromveg %>% filter(year > 2007 & year < 2018),
   scale_color_manual(
     values = c("SIMPLE-G Estimate" = "blue", 
                "Sum of RVCs" = "black", 
+               "Post-Drought Year" = "red"))+
+    
+    scale_linetype_manual(
+      values = c("SIMPLE-G Estimate" = "dashed", 
+                 "Upper Bound" = "dotdash", 
+                 "Lower Bound" = "twodash",
+                 "Post-Drought Year" = "dotted"))+
+    
+    guides(color = guide_legend(override.aes = list(
+      linetype = c("dashed", "dotdash", "twodash", "solid", "dotted"))),
+      linetype = guide_legend())
+  
+p_trans_line
+##########
+
+# Create the plot
+# Define confidence bounds
+scen_l <- 0.483
+scen_h <- 0.362
+
+y_main <- sg_cerr_rawch_soy / 1000
+y_upper <- scen_l
+y_lower <- scen_h
+
+
+# Create the plot
+p_trans_line <- ggplot(agg_cerr_fromveg %>% filter(year > 2007 & year < 2018), 
+                       aes(x = years, y = ha / 1000000, group = from_level_3, color = from_level_3)) +
+  
+  # Main transition lines
+  geom_line() +
+  geom_point(fill = "white", size = 1.2) +
+  
+  # Axis and labels
+  xlab("") +
+  labs(
+    y = "Land Change from Previous Year (Mha)",
+    color = "From-To Transitions"
+  ) +
+  
+  # Vertical line for post-drought year
+  geom_vline(aes(xintercept = "2012-2013", color = "Post-Drought Year"),
+             linetype = "dotted", linewidth = 0.5) +
+  
+  # Horizontal segments for SIMPLE-G estimate and bounds
+  geom_segment(aes(x = "2011-2012", xend = "2013-2014", 
+                   y = y_main, yend = y_main, 
+                   color = "SIMPLE-G Estimate"),
+               linetype = "dashed", linewidth = 1) +
+  geom_segment(aes(x = "2011-2012", xend = "2013-2014", 
+                   y = y_upper, yend = y_upper, 
+                   color = "Low Elas. Scenario"),
+               linetype = "dashed", linewidth = 0.8) +
+  geom_segment(aes(x = "2011-2012", xend = "2013-2014", 
+                   y = y_lower, yend = y_lower, 
+                   color = "High Elas. Scenario"),
+               linetype = "dashed", linewidth = 0.8) +
+  
+  # Theme settings
+  theme_bw() +
+  theme(
+    plot.title = element_text(size = 17, hjust = 0.5),
+    legend.title = element_blank(),
+    legend.text = element_text(size = 16),
+    legend.position = "bottom",
+    axis.title.y = element_text(size = 16),
+    axis.text.x = element_text(angle = 90, vjust = 0.5, size = 16),
+    axis.text.y = element_text(size = 16)
+  ) +
+  
+  # Manual color mapping for legend
+  scale_color_manual(
+    values = c("SIMPLE-G Estimate" = "blue", 
+               "Low Elas. Scenario" = "darkblue", 
+               "High Elas. Scenario" = "lightblue",
+               "Sum of RVCs" = "black", 
                "Post-Drought Year" = "red"))
+
 
 p_trans_line
 
+##########
 # save
 ggsave(paste0(folder_fig, "cerr_to_soybean_RVC.png"),
        width = 14, height = 7)
