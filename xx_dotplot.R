@@ -1,23 +1,39 @@
+# name: suppfig_dotplot_scenarios.R
 
+# purpose: create dotplot showing the % change in each of the cascading effects across the scenarios
+
+# author: Nick Manning
+
+# date created: October 2025
+
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
 
 rm(list = ls())
+
+# 0) Load Libraries ----------
 library(readxl)
 library(dplyr)
 library(ggplot2)
 
-
+# 0) Define File Paths -------
 # Define file paths
 file_l <- "../Results/SIMPLEG-2024-11-15/l/_regional_aggregate_l.xlsx"
 file_m <- "../Results/SIMPLEG-2024-11-15/m/_regional_aggregate_m.xlsx"
 file_h <- "../Results/SIMPLEG-2024-11-15/h/_regional_aggregate_h.xlsx"
 
-# Read in the data
+# 1) Load & Clean Data -------
+
+# NOTE: Data is created in "processResults2_SIMPLEG.R" script in Section 8.3.4: Save Regional Table for Cascading Effects 
+
+# Read in data
 df_l <- read_excel(file_l) 
 df_m <- read_excel(file_m) #%>% mutate(modeltype = "m")
 df_h <- read_excel(file_h) #%>% mutate(modeltype = "h")
 
 # Combine all scenarios
 df_all <- bind_rows(df_l, df_m, df_h)
+
+# filter to just the values from the cascading effects figure
 df <- df_all %>% 
   filter(
     variable == "Soy Area" & region_abv == "US" |
@@ -39,6 +55,7 @@ df_wide <- df %>%
 df_wide <- df_wide %>%
   mutate(label = paste(region_abv, variable, sep = " - ")) 
 
+# re-name for more clear labeling
 df_wide <- df_wide %>% 
   mutate(label = case_when(
     label == "US - Soy Area" ~ "US Soy Area",
@@ -52,6 +69,7 @@ df_wide <- df_wide %>%
     TRUE ~ label
   ))
 
+# set as factor for easy re-ordering
 df_wide <- df_wide %>% 
   mutate(label = factor(label, levels =
                           c("US Soy Area", "US Soy Production",
@@ -60,6 +78,7 @@ df_wide <- df_wide %>%
                             "Brazil Soy Area", "Brazil Soy Production",
                             "Cerrado Soy Area")))
 
+# 2) Plot & Save --------
 # Plot
 ggplot(df_wide, aes(y = label)) +
   #geom_errorbar(aes(xmax = h, xmin = l))+
@@ -79,5 +98,6 @@ ggplot(df_wide, aes(y = label)) +
   theme(legend.position = "bottom")+
   theme(plot.title = element_text(hjust = 0.5))
 
-ggsave(filename = "../Figures/2024-11-15/_dotplot2_scenario.png", dpi = 300,
+# save
+ggsave(filename = "../Figures/2024-11-15/_dotplot_scenario.png", dpi = 300,
        height = 3.5, width = 7)
