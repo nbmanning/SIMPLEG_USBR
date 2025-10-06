@@ -1853,7 +1853,8 @@ ggsave(paste0(folder_fig, "cerr_to_soybean.png"),
        width = 14, height = 7)
 
 # now plot ONLY RVCs
-p_trans_line <- ggplot(agg_cerr_fromveg, aes(x=years, y=ha/1000000, group = from_level_3, color = from_level_3)) +
+p_trans_line <- ggplot(agg_cerr_fromveg, 
+                       aes(x=years, y=ha/1000000, group = from_level_3, color = from_level_3)) +
   geom_line() +
   geom_point(fill = "white", size = 1.2) +
   xlab("")+
