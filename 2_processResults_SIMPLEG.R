@@ -17,7 +17,8 @@
 ### 'stat_summary' which houses the raw values for changes in cropland area and production as an R data file to bring into another script   
 
 # NEXT:
-## Add code to automatically move 'regional_results.xlsx' from download folder to imports_exports
+## Remove Section 9 onwards to be its own section 
+## Clean Code to figure out why I'm getting 5.5 and 4.48 for Cerrado area in different parts
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
 
@@ -1852,8 +1853,21 @@ ggplot(df_cerr_RVC, aes(x=years, group = from_level_3, y=ha/1000000, color = fro
 ggsave(paste0(folder_fig, "cerr_to_soybean.png"),
        width = 14, height = 7)
 
+# manually add values calculated from the scenarios (see 4_suppfig_scenario_dotplot.R)
+scen_l <- 0.483
+scen_h <- 0.362
+
+p_scen_df <- data.frame(
+  xmin = "2011-2012",
+  xmax = "2013-2014",
+  ymin = scen_h,
+  ymax = scen_l
+)
+
+
+
 # now plot ONLY RVCs
-p_trans_line <- ggplot(agg_cerr_fromveg, 
+p_trans_line <- ggplot(agg_cerr_fromveg %>% filter(year > 2007 & year < 2018), 
                        aes(x=years, y=ha/1000000, group = from_level_3, color = from_level_3)) +
   geom_line() +
   geom_point(fill = "white", size = 1.2) +
@@ -1865,12 +1879,21 @@ p_trans_line <- ggplot(agg_cerr_fromveg,
     color = "From-To Transitions"
   )+
   # add vertical line in 2012
-  geom_vline(aes(xintercept = "2012-2013", color = "Start of Post-Drought Period"),
+  geom_vline(aes(xintercept = "2012-2013", color = "Post-Drought Year"),
              linetype="dotted", linewidth=0.5)+
   
-  # add horizontal line where we calculated Cerrado transition 
-  geom_hline(aes(yintercept = sg_cerr_rawch_soy/1000, color = "SIMPLE-G Estimate"),
-             linetype="dashed", linewidth = 1)+
+  # # add horizontal line where we calculated Cerrado transition 
+  # geom_hline(aes(yintercept = sg_cerr_rawch_soy/1000, color = "SIMPLE-G Estimate"),
+  #            linetype="dashed", linewidth = 1)+
+  
+  # add horizontal segment from 2012 to 2014
+  geom_segment(aes(x = "2011-2012", xend = "2013-2014", 
+                   y = sg_cerr_rawch_soy / 1000, yend = sg_cerr_rawch_soy / 1000, 
+                   color = "SIMPLE-G Estimate"),
+               linetype = "dashed", linewidth = 1) +
+  geom_rect(data = p_scen_df,
+              aes(xmin = xmin, xmax = xmax, ymin = ymin, ymax = ymax),
+              fill = "blue", alpha = 0.1, inherit.aes = FALSE)+
   theme_bw()+
   theme(
     plot.title = element_text(size = 17, hjust = 0.5),
@@ -1884,7 +1907,7 @@ p_trans_line <- ggplot(agg_cerr_fromveg,
   scale_color_manual(
     values = c("SIMPLE-G Estimate" = "blue", 
                "Sum of RVCs" = "black", 
-               "Start of Post-Drought Period" = "red"))
+               "Post-Drought Year" = "red"))
 
 p_trans_line
 
