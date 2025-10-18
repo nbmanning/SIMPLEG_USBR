@@ -263,6 +263,15 @@ F_ggplot_bar_vert_sep <- function(df, y_var, title_text, save_text){
   
 }
 
+col_neg <- "red"
+col_pos <- "blue"
+
+(p_exp <- F_ggplot_bar_vert_sep(
+  df = exp_nous,
+  y_var = "chg_mmt",
+  title_text = "Change in Corn-Soy Exports (million metric ton)",
+  save_text = "bar_exp_fxn.png"
+))
 
 ## 0.2) Spatial Analysis for Areas of Interest ------- 
 
@@ -397,7 +406,7 @@ F_calc_pct_change <- function(final, raw_ch){
   
   # then we calculate percent change (results are in %)
   pct_change = ((final - initial)/initial)*100
-  print(paste0("% Change is: ", pct_change, "%"))
+  print(paste0("% Change is: ", pct_change, " %"))
 }
 
 # create function 
@@ -1418,14 +1427,14 @@ t_c2 <- as.numeric(global(r_cerr$rawch_QLAND, fun = "sum", na.rm = T))
 t_us2 <- as.numeric(global(r_us$rawch_QLAND, fun = "sum", na.rm = T))
 t_comp2 <- t_c2 / t_us2
 
-paste0("We found, on average, that a 1 ha decrease in the amount of cropland in the US leads to a ",
+paste0("We found, on average, that a 1 ha decrease in the amount of cropland (corn and soy) in the US leads to a ",
        format(round(t_comp2*-1, 2), nsmall = 2),  
        " ha increase in Cerrado cropland.")
 
 t_br2 <- as.numeric(global(r_br$rawch_QLAND, fun = "sum", na.rm = T))
 t_comp2_usbr <- t_br2 / t_us2
 
-paste0("We found, on average, that a 1 ha decrease in the amount of cropland in the US leads to a ",
+paste0("We found, on average, that a 1 ha decrease in the amount of cropland (corn and soy) in the US leads to a ",
        format(round(t_comp2_usbr*-1, 2), nsmall = 2),  
        " ha increase in Brazil cropland.")
 
@@ -1561,7 +1570,7 @@ reg_df_newreg <- bind_rows(
   reg_template %>% add_row(
     region_abv = reg_new,
     variable = "Corn Area",
-    pct_chg = as.numeric(terra::global(r_cerr$pct_LND_MAZ, fun = "mean", na.rm = T)),
+    #pct_chg = as.numeric(terra::global(r_cerr$pct_LND_MAZ, fun = "mean", na.rm = T)),
     chg = as.numeric(terra::global(r_cerr$rawch_MAZ, fun = "sum", na.rm = T)),
     pre = as.numeric(terra::global(r_cerr$new_LND_MAZ, fun = "sum", na.rm = T)) - as.numeric(terra::global(r_cerr$rawch_MAZ, fun = "sum", na.rm = T)),
     post = as.numeric(terra::global(r_cerr$new_LND_MAZ, fun = "sum", na.rm = T)),
@@ -1573,10 +1582,10 @@ reg_df_newreg <- bind_rows(
   reg_template %>% add_row(
     region_abv = reg_new,
     variable = "CornSoy Area",
-    pct_chg = as.numeric(terra::global(r_cerr$pct_QLAND, fun = "mean", na.rm = T)),
+    #pct_chg = as.numeric(terra::global(r_cerr$pct_QLAND, fun = "mean", na.rm = T)),
     chg = as.numeric(terra::global(r_cerr$rawch_QLAND, fun = "sum", na.rm = T)),
     pre = as.numeric(terra::global(r_cerr$new_QLAND, fun = "sum", na.rm = T)) - as.numeric(terra::global(r_cerr$rawch_QLAND, fun = "sum", na.rm = T)),
-    post = as.numeric(terra::global(r_cerr$rawch_QLAND, fun = "sum", na.rm = T)),
+    post = as.numeric(terra::global(r_cerr$new_QLAND, fun = "sum", na.rm = T)),
     Unit = "kha",
     modeltype = pct_model,
     crop = "CornSoy",
@@ -1585,10 +1594,10 @@ reg_df_newreg <- bind_rows(
   reg_template %>% add_row(
     region_abv = reg_new,
     variable = "CornSoy Production",
-    pct_chg = as.numeric(terra::global(r_cerr$pct_QCROP, fun = "mean", na.rm = T)),
+    #pct_chg = as.numeric(terra::global(r_cerr$pct_QCROP, fun = "mean", na.rm = T)),
     chg = as.numeric(terra::global(r_cerr$rawch_QCROP, fun = "sum", na.rm = T)),
     pre = as.numeric(terra::global(r_cerr$new_QCROP, fun = "sum", na.rm = T)) - as.numeric(terra::global(r_cerr$rawch_QCROP, fun = "sum", na.rm = T)),
-    post = as.numeric(terra::global(r_cerr$rawch_QCROP, fun = "sum", na.rm = T)),
+    post = as.numeric(terra::global(r_cerr$new_QCROP, fun = "sum", na.rm = T)),
     Unit = "metric tons",
     modeltype = pct_model,
     crop = "CornSoy",
@@ -1597,16 +1606,23 @@ reg_df_newreg <- bind_rows(
   reg_template %>% add_row(
     region_abv = reg_new,
     variable = "Soy Area",
-    pct_chg = as.numeric(terra::global(r_cerr$pct_LND_SOY, fun = "mean", na.rm = T)),
+    #pct_chg = as.numeric(terra::global(r_cerr$rawch_SOY, fun = "sum", na.rm = T)),
     chg = as.numeric(terra::global(r_cerr$rawch_SOY, fun = "sum", na.rm = T)),
     pre = as.numeric(terra::global(r_cerr$new_LND_SOY, fun = "sum", na.rm = T)) - as.numeric(terra::global(r_cerr$rawch_SOY, fun = "sum", na.rm = T)),
-    post = as.numeric(terra::global(r_cerr$rawch_SOY, fun = "sum", na.rm = T)),
+    post = as.numeric(terra::global(r_cerr$new_LND_SOY, fun = "sum", na.rm = T)),
     Unit = "kha",
     modeltype = pct_model,
     crop = "Soy",
     type = "Area"
   )
 )
+
+# Calculate TOTAL or AGGREGATED percent change. This is different than the process for if we were to
+# run global(r_cerr$rawch_SOY, fun = "mean"), which takes the mean of the percentage change raster, rahter than calculating the total percentage mean
+# across the whole Cerrado (e.g. ((sum_final_value - sum_initial_value) / sum_initial_value) *100). 
+# We opt for the latter because it is consistent with how SIMPLE-G calculates mean for regions around the world.
+reg_df_newreg <- reg_df_newreg %>% 
+  mutate(pct_chg = ((post-pre)/pre)*100)
 
 reg_df_cerr <- reg_df_combined_types %>% 
   rbind(reg_df_newreg)%>% 
@@ -1616,7 +1632,9 @@ reg_df_cerr <- reg_df_combined_types %>%
     region_abv == "S_Amer" ~ "S. America (excl. Brazil)",
     region_abv == "CHINA" ~ "China",
     TRUE ~ region_abv
-  )) 
+  ))
+
+
 
 ### 8.3.3) Calculate the Total Price Changes Separately ------
 # NOTE: need to calculate the Total Change in Price Index differently than anything else because they are the mean of change from all regions
@@ -1659,7 +1677,8 @@ write.xlsx(reg_df_cerr, paste0(folder_results, "_regional_aggregate", pct, ".xls
 
 # filter just to soy
 reg_df_cerr_s <-  reg_df_cerr %>% 
-  filter(variable == "Soy Area" | variable == "Soy Production") %>% 
+  filter(grepl('Soy', variable, fixed = T)) %>% 
+  filter(!grepl('CornSoy', variable, fixed = T)) %>% 
   arrange(variable)
 
 ## SAVE TABLE - REGIONAL SOY RESULTS ##
@@ -1866,9 +1885,12 @@ y_main <- sg_cerr_rawch_soy / 1000
 y_upper <- scen_l # just becuase it's larger
 y_lower <- scen_h
 
+x_int <- "2012-2013"
+x_start <- "2011-2012"
+x_end <- "2013-2014"
 
 # Create the plot
-p_trans_line <- ggplot(agg_cerr_fromveg %>% filter(year > 2007 & year < 2018), 
+p_trans_line <- ggplot(agg_cerr_fromveg %>% filter(year >= 2011 & year <= 2017), 
                        aes(x = years, y = ha / 1000000, group = from_level_3, color = from_level_3)) +
   
   # Main transition lines
@@ -1883,19 +1905,19 @@ p_trans_line <- ggplot(agg_cerr_fromveg %>% filter(year > 2007 & year < 2018),
   ) +
   
   # Vertical line for post-drought year
-  geom_vline(aes(xintercept = "2012-2013", color = "Post-Drought Year"),
+  geom_vline(aes(xintercept = x_int, color = "Post-Drought Year"),
              linetype = "dotted", linewidth = 0.5) +
   
   # Horizontal segments for SIMPLE-G estimate and bounds
-  geom_segment(aes(x = "2011-2012", xend = "2013-2014", 
+  geom_segment(aes(x = x_start, xend = x_end, 
                    y = y_main, yend = y_main, 
                    color = "SIMPLE-G Estimate"),
                linetype = "dashed", linewidth = 1) +
-  geom_segment(aes(x = "2011-2012", xend = "2013-2014", 
+  geom_segment(aes(x = x_start, xend = x_end, 
                    y = y_upper, yend = y_upper, 
                    color = "Low Elas. Scenario"),
                linetype = "dashed", linewidth = 0.8) +
-  geom_segment(aes(x = "2011-2012", xend = "2013-2014", 
+  geom_segment(aes(x = x_start, xend = x_end, 
                    y = y_lower, yend = y_lower, 
                    color = "High Elas. Scenario"),
                linetype = "dashed", linewidth = 0.8) +
@@ -1986,8 +2008,8 @@ p_trans <- plot_grid(
 
 p_trans
 
-ggsave(paste0(folder_fig, "_line.png"),
-       p_trans, width = 10, height = 14, units = "in", dpi = 300)
+ggsave(paste0(folder_fig, "_line_updated.png"),
+       p_trans, width = 12, height = 14, units = "in", dpi = 300)
 
 
 # END #################
