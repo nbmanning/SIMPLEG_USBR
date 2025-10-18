@@ -263,15 +263,16 @@ F_ggplot_bar_vert_sep <- function(df, y_var, title_text, save_text){
   
 }
 
-col_neg <- "red"
-col_pos <- "blue"
-
-(p_exp <- F_ggplot_bar_vert_sep(
-  df = exp_nous,
-  y_var = "chg_mmt",
-  title_text = "Change in Corn-Soy Exports (million metric ton)",
-  save_text = "bar_exp_fxn.png"
-))
+# # xx fix barplot (maybe separate?) to be stacked where one stack is corn one soy 
+# col_neg <- "red"
+# col_pos <- "blue"
+# 
+# (p_exp <- F_ggplot_bar_vert_sep(
+#   df = exp_nous,
+#   y_var = "chg_mmt",
+#   title_text = "Change in Corn-Soy Exports (million metric ton)",
+#   save_text = "bar_exp_fxn.png"
+# ))
 
 ## 0.2) Spatial Analysis for Areas of Interest ------- 
 
