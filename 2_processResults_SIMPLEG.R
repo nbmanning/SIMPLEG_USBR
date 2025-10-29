@@ -263,16 +263,49 @@ F_ggplot_bar_vert_sep <- function(df, y_var, title_text, save_text){
   
 }
 
-# # xx fix barplot (maybe separate?) to be stacked where one stack is corn one soy 
-# col_neg <- "red"
-# col_pos <- "blue"
-# 
-# (p_exp <- F_ggplot_bar_vert_sep(
-#   df = exp_nous,
-#   y_var = "chg_mmt",
-#   title_text = "Change in Corn-Soy Exports (million metric ton)",
-#   save_text = "bar_exp_fxn.png"
-# ))
+# Plotting Fxn
+
+F_ggplot_bar_vert_stack <- function(df, title_text, save_text){
+  
+  
+  # Get the name of the input dataframe as a string
+  df_name <- deparse(substitute(df))
+  
+  # Crop Colors 
+  crop_colors <- if (grepl("exp", df_name, ignore.case = TRUE)) {
+    c(
+    "Soy" = "darkblue", 
+    "Corn" = "lightblue")
+  } else {
+    c(
+      "Soy" = "darkred", 
+      "Corn" = "pink")
+  }
+  
+  # Plot
+  (p <- ggplot(df, aes(x = region_abv, y = chg_mmt, fill = crop)) +
+     geom_bar(stat = "identity") +
+      scale_fill_manual(values = crop_colors) +
+      coord_flip() +
+     theme_bw() +
+     labs(
+       title = title_text,
+       x = "",
+       y = ""
+     ) +
+     theme(
+       plot.title = element_text(hjust = 0.5),
+       #legend.position = c(0.9, 0.9),
+       legend.title = element_blank(),
+     )
+  )
+  
+  # Save
+  ggsave(paste0(folder_fig, save_text),
+         width = 6, height = 8)
+  
+  return(p)
+}
 
 ## 0.2) Spatial Analysis for Areas of Interest ------- 
 
@@ -439,15 +472,15 @@ F_clean_summary_tables <- function(area_name, pct){
     rename(
       #"new_QLAND" new_QCROP new_LND_MAZ new_LND_SOY
       "Stat" = "stat",
-      "Percent Change in Total Land Area" = "pct_QLAND",
-      "Raw Change in Total Land Area" = "rawch_QLAND", 
-      "Percent Change in Total Crop Production" = "pct_QCROP",
-      "Raw Change in Total Crop Production" = "rawch_QCROP",
+      "Percent Change in Total Land Area (%)" = "pct_QLAND",
+      "Raw Change in Total Land Area (kha)" = "rawch_QLAND", 
+      "Percent Change in Total Crop Production (%)" = "pct_QCROP",
+      "Raw Change in Total Crop Production (1000-ton CE)" = "rawch_QCROP",
       
-      "Percent Change in Maize Area" = "pct_LND_MAZ",
-      "Raw Change in Maize Area" = "rawch_MAZ", 
-      "Percent Change in Soy Area" = "pct_LND_SOY",
-      "Raw Change in Soy Area" = "rawch_SOY",
+      "Percent Change in Maize Area (%)" = "pct_LND_MAZ",
+      "Raw Change in Maize Area (kha)" = "rawch_MAZ", 
+      "Percent Change in Soy Area (%)" = "pct_LND_SOY",
+      "Raw Change in Soy Area (kha)" = "rawch_SOY",
       "Region" = "reg") %>% 
     # remove all apostrophes (e.g. to get NA's to NAs)
     # Remove apostrophes from 'stat' column
@@ -590,7 +623,11 @@ data_list <- import_list(source_path)
 # Get Exports  
 exp_soy <- F_clean_sheet(var = "Soy Exp", pct = pct_model)
 exp_corn <- F_clean_sheet(var = "Corn Exp", pct = pct_model)
+
+exp_cs <- rbind(exp_soy, exp_corn)
+
 exp <- rbind(exp_soy, exp_corn)
+
 
 # get sum by region
 exp <- aggregate(exp$chg, list(exp$region_abv), FUN=sum)
@@ -609,6 +646,9 @@ exp_nous <- exp %>% filter(region_abv != "US")
 # Get Imports  
 imp_soy <- F_clean_sheet(var = "Soy Imp", pct = pct_model)
 imp_corn <- F_clean_sheet(var = "Corn Imp", pct = pct_model)
+
+imp_cs <- rbind(imp_soy, imp_corn)
+
 imp <- rbind(imp_soy, imp_corn)
 
 # get sum by region
@@ -641,6 +681,20 @@ col_pos <- "blue"
   save_text = "bar_exp_fxn.png"
 ))
 
+(p_exp <- F_ggplot_bar_vert_sep(
+  df = exp_soy %>% filter(region_abv != "US"),
+  y_var = "chg_mmt",
+  title_text = "Change in Soy Exports (million metric ton)",
+  save_text = "_t_bar_exp_soy.png"
+))
+
+(p_exp <- F_ggplot_bar_vert_sep(
+  df = exp_corn %>% filter(region_abv != "US"),
+  y_var = "chg_mmt",
+  title_text = "Change in Corn Exports (million metric ton)",
+  save_text = "_t_bar_exp_corn.png"
+))
+
 # get Corn-Soy Imports
 (p_imp <- F_ggplot_bar_vert_sep(
   df = imp_nous,
@@ -651,13 +705,44 @@ col_pos <- "blue"
 
 # plot with the individual plots next to one another
 # labels give "A" and "B"
-(p <- plot_grid(p_imp, p_exp, labels = "AUTO"))
+(p <- plot_grid(p_imp, p_exp, labels = "auto"))
 
 # save 
 ggsave(paste0(folder_fig, "bar_impexp.png"),
        p,
        width = 12, height = 6)
 
+# Create stacked barplot 
+library(patchwork)
+
+(p_exp_stack <- F_ggplot_bar_vert_stack(
+  df = exp_cs %>% filter(region_abv!="US"),
+  #y_var = "chg_mmt",
+  title_text = "Change in Corn and Soy Exports (million metric ton)",
+  save_text = "_t_stackbar_cs_exp_fxn.png"
+))
+
+(p_imp_stack <- F_ggplot_bar_vert_stack(
+  df = imp_cs %>% filter(region_abv!="US"),
+  #y_var = "chg_mmt",
+  title_text = "Change in Corn and Soy Imports (million metric ton)",
+  save_text = "_t_stackbar_cs_imp_fxn.png"
+))
+
+(p_stack <- (p_imp_stack | p_exp_stack) + 
+  plot_layout(guides = "collect") & 
+    plot_annotation(tag_levels = 'a')&
+    theme(
+      legend.position = "bottom",
+      legend.text = element_text(size = 12),
+      plot.tag = element_text(size = 20))) 
+
+# save 
+ggsave(paste0(folder_fig, "_stackedbar_impexp.png"),
+       p_stack,
+       width = 12, height = 6)
+
+  
 ### 1.3.2 Soy -------
 # Get Exports  
 exp_soy <- F_clean_sheet(var = "Soy Exp", pct = pct_model)
@@ -676,6 +761,8 @@ exp_nous <- exp %>% filter(region_abv != "US")
 # Get Imports  
 imp_soy <- F_clean_sheet(var = "Soy Imp", pct = pct_model)
 imp_corn <- F_clean_sheet(var = "Corn Imp", pct = pct_model)
+imp_cs <- rbind(imp_soy, imp_corn)
+
 imp <- rbind(imp_soy, imp_corn)
 
 # get sum by region
@@ -778,7 +865,7 @@ paste("Global Corn Price Change: ", mean(data_clean$`Corn Exp Price index`$pct_c
 
 # load files and maize-soy raster
 load("../Data_Derived/shp_usbr.RData")
-shp_ecoregions <- st_read("../Data_Source/wwf_ecoregions/agg_wwf_terr_ecos.shp")
+#shp_ecoregions <- st_read("../Data_Source/wwf_ecoregions/agg_wwf_terr_ecos.shp")
 shp_countries <- shp_world %>% dplyr::select(name_long)
 
 r <- readRDS(file = paste0(folder_der_date, "r_maizesoy", pct, ".rds"))
@@ -948,7 +1035,7 @@ crs(us_vect) <- crs(r)
 ## 
 r_no_us <- mask(r, us_vect, inverse = T)
 summary(r_no_us*1000000, size = Inf)
-summary(r*1000000, size = Inf)
+#summary(r*1000000, size = Inf)
 
 plot(r_no_us$rawch_QLAND)
 F_EDA(r_aoi = r_no_us, area_name = "Rest of World")
@@ -1717,6 +1804,9 @@ df <- df %>%
 # Read all municipalities in the country at a given year
 shp_muni <- read_municipality(code_muni="all", year=2018)
 
+# Load Other Shapefiles 
+load("../Data_Derived/shp_usbr.RData")
+
 # get municipalities that are at all within the Cerrado
 shp_muni_in_cerr <- st_intersection(shp_muni, shp_cerr)
 
@@ -1733,7 +1823,7 @@ df_cerr <- df %>%
 
 ### 9.1.2: Aggregate -------
 
-# make a panel with Land Transition Facet + Line Plot (A, B)
+# make a panel with Land Conversion Facet + Line Plot (A, B)
 
 # get aggregate sum of the entire Cerrado for stats
 agg_cerr <- df_cerr %>%
@@ -1776,9 +1866,9 @@ p_trans_shp <- ggplot(shp_cerrmuni_fromveg)+
   theme_minimal()+
   
   labs(
-    title = "Land Transition Across Cerrado",
+    title = "Land Conversion Across Cerrado",
     subtitle = "From Relevant Vegetation Classes to Soybean",
-    fill = "Transition (kha)")+
+    fill = "Conversion (kha)")+
   
   theme(
     plot.title = element_text(hjust = 0.5, size = 32),
@@ -1798,9 +1888,11 @@ ggsave(filename = paste0(folder_fig, "cerr_fromveg.png"),
 
 
 
-## 9.2) Plot Line Plot of Cerrado Transition ------
+## 9.2) Plot Line Plot of Cerrado Conversion ------
 
 # set calculated r_cerr as a variable (note: unit is kha)
+# xx Note: If I want to split this into a separate script, I'll have to keep r_cerr or import it somehow
+# DIDN'T WORK: r_cerr <- readRDS(paste0("../Data_Derived/2024-11-15/r_", pct_model, "_Cerrado.rds"))
 sg_cerr_rawch_soy <- as.numeric(global(r_cerr$rawch_SOY, fun = "sum", size = Inf, na.rm = T))
 
 # filter to only include the relevant classes
@@ -1840,22 +1932,38 @@ df_cerr_RVC <- df_cerr_RVC %>% mutate(years = paste0(year-1,"-",year))
 
 # Plot -- Add horizontal line here at the SIMPLE-G Results
 # plot line plot in Mha
+
+existing_colors <- scales::hue_pal()(length(unique(df_cerr_RVC$from_level_3)))
+
 ggplot(df_cerr_RVC, aes(x=years, group = from_level_3, y=ha/1000000, color = from_level_3)) +
   geom_line() +
   geom_point(fill = "white", size = 1.2) +
   xlab("") +
   labs(
     #title = "From X to Soybean", # remove title to plot with transition map
-    y = "Land Change from Previous Year (Mha)",
-    color = "From-To Transitions"
+    y = "Land Conversion from Previous Year (Mha)",
+    color = "From-To Conversions"
   )+
   # add vertical line in 2012
-  geom_vline(xintercept = "2012-2013", color = "red",
+  geom_vline(aes(xintercept = "2012-2013", color = "Post-Drought Year"),
              linetype="dotted", linewidth=0.5)+
   # add horizontal line where we calculated Cerrado transition 
-  geom_hline(yintercept = sg_cerr_rawch_soy/1000, color = "black",
+  geom_hline(aes(yintercept = sg_cerr_rawch_soy/1000, color = "SIMPLE-G"),
              linetype="dotted", linewidth=0.5)+
   theme_bw()+
+  # Manual color mapping for legend
+  scale_color_manual(
+    values = c(
+               "SIMPLE-G" = "black", 
+               "Post-Drought Year" = "red",
+               # Others
+               "Forest Formation" = "#F8766D",
+               "Grassland" = "#B79F00",
+               "Mosaic of Agriculture and Pasture" = "#00BA38",
+               "Pasture" = "#00BFC4",
+               "Savanna Formation" = "#619CFF",
+               "Sum of RVCs" = "#F564E3"
+               ))+
   theme(
     plot.title = element_text(size = 17, hjust = 0.5),
     
@@ -1901,8 +2009,8 @@ p_trans_line <- ggplot(agg_cerr_fromveg %>% filter(year >= 2011 & year <= 2017),
   # Axis and labels
   xlab("") +
   labs(
-    y = "Land Change from Previous Year (Mha)",
-    color = "From-To Transitions"
+    y = "Land Conversion from Previous Year (Mha)",
+    color = "From-To Conversions"
   ) +
   
   # Vertical line for post-drought year
