@@ -329,7 +329,7 @@ F_p_violin <- function(df, area){
   # violin plots for % change and raw change for maize and soy 
   # set size_title, size_labels, and size_axis_nums in the "Constants" section
   p1 <- bwplot(df_pct_maizesoy, 
-               main = list(paste(area, "% Change Maize & Soy", pct_title), cex = size_title),
+               main = list(paste(area, "% Change Maize & Soybean", pct_title), cex = size_title),
                ylab = list("% Change", cex = size_labels),
                scales=list(
                  x = list(rot=45, cex = size_labels),
@@ -337,7 +337,7 @@ F_p_violin <- function(df, area){
   )
   
   p2 <- bwplot(df_rawch_maizesoy, 
-               main = list(paste(area, "Raw Change Maize & Soy", pct_title), cex = size_title),
+               main = list(paste(area, "Raw Change Maize & Soybean", pct_title), cex = size_title),
                ylab = list("Area (kha)", cex = size_labels),
                scales=list(
                  x = list(rot=45, cex = size_labels),
@@ -369,7 +369,7 @@ F_p_violin_soy <- function(df, area){
   # violin plots for % change in all simulation results and soy subsetted (because bwplot() needs two or more bwplots) 
   # set size_title, size_labels, and size_axis_nums in the "Constants" section
   p1 <- bwplot(df_pct_soy, 
-               main = list(paste(area, "% Change Soy", pct_title), cex = size_title),
+               main = list(paste(area, "% Change Soybean", pct_title), cex = size_title),
                ylab = list("% Change", cex = size_labels),
                scales=list(
                  x = list(rot=45, cex = size_labels),
@@ -390,7 +390,7 @@ F_p_violin_soy <- function(df, area){
   names(df_raw_soy) <- c("All", "Soy")
 
   p2 <- bwplot(df_raw_soy,
-               main = list(paste(area, "Raw Change Soy", pct_title), cex = size_title),
+               main = list(paste(area, "Raw Change Soybean", pct_title), cex = size_title),
                ylab = list("Area (kha)", cex = size_labels),
                scales=list(
                  x = list(rot=45, cex = size_labels),
@@ -479,8 +479,8 @@ F_clean_summary_tables <- function(area_name, pct){
       
       "Percent Change in Maize Area (%)" = "pct_LND_MAZ",
       "Raw Change in Maize Area (kha)" = "rawch_MAZ", 
-      "Percent Change in Soy Area (%)" = "pct_LND_SOY",
-      "Raw Change in Soy Area (kha)" = "rawch_SOY",
+      "Percent Change in Soybean Area (%)" = "pct_LND_SOY",
+      "Raw Change in Soybean Area (kha)" = "rawch_SOY",
       "Region" = "reg") %>% 
     # remove all apostrophes (e.g. to get NA's to NAs)
     # Remove apostrophes from 'stat' column
