@@ -1760,14 +1760,18 @@ reg_df_cerr <- reg_df_cerr %>%
   arrange(crop, region_abv) %>% 
   mutate(modeltype = pct_model)
 
+# replace "soy" with "soybean"
+reg_df_cerr <- reg_df_cerr %>% 
+  mutate(across(everything(), ~ str_replace_all(.x, "Soy", "Soybean")))
+
 ### 8.3.4) Save Regional Table for Cascading Effects ------
 ## SAVE TABLE - REGIONAL RESULTS ##
 write.xlsx(reg_df_cerr, paste0(folder_results, "_regional_aggregate", pct, ".xlsx"), overwrite = TRUE)
 
 # filter just to soy
 reg_df_cerr_s <-  reg_df_cerr %>% 
-  filter(grepl('Soy', variable, fixed = T)) %>% 
-  filter(!grepl('CornSoy', variable, fixed = T)) %>% 
+  filter(grepl('Soybean', variable, fixed = T)) %>% 
+  filter(!grepl('CornSoybean', variable, fixed = T)) %>% 
   arrange(variable)
 
 ## SAVE TABLE - REGIONAL SOY RESULTS ##
