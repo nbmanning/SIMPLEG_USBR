@@ -285,7 +285,7 @@ F_ggplot_bar_vert_stack <- function(df, title_text, save_text){
   # Plot
   (p <- ggplot(df, aes(x = region_abv, y = chg_mmt, fill = crop)) +
      geom_bar(stat = "identity") +
-      scale_fill_manual(values = crop_colors) +
+      scale_fill_manual(values = crop_colors, labels = c("Corn", "Soybean")) +
       coord_flip() +
      theme_bw() +
      labs(
@@ -718,14 +718,14 @@ library(patchwork)
 (p_exp_stack <- F_ggplot_bar_vert_stack(
   df = exp_cs %>% filter(region_abv!="US"),
   #y_var = "chg_mmt",
-  title_text = "Change in Corn and Soy Exports (million metric ton)",
+  title_text = "Change in Corn and Soybean Exports (million metric ton)",
   save_text = "_t_stackbar_cs_exp_fxn.png"
 ))
 
 (p_imp_stack <- F_ggplot_bar_vert_stack(
   df = imp_cs %>% filter(region_abv!="US"),
   #y_var = "chg_mmt",
-  title_text = "Change in Corn and Soy Imports (million metric ton)",
+  title_text = "Change in Corn and Soybean Imports (million metric ton)",
   save_text = "_t_stackbar_cs_imp_fxn.png"
 ))
 
