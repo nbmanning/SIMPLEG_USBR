@@ -1527,6 +1527,7 @@ paste0("We found, on average, that a 1 ha decrease in the amount of cropland (co
        " ha increase in Brazil cropland.")
 
 ## 8.3) Merge Per-Grid-Cell Tables ------
+## Works as long as the "_pgc" file is not in the results folder 
 
 # Set the folder path for per-grid-cell (PGC) results
 pgc_path <- paste0("../Results/SIMPLEG-2024-11-15/", pct_model, "/summary_tables")
