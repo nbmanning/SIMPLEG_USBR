@@ -63,27 +63,27 @@ raster_to_df <- function(raster, varname, scenario_label) {
   
   # Keep only coordinates and 'cats'
   df <- df %>%
-    select(x, y, cats) %>%
+    dplyr::select(x, y, cats) %>%
     mutate(scenario = scenario_label)
   
   return(df)
 }
 
 # Prepare data frames for each scenario
-df_l <- raster_to_df(l_us %>% subset("rawch_SOY"), 
+df_l_us <- raster_to_df(l_us %>% subset("rawch_SOY"), 
                      varname = "rawch_SOY", 
                      scenario_label = "Low")
 
-df_m <- raster_to_df(m_us %>% subset("rawch_SOY"), "rawch_SOY", "Medium")
-df_h <- raster_to_df(h_us %>% subset("rawch_SOY"), "rawch_SOY", "High")
+df_m_us <- raster_to_df(m_us %>% subset("rawch_SOY"), "rawch_SOY", "Medium")
+df_h_us <- raster_to_df(h_us %>% subset("rawch_SOY"), "rawch_SOY", "High")
 
 # Combine all into one data frame
-df_all <- bind_rows(df_l, df_m, df_h) %>%
+df_all_us <- bind_rows(df_l_us, df_m_us, df_h_us) %>%
   mutate(scenario = factor(scenario, levels = c("Low", "Medium", "High")))
 
 # Plot faceted map
-p_facet <- ggplot(df_all) +
-  geom_tile(aes(x = x, y = y, fill = cats)) +
+p_facet_us <- ggplot(df_all_us) +
+  geom_tile(aes(x = x, y = y, fill = cats), color = NA) +
   scale_fill_whitebox_d(
     palette = "pi_y_g",
     direction = 1,
@@ -109,7 +109,7 @@ p_facet <- ggplot(df_all) +
   )
 
 # visualize plot
-# p_facet
+p_facet_us
 
 ## Brazil-------------
 
@@ -130,7 +130,7 @@ df_all_br <- bind_rows(df_l_br, df_m_br, df_h_br) %>%
 
 # plot
 p_facet_br <- ggplot(df_all_br) +
-  geom_tile(aes(x = x, y = y, fill = cats)) +
+  geom_tile(aes(x = x, y = y, fill = cats), color = NA) +
   scale_fill_whitebox_d(
     palette = "gn_yl",
     direction = 1,
@@ -174,7 +174,7 @@ df_all_cerr <- bind_rows(df_l_cerr, df_m_cerr, df_h_cerr) %>%
 
 # plot
 p_facet_cerr <- ggplot(df_all_cerr) +
-  geom_tile(aes(x = x, y = y, fill = cats)) +
+  geom_tile(aes(x = x, y = y, fill = cats), color = NA) +
   scale_fill_whitebox_d(
     palette = "gn_yl",
     direction = 1,
@@ -202,16 +202,16 @@ p_facet_cerr <- ggplot(df_all_cerr) +
     axis.text = element_blank()
   )
 
-p_facet_cerr
+# p_facet_cerr
 
 
 ## Combine Facets ----------
 # combine facet plots using patchwork pacakage 
-combined_all <- (p_facet / p_facet_br / p_facet_cerr) +
-  plot_layout(guides = "keep") &
+combined_all <- (p_facet_us / p_facet_br / p_facet_cerr) +
+  plot_layout(guides = "keep", heights = c(1, 1, 1)) &
   theme(legend.position = "right")
 
 combined_all
 
 # save
-ggsave(combined_all, filename = paste0(folder_fig, "_test_facet2.png"), width = 20, height = 20, dpi = 300)
+ggsave(combined_all, filename = paste0(folder_fig, "_facet_scenario.png"), width = 20, height = 20, dpi = 300)
