@@ -1038,7 +1038,7 @@ summary(r_no_us*1000000, size = Inf)
 #summary(r*1000000, size = Inf)
 
 plot(r_no_us$rawch_QLAND)
-F_EDA(r_aoi = r_no_us, area_name = "Rest of World")
+F_EDA(r_aoi = r_no_us, area_name = "RoW")
 
 # 5) US Results ------------------------------------------------------------------------
 
@@ -1763,6 +1763,7 @@ reg_df_cerr <- reg_df_cerr %>%
 # replace "soy" with "soybean"
 reg_df_cerr <- reg_df_cerr %>% 
   mutate(across(everything(), ~ str_replace_all(.x, "Soy", "Soybean")))
+
 
 ### 8.3.4) Save Regional Table for Cascading Effects ------
 ## SAVE TABLE - REGIONAL RESULTS ##
