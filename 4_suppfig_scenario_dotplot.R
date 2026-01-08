@@ -30,20 +30,40 @@ df_l <- read_excel(file_l)
 df_m <- read_excel(file_m) #%>% mutate(modeltype = "m")
 df_h <- read_excel(file_h) #%>% mutate(modeltype = "h")
 
+# Change character rows to numeric across all dfs
+F_to_num <- function(df){
+  df <- df %>% 
+    mutate(
+      pct_chg = pct_chg %>% as.numeric(),
+      chg = chg %>% as.numeric(),
+      pre = pre %>% as.numeric(),
+      post = post %>% as.numeric())
+  return(df)
+}
+
+df_l <- F_to_num(df_l)
+df_m <- F_to_num(df_m)
+df_h <- F_to_num(df_h)
+
 # Combine all scenarios
 df_all <- bind_rows(df_l, df_m, df_h)
+
+# replace "soy" with "soybean"
+df_all <- df_all %>% 
+  mutate(across(where(is.character),
+                ~ str_replace_all(.x, regex("(?i)Soy(?!bean)"), "Soybean")))
 
 # filter to just the values from the cascading effects figure
 df <- df_all %>% 
   filter(
-    variable == "Soy Area" & region_abv == "US" |
-      variable == "Soy Production" & region_abv == "US" |
-      variable == "Soy Exp Price index" & region_abv == "US" |
-      variable == "Soy Exp" & region_abv == "US" |
-      variable == "Soy Exp Price index" & region_abv == "Total" |
-      variable == "Soy Production" & region_abv == "Brazil" |
-      variable == "Soy Area" & region_abv == "Brazil" |
-      variable == "Soy Area" & region_abv == "Cerrado" 
+    variable == "Soybean Area" & region_abv == "US" |
+      variable == "Soybean Production" & region_abv == "US" |
+      variable == "Soybean Exp Price index" & region_abv == "US" |
+      variable == "Soybean Exp" & region_abv == "US" |
+      variable == "Soybean Exp Price index" & region_abv == "Total" |
+      variable == "Soybean Production" & region_abv == "Brazil" |
+      variable == "Soybean Area" & region_abv == "Brazil" |
+      variable == "Soybean Area" & region_abv == "Cerrado" 
   )
 
 # Pivot to wide format for plotting
@@ -58,25 +78,25 @@ df_wide <- df_wide %>%
 # re-name for more clear labeling
 df_wide <- df_wide %>% 
   mutate(label = case_when(
-    label == "US - Soy Area" ~ "US Soy Area",
-    label == "US - Soy Production" ~ "US Soy Production",
-    label == "US - Soy Exp" ~ "US Soy Exports",
-    label == "US - Soy Exp Price index" ~ "US Soy Prices",
-    label == "Total - Soy Exp Price index" ~ "Global Soy Prices",
-    label == "Brazil - Soy Area" ~ "Brazil Soy Area",
-    label == "Brazil - Soy Production" ~ "Brazil Soy Production",
-    label == "Cerrado - Soy Area" ~ "Cerrado Soy Area",
+    label == "US - Soybean Area" ~ "US Soybean Area",
+    label == "US - Soybean Production" ~ "US Soybean Production",
+    label == "US - Soybean Exp" ~ "US Soybean Exports",
+    label == "US - Soybean Exp Price index" ~ "US Soybean Prices",
+    label == "Total - Soybean Exp Price index" ~ "Global Soybean Prices",
+    label == "Brazil - Soybean Area" ~ "Brazil Soybean Area",
+    label == "Brazil - Soybean Production" ~ "Brazil Soybean Production",
+    label == "Cerrado - Soybean Area" ~ "Cerrado Soybean Area",
     TRUE ~ label
   ))
 
 # set as factor for easy re-ordering
 df_wide <- df_wide %>% 
   mutate(label = factor(label, levels =
-                          c("US Soy Area", "US Soy Production",
-                            "US Soy Exports", "US Soy Prices",
-                            "Global Soy Prices",
-                            "Brazil Soy Area", "Brazil Soy Production",
-                            "Cerrado Soy Area")))
+                          c("US Soybean Area", "US Soybean Production",
+                            "US Soybean Exports", "US Soybean Prices",
+                            "Global Soybean Prices",
+                            "Brazil Soybean Area", "Brazil Soybean Production",
+                            "Cerrado Soybean Area")))
 
 # 2) Plot & Save --------
 # Plot
@@ -100,4 +120,4 @@ ggplot(df_wide, aes(y = label)) +
 
 # save
 ggsave(filename = "../Figures/2024-11-15/_dotplot_scenario.png", dpi = 300,
-       height = 3.5, width = 7)
+       height = 3.5, width = 8)
