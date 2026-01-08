@@ -67,7 +67,7 @@ datafile_version <- "sg1x3x10_v2411_US_Heat"
 pct <- "_m" # change when you change 'datafile'
 pct_model <- "m" # for the imp/exp cleaning, either l, m, h
 
-pct_title <- " - Med" # for plotting, either " - High" or " - Low" or "" or "- Med"
+pct_title <- "" # for plotting, either " - High" or " - Low" or "" or "- Med"
 #pct_title <- " - High" # note: changed Aug 2024 by setting -med to nothing, as it is the default
 
 # Define the model date 
@@ -320,11 +320,11 @@ F_p_violin <- function(df, area){
   # separate each for Maize and Soy
   df_pct_maizesoy <- df %>% 
     subset(c("pct_LND_MAZ", "pct_LND_SOY")) 
-  names(df_pct_maizesoy) <- c("Maize", "Soy")
+  names(df_pct_maizesoy) <- c("Maize", "Soybean")
   
   df_rawch_maizesoy <- df %>% 
     subset(c("rawch_MAZ", "rawch_SOY"))
-  names(df_rawch_maizesoy) <- c("Maize", "Soy")
+  names(df_rawch_maizesoy) <- c("Maize", "Soybean")
   
   # violin plots for % change and raw change for maize and soy 
   # set size_title, size_labels, and size_axis_nums in the "Constants" section
@@ -363,7 +363,7 @@ F_p_violin_soy <- function(df, area){
   ## subset and change names ##
   df_pct_soy <- df %>% 
     subset(c("pct_QLAND", "pct_LND_SOY")) 
-  names(df_pct_soy) <- c("All", "Soy")
+  names(df_pct_soy) <- c("All", "Soybean")
   
   
   # violin plots for % change in all simulation results and soy subsetted (because bwplot() needs two or more bwplots) 
@@ -387,7 +387,7 @@ F_p_violin_soy <- function(df, area){
   # raw 
   df_raw_soy <- df %>%
     subset(c("rawch_QLAND", "rawch_SOY"))
-  names(df_raw_soy) <- c("All", "Soy")
+  names(df_raw_soy) <- c("All", "Soybean")
 
   p2 <- bwplot(df_raw_soy,
                main = list(paste(area, "Raw Change Soybean", pct_title), cex = size_title),
