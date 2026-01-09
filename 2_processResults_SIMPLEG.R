@@ -1836,18 +1836,24 @@ reg_df_mha_mt <- reg_df_mha_mt %>%
 
 # last, replace index with Index
 reg_df_mha_mt <- reg_df_mha_mt %>%
-  mutate(across(everything(), ~ str_replace_all(.x, "index", "Index")))
+  mutate(across(everything(), ~ str_replace_all(.x, "index", "Index"))) %>% 
+  mutate(
+    pct_chg = pct_chg %>% as.numeric(),
+    chg = chg %>% as.numeric(),
+    pre = pre %>% as.numeric(),
+    post = post %>% as.numeric())
 
   
 ### 8.4.6) Save Regional Table for Cascading Effects ------
 ## SAVE TABLE - REGIONAL RESULTS ##
 write.xlsx(reg_df_mha_mt, paste0(folder_results, "_regional_aggregate", pct, ".xlsx"), overwrite = TRUE)
 
-# filter just to soy
+# filter just to soy area & production
 reg_df_mha_mt_s <-  reg_df_mha_mt %>% 
   filter(grepl('Soybean', variable, fixed = T)) %>% 
   filter(!grepl('CornSoybean', variable, fixed = T)) %>% 
-  arrange(variable)
+  arrange(variable) %>% 
+  filter(type %in% c("Area", "Production"))
 
 ## SAVE TABLE - REGIONAL SOY RESULTS ##
 write.xlsx(reg_df_mha_mt_s, paste0(folder_results, "_regional_aggregate_soy", pct, ".xlsx"), overwrite = TRUE)
