@@ -1557,11 +1557,17 @@ write.xlsx(pgc_combined_df, pgc_output_file)
 
 ## 8.4) Create Regional Results Table for Areas of Interest ------
 
-### 8.4.1) Get data into one df --------
-
+### 8.4.0) Load Data ------
 # Call the df from "Clean Results Sheet" step in Section 1
 data_clean 
 sheets
+
+# call 'r_cerr' to get the summarized per-pixel values within the Cerrado
+r_cerr <- rast(read_rds(paste0(folder_der_date, "r_m_Cerrado.rds")))
+
+### 8.4.1) Get data into one df --------
+
+
 
 # Define regions to keep
 reg_names <- c("BRA", "US", "EU", "CHINA", "S_Amer", "Total")
