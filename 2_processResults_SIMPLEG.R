@@ -1621,6 +1621,8 @@ reg_df_combined <- reg_df %>%
     .groups = "drop"
   )
 
+
+
 # Aggregate average for index type
 reg_priceindex <- reg_df %>%
   filter(type == "index") %>%
@@ -1731,7 +1733,7 @@ reg_df_cerr <- reg_df_combined_types %>%
 
 
 
-### 8.3.3) Calculate the Total Price Changes Separately ------
+### 8.4.3) Calculate the Total Price Changes Separately ------
 # NOTE: need to calculate the Total Change in Price Index differently than anything else because they are the mean of change from all regions
 
 # Extract the chg value for region_abv == "Total"
@@ -1768,21 +1770,86 @@ reg_df_cerr <- reg_df_cerr %>%
 
 # replace "soy" with "soybean"
 reg_df_cerr <- reg_df_cerr %>% 
-  mutate(across(everything(), ~ str_replace_all(.x, "Soy", "Soybean")))
+  mutate(across(everything(), ~ str_replace_all(.x, "Soy", "Soybean"))) %>% 
+  mutate(
+    pct_chg = pct_chg %>% as.numeric(),
+    chg = chg %>% as.numeric(),
+    pre = pre %>% as.numeric(),
+    post = post %>% as.numeric())
 
+##########
+# get Total - US values 
+reg_df_cerr <-
+  reg_df_cerr %>%
+  # Keep only the pieces we need to compute (Total - US) within each crop/type/variable
+  filter(region_abv %in% c("Total", "US")) %>%
+  select(crop, type, variable, Unit, modeltype, region_abv, pre, post) %>%
+  pivot_wider(
+    names_from = region_abv,
+    values_from = c(pre, post)
+  ) %>%
+  mutate(
+    region_abv = "Total (excl. US)",
+    pre  = pre_Total - pre_US,
+    post = post_Total - post_US,
+    chg = post - pre,
+    pct_chg = ((post-pre)/pre)*100
+  ) %>%
+  select(region_abv, crop, type, variable, Unit, modeltype, pre, post, chg, pct_chg) %>%
+  bind_rows(reg_df_cerr, .)
 
-### 8.3.4) Save Regional Table for Cascading Effects ------
+# manually change price results to divide by the number of regions (16 instead of 17 because we are not including US)
+reg_df_cerr <- reg_df_cerr %>%
+  mutate(
+    chg = if_else(region_abv == "Total (excl. US)" & variable == "Soybean Exp Price index", chg / 16, chg),
+    chg = if_else(region_abv == "Total (excl. US)" & variable == "Corn Exp Price index", chg / 16, chg),
+    chg = if_else(region_abv == "Total (excl. US)" & variable == "CornSoybean index", chg / 32, chg),
+  )
+
+# divide Area, Production, Exports, and Imports by 1000 to convert kha-->Mha and 1000-tons CE-->Mmt CE
+# Note that we omit price here because the unit doesn't make sense to divide by 1000; we want USD/mt
+reg_df_mha_mt <- reg_df_cerr %>% 
+  mutate(
+    across(c(chg, pre, post),
+           ~ if_else(type != "index", . / 1000, .))) %>% 
+  mutate(
+      Unit = case_when(
+      type == "Area" ~ "Mha",
+      type == "Production" ~ "Mmt CE",
+      type %in% c("Imp", "Exp") ~ "Mmt",
+      type == "index" ~ "USD/mt",
+      TRUE ~ NA_character_
+    ))
+
+# rearrange to a consistent order 
+reg_df_mha_mt <- reg_df_mha_mt %>%
+  mutate(
+    crop = factor(crop, levels = c("Soybean", "Corn", "CornSoybean")),
+    region_abv = factor(region_abv, levels = c(
+      "US", "Cerrado", "Brazil", "S. America (excl. Brazil)",
+      "China", "EU", "Total (excl. US)", "Total"
+    )),
+    type = factor(type, levels = c("Area", "Production", "index", "Exp", "Imp"))
+  ) %>%
+  arrange(crop, region_abv, type)
+
+# last, replace index with Index
+reg_df_mha_mt <- reg_df_mha_mt %>%
+  mutate(across(everything(), ~ str_replace_all(.x, "index", "Index")))
+
+  
+### 8.4.4) Save Regional Table for Cascading Effects ------
 ## SAVE TABLE - REGIONAL RESULTS ##
-write.xlsx(reg_df_cerr, paste0(folder_results, "_regional_aggregate", pct, ".xlsx"), overwrite = TRUE)
+write.xlsx(reg_df_mha_mt, paste0(folder_results, "_2regional_aggregate", pct, ".xlsx"), overwrite = TRUE)
 
 # filter just to soy
-reg_df_cerr_s <-  reg_df_cerr %>% 
+reg_df_mha_mt_s <-  reg_df_mha_mt %>% 
   filter(grepl('Soybean', variable, fixed = T)) %>% 
   filter(!grepl('CornSoybean', variable, fixed = T)) %>% 
   arrange(variable)
 
 ## SAVE TABLE - REGIONAL SOY RESULTS ##
-write.xlsx(reg_df_cerr_s, paste0(folder_results, "_regional_aggregate_soy", pct, ".xlsx"), overwrite = TRUE)
+write.xlsx(reg_df_mha_mt_s, paste0(folder_results, "_regional_aggregate_soy", pct, ".xlsx"), overwrite = TRUE)
 
 
 # 9: Transition Results: Doesn't Change with new Model Runs -----
