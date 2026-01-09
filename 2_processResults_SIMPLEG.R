@@ -1777,7 +1777,7 @@ reg_df_cerr <- reg_df_cerr %>%
     pre = pre %>% as.numeric(),
     post = post %>% as.numeric())
 
-##########
+### 8.4.4) Calculate Outside of US Changes -----
 # get Total - US values 
 reg_df_cerr <-
   reg_df_cerr %>%
@@ -1806,6 +1806,7 @@ reg_df_cerr <- reg_df_cerr %>%
     chg = if_else(region_abv == "Total (excl. US)" & variable == "CornSoybean index", chg / 32, chg),
   )
 
+### 8.4.5) Clean df before saving ------
 # divide Area, Production, Exports, and Imports by 1000 to convert kha-->Mha and 1000-tons CE-->Mmt CE
 # Note that we omit price here because the unit doesn't make sense to divide by 1000; we want USD/mt
 reg_df_mha_mt <- reg_df_cerr %>% 
@@ -1838,9 +1839,9 @@ reg_df_mha_mt <- reg_df_mha_mt %>%
   mutate(across(everything(), ~ str_replace_all(.x, "index", "Index")))
 
   
-### 8.4.4) Save Regional Table for Cascading Effects ------
+### 8.4.6) Save Regional Table for Cascading Effects ------
 ## SAVE TABLE - REGIONAL RESULTS ##
-write.xlsx(reg_df_mha_mt, paste0(folder_results, "_2regional_aggregate", pct, ".xlsx"), overwrite = TRUE)
+write.xlsx(reg_df_mha_mt, paste0(folder_results, "_regional_aggregate", pct, ".xlsx"), overwrite = TRUE)
 
 # filter just to soy
 reg_df_mha_mt_s <-  reg_df_mha_mt %>% 
