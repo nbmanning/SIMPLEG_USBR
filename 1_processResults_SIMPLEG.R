@@ -270,4 +270,4 @@ save(shp_br, shp_br_border, shp_br_states,
      shp_cerr, shp_cerr_states,
      shp_us, shp_us_mw,
      shp_world,
-     file = "../Data_Derived/shp_usbr.RData")
+     file = paste0(folder_derived, "shp_usbr.RData"))
