@@ -184,8 +184,12 @@ print(paste("Average Loss Rate (c+s, post-truncate):", global(r$LossRate, fun = 
 fips2 <- fips.df$LossRate
 fips2[fips2 > 0.99] = 0.99
 fips2[is.na(fips2)] = 0
-mean(fips2, na.rm = T) # 0.1703 before setting NA to 0; 0.1692 after setting all NA to 0
 
+ms_shock_mean <- mean(fips2, na.rm = T) * 100 # 0.1703 before setting NA to 0; 0.1692 after setting all NA to 0
+ms_shock_med <- median(fips2, na.rm = T) * 100
+
+paste0("We found an average shock of ", format(round(ms_shock_mean, 2), nsmall = 2),  
+        "% (median: ", format(round(ms_shock_med, 2), nsmall = 2), "%).")
 
 # save df's for: 
 ## df.xyz = the XY loss rates that get converted to raster; don't need fips.df bc fips.df feeds into this
@@ -201,16 +205,16 @@ save(r, file = "../Data_Derived/shock_v4_r99.RData")
 # 5) Plot the shock ----
 ## Reproject 
 ## change the projection
-#u = terra::project(r, "+init=epsg:2163")
-u = terra::project(r, "+init=epsg:4326")
+u = terra::project(r, "+init=epsg:2163")
+#u = terra::project(r, "+init=epsg:4326")
 
 
 v = vect("../US_Drought_Shock_v4/cb_2018_us_state_500k/cb_2018_us_state_500k.shp") #NOTE: Need to copy/paste the US shp folder to v2
 
 v = crop(v,s)
 
-#w = terra::project(v, "+init=epsg:2163")
-w = terra::project(v, "+init=epsg:4326")
+w = terra::project(v, "+init=epsg:2163")
+#w = terra::project(v, "+init=epsg:4326")
 
 # Define breaks and colors using RColorBrewer
 breaks <- c(0, 5, 10, 50, 99)
